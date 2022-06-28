@@ -20,7 +20,12 @@ type MetadataFetcher struct {
 }
 
 func NewMetadataFetcher(kubeconfig string) (*MetadataFetcher, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	path, err := GetKubeConfigPath(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := clientcmd.BuildConfigFromFlags("", path)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +36,7 @@ func NewMetadataFetcher(kubeconfig string) (*MetadataFetcher, error) {
 	}
 
 	return &MetadataFetcher{
-		kubeconfigPath: kubeconfig,
+		kubeconfigPath: path,
 		clientSet:      clientset,
 	}, nil
 }

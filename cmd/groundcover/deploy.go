@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
@@ -29,9 +28,6 @@ const (
 	AUTO_DEPLOYMENT_TAG           = "auto"
 	GROUNDCOVER_NAMESPACE_FLAG    = "groundcover-namespace"
 	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
-	ALLIGATORS_POLLING_INTERVAL   = time.Second * 10
-	WAIT_FOR_ALLIGATORS_TO_RUN    = time.Minute * 2
-	SPINNER_TYPE                  = 8 // .oO@*
 )
 
 var (
@@ -76,12 +72,7 @@ var DeployCmd = &cobra.Command{
 		}
 		formattedClusterName := k8s.FormatClusterName(clusterName)
 
-		kubeConfigPath, err := k8s.GetKubeConfigPath(viper.GetString(KUBECONFIG_PATH_FLAG))
-		if err != nil {
-			return fmt.Errorf("failed to get kube config path. error: %s", err.Error())
-		}
-
-		metadataFetcher, err := k8s.NewMetadataFetcher(kubeConfigPath)
+		metadataFetcher, err := k8s.NewMetadataFetcher(viper.GetString(KUBECONFIG_PATH_FLAG))
 		if err != nil {
 			return err
 		}
@@ -153,16 +144,6 @@ func autoInstallation(ctx context.Context, helmCmd *helm.HelmCmd, metadataFetche
 		return err
 	}
 
-	version, err := helmCmd.GetLatestChartVersion(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = waitForAlligators(ctx, metadataFetcher, groundcoverNamespace, version)
-	if err != nil {
-		return fmt.Errorf("failed while waiting for alligators to run: %s", err.Error())
-	}
-
 	err = api.WaitUntilClusterConnectedToSaas(ctx, token, clusterName)
 	if err != nil {
 		return fmt.Errorf("failed while waiting for groundcover installation to connect: %s", err.Error())
@@ -185,42 +166,4 @@ func manualInstallation(helmCmd *helm.HelmCmd, apiKey, clusterName, groundcoverN
 	fmt.Print("\n\n")
 	fmt.Printf(helmCmd.BuildInstallCommand(apiKey, clusterName, groundcoverNamespace))
 	return nil
-}
-
-func waitForAlligators(ctx context.Context, metadataFetcher *k8s.MetadataFetcher, groundcoverNamespace string, version string) error {
-	ctx, cancel := context.WithTimeout(ctx, WAIT_FOR_ALLIGATORS_TO_RUN)
-	defer cancel()
-
-	numberOfNodes, err := metadataFetcher.GetNumberOfNodes(ctx)
-	if err != nil {
-		return err
-	}
-
-	var numberOfAlligators int
-	s := spinner.New(spinner.CharSets[SPINNER_TYPE], 100*time.Millisecond)
-	s.Suffix = fmt.Sprintf(" Waiting until all alligators are up. %d/%d", numberOfAlligators, numberOfNodes)
-	s.Color("red")
-	s.Start()
-	defer s.Stop()
-
-	ticker := time.NewTicker(ALLIGATORS_POLLING_INTERVAL)
-	for {
-		select {
-		case <-ticker.C:
-			numberOfAlligators, err = metadataFetcher.GetNumberOfAlligators(ctx, groundcoverNamespace, version)
-			if err != nil {
-				return err
-			}
-			if numberOfAlligators == numberOfNodes {
-				s.Stop()
-				fmt.Printf("All alligators are up %d/%d !\n", numberOfAlligators, numberOfNodes)
-				return nil
-			}
-
-			s.Suffix = fmt.Sprintf(" Waiting until all alligators are up. %d/%d", numberOfAlligators, numberOfNodes)
-		case <-ctx.Done():
-			fmt.Printf("timed out while waiting for all alligators to run, got only: %d/%d", numberOfAlligators, numberOfNodes)
-			return nil
-		}
-	}
 }

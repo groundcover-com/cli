@@ -142,8 +142,17 @@ func (h *HelmCmd) BuildInstallCommand(apiKey, clusterName, namespace string) str
 }
 
 func (h *HelmCmd) Uninstall(ctx context.Context, namespace string, helmRelease string) error {
+	cmdOutput := strings.Builder{}
 	helmUninstallCmd := exec.Command(h.helmPath, "uninstall", "--namespace", namespace, helmRelease)
+	helmUninstallCmd.Stdout = &cmdOutput
+	helmUninstallCmd.Stderr = &cmdOutput
+
 	if err := helmUninstallCmd.Run(); err != nil {
+		// if the release is not found this is not an actual error
+		if strings.Contains(cmdOutput.String(), "release: not found") {
+			return nil
+		}
+
 		return fmt.Errorf("failed to uninstall groundcover. error: %s", err.Error())
 	}
 

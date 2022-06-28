@@ -44,7 +44,6 @@ type CustomClaims struct {
 	auth0Tenant      string `json:"-"`
 	jwt_modern_claims.RegisteredClaims
 }
-
 type Auth0Error struct {
 	Error     string `json:"error"`
 	ErrorDesc string `json:"error_description"`

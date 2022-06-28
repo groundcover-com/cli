@@ -16,6 +16,10 @@ const (
 	TSDB_SERVICE_CONFIG_NAME      = "service/groundcover-tsdb-config"
 )
 
+var (
+	labelsToDelete = []string{"release=groundcover", "app.kubernetes.io/instance=groundcover"}
+)
+
 func init() {
 	RootCmd.AddCommand(UninstallCmd)
 
@@ -54,7 +58,11 @@ var UninstallCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Uninstalled groundcover :(")
-		return nil
+		shouldUninstallPvcs := utils.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false)
+		if !shouldUninstallPvcs {
+			fmt.Println("Not removing groundcover pvcs")
+			return nil
+		}
+		return kubectl.DeletePvcByLabels(cmd.Context(), groundcoverNamespace, labelsToDelete)
 	},
 }
