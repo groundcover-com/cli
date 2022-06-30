@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"groundcover.com/pkg/utils"
 )
 
 const (
@@ -22,13 +24,10 @@ func GetKubectlPath() (string, error) {
 }
 
 func Delete(ctx context.Context, namespace string, objectName string) error {
-	cmdOutput := strings.Builder{}
-	deleteTsdbConfigCmd := exec.Command("kubectl", "delete", "--namespace", namespace, objectName)
-	deleteTsdbConfigCmd.Stdout = &cmdOutput
-	deleteTsdbConfigCmd.Stderr = &cmdOutput
-	if err := deleteTsdbConfigCmd.Run(); err != nil {
+	output, err := utils.ExecuteCommand("kubectl", "delete", "--namespace", namespace, objectName)
+	if err != nil {
 		// if the object doesn't exist, we don't care
-		if strings.Contains(cmdOutput.String(), "not found") {
+		if strings.Contains(output, "not found") {
 			return nil
 		}
 
@@ -40,15 +39,10 @@ func Delete(ctx context.Context, namespace string, objectName string) error {
 
 func DeletePvcByLabels(ctx context.Context, namespace string, labelsToDelete []string) error {
 	for _, label := range labelsToDelete {
-		cmdOutput := strings.Builder{}
-
-		deleteLabeledPvcs := exec.Command("kubectl", "delete", "pvc", "--namespace", namespace, "--selector", label)
-		deleteLabeledPvcs.Stdout = &cmdOutput
-		deleteLabeledPvcs.Stderr = &cmdOutput
-
-		if err := deleteLabeledPvcs.Run(); err != nil {
+		output, err := utils.ExecuteCommand("kubectl", "delete", "pvc", "--namespace", namespace, "--selector", label)
+		if err != nil {
 			// if the object doesn't exist, we don't care
-			if strings.Contains(cmdOutput.String(), "No resources found in") {
+			if strings.Contains(output, "No resources found in") {
 				return nil
 			}
 
