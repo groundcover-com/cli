@@ -1,5 +1,5 @@
 groundcover-deps:
-    FROM golang:1.17-alpine3.15
+    FROM golang:1.18-alpine3.15
     RUN apk add build-base
     WORKDIR /builder
     COPY go.mod .
