@@ -42,7 +42,7 @@ var StatusCmd = &cobra.Command{
 			return err
 		}
 
-		err = waitForAlligators(cmd.Context(), metadataFetcher, viper.GetString("groundcover-namespace"), version)
+		err = waitForAlligators(cmd.Context(), metadataFetcher, viper.GetString(GROUNDCOVER_NAMESPACE_FLAG), version)
 		if err != nil {
 			return fmt.Errorf("failed while waiting for all nodes to be monitored: %s", err.Error())
 		}
