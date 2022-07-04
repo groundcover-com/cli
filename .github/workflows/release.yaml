@@ -1,18 +1,15 @@
-name: goreleaser
+name: cli-release
 
 on:
   push:
     tags:
       - 'v*.*.*'
 
-permissions:
-  contents: write
-  packages: write
-  issues: write
-
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       -
         name: Checkout
@@ -23,7 +20,9 @@ jobs:
         name: Set up Go
         uses: actions/setup-go@v3
         with:
+          cache: true
           go-version-file: go.mod
+          cache-dependency-path: go.sum
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3

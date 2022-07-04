@@ -17,7 +17,7 @@ builds:
       - '-X groundcover.com/cmd/groundcover.BinaryVersion={{ .Version }}'
 archives:
   -
-    format: gz
+    format: tar.gz
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     files:
       - none*
