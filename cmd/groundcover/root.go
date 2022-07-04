@@ -5,12 +5,21 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"groundcover.com/pkg/auth"
 )
 
 const (
 	USER_CUSTOM_CLAIMS_KEY = "user_custom_claims"
 )
+
+func init() {
+	RootCmd.PersistentFlags().String(KUBECONFIG_PATH_FLAG, "", "kubeconfig path")
+	viper.BindPFlag(KUBECONFIG_PATH_FLAG, DeployCmd.PersistentFlags().Lookup(KUBECONFIG_PATH_FLAG))
+
+	RootCmd.PersistentFlags().String(GROUNDCOVER_NAMESPACE_FLAG, DEFAULT_GROUNDCOVER_NAMESPACE, "groundcover deployment namespace")
+	viper.BindPFlag(GROUNDCOVER_NAMESPACE_FLAG, RootCmd.PersistentFlags().Lookup(GROUNDCOVER_NAMESPACE_FLAG))
+}
 
 var RootCmd = &cobra.Command{
 	Use:   "groundcover",

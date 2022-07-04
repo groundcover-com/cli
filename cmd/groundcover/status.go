@@ -21,9 +21,6 @@ const (
 
 func init() {
 	RootCmd.AddCommand(StatusCmd)
-
-	StatusCmd.PersistentFlags().String(GROUNDCOVER_NAMESPACE_FLAG, DEFAULT_GROUNDCOVER_NAMESPACE, "groundcover deployment namespace")
-	viper.BindPFlag(GROUNDCOVER_NAMESPACE_FLAG, StatusCmd.PersistentFlags().Lookup(GROUNDCOVER_NAMESPACE_FLAG))
 }
 
 var StatusCmd = &cobra.Command{
@@ -45,7 +42,7 @@ var StatusCmd = &cobra.Command{
 			return err
 		}
 
-		err = waitForAlligators(cmd.Context(), metadataFetcher, viper.GetString(GROUNDCOVER_NAMESPACE_FLAG), version)
+		err = waitForAlligators(cmd.Context(), metadataFetcher, viper.GetString("groundcover-namespace"), version)
 		if err != nil {
 			return fmt.Errorf("failed while waiting for all nodes to be monitored: %s", err.Error())
 		}
