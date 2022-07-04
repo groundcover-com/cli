@@ -1,0 +1,31 @@
+project_name: groundcover
+before:
+  hooks:
+    - go mod tidy
+builds:
+  -
+    main: ./cmd/main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - '386'
+      - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: '386'
+    ldflags:
+      - '-X groundcover.com/cmd/groundcover.BinaryVersion={{ .Version }}'
+archives:
+- format: zip
+  name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+checksum:
+  algorithm: sha256
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
