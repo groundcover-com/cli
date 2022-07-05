@@ -23,9 +23,6 @@ var (
 func init() {
 	RootCmd.AddCommand(UninstallCmd)
 
-	UninstallCmd.PersistentFlags().String(GROUNDCOVER_NAMESPACE_FLAG, DEFAULT_GROUNDCOVER_NAMESPACE, "groundcover deployment namespace")
-	viper.BindPFlag(GROUNDCOVER_NAMESPACE_FLAG, UninstallCmd.PersistentFlags().Lookup(GROUNDCOVER_NAMESPACE_FLAG))
-
 	UninstallCmd.PersistentFlags().String(GROUNDCOVER_HELM_RELEASE_FLAG, GROUNDCOVER_HELM_RELEASE_NAME, "groundcover release name")
 	viper.BindPFlag(GROUNDCOVER_HELM_RELEASE_FLAG, UninstallCmd.PersistentFlags().Lookup(GROUNDCOVER_HELM_RELEASE_FLAG))
 }
