@@ -14,9 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+: "${GITHUB_REPO:="cli"}"
+: "${GITHUB_OWNER:="groundcover"}"
 : "${BINARY_NAME:="groundcover"}"
-: "${INSTALL_DIR:="/usr/local/bin"}"
+: "${INSTALL_DIR:="${HOME}/.groundcover/bin"}"
 
 # initArch discovers the architecture for this system.
 initArch() {
@@ -45,17 +46,34 @@ initOS() {
 
 # initLatestTag discovers latest version on GitHub releases.
 initLatestTag() {
-  local latest_release_url="https://api.github.com/repos/groundcover-com/cli/releases/latest"
+  local latest_release_url="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest"
   LATEST_TAG=$(curl -Ls ${latest_release_url} | awk -F\" '/tag_name/{print $(NF-1)}')
 }
 
-# runs the given command as root (detects if we are root already)
-runAsRoot() {
-  if [ ${EUID} -ne 0 ]; then
-    sudo "${@}"
-  else
-    "${@}"
+# appendShellPath append our install bin directory to PATH on bash, zsh and fish shells
+appendShellPath() {
+  local bashrc_file="${HOME}/.bashrc"
+  if [[ -f "${bashrc_file}" ]]; then
+    local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
+    grep -q "${export_path_expression}" "${bashrc_file}" || echo "${export_path_expression}" >> "${bashrc_file}"
+    echo "Added ${INSTALL_DIR} to \$PATH in ${bashrc_file}"
   fi
+
+  local zshrc_file="${HOME}/.zshrc"
+  if [[ -f "${zshrc_file}" ]]; then
+    local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
+    grep -q "${export_path_expression}" "${zshrc_file}" || echo "${export_path_expression}" >> "${zshrc_file}"
+    echo "Added ${INSTALL_DIR} to \$PATH in ${zshrc_file}"
+  fi
+
+  local fish_config_file="${HOME}/.config/fish/config.fish"
+  if [[ -f "${fish_config_file}" ]]; then
+    local export_path_expression="set -U fish_user_paths ${INSTALL_DIR} \$fish_user_paths"
+    grep -q "${export_path_expression}" "${fish_config_file}" || echo "${export_path_expression}" >> "${fish_config_file}"
+    echo "Added ${INSTALL_DIR} to \$PATH in ${fish_config_file}"
+  fi
+
+  exec "${SHELL}" # Reload shell
 }
 
 # verifySupported checks that the os/arch combination is supported for
@@ -89,7 +107,7 @@ checkInstalledVersion() {
 # downloadFile downloads the latest binary package.
 downloadFile() {
   ARCHIVE_NAME="${BINARY_NAME}_${LATEST_TAG#v}_${OS}_${ARCH}.tar.gz"
-  DOWNLOAD_URL="https://github.com/groundcover-com/cli/releases/download/${LATEST_TAG}/${ARCHIVE_NAME}"
+  DOWNLOAD_URL="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${LATEST_TAG}/${ARCHIVE_NAME}"
   TMP_ROOT="$(mktemp -dt groundcover-installer-XXXXXX)"
   ARCHIVE_TMP_PATH="${TMP_ROOT}/${ARCHIVE_NAME}"
   curl -SsL "${DOWNLOAD_URL}" -o "${ARCHIVE_TMP_PATH}"
@@ -101,14 +119,16 @@ installFile() {
   BIN_PATH="${INSTALL_DIR}/${BINARY_NAME}"
   BIN_TMP_PATH="${TMP_ROOT}/${BINARY_NAME}"
   echo "Preparing to install ${BINARY_NAME} into ${INSTALL_DIR}"
-  runAsRoot cp "$BIN_TMP_PATH" "${BIN_PATH}"
+  mkdir -p "${INSTALL_DIR}"
+  cp "${BIN_TMP_PATH}" "${BIN_PATH}"
+  chmod +x "${BIN_PATH}2"
   echo "${BINARY_NAME} installed into ${BIN_PATH}"
 }
 
 # testVersion tests the installed client to make sure it is working.
 testVersion() {
   set +e
-  command -v "${BINARY_NAME}"
+  command -v "${BINARY_NAME}" >/dev/null 2>&1
   if [ "$?" = "1" ]; then
     echo "${BINARY_NAME} not found. Is ${INSTALL_DIR} on your PATH"
     exit 1
@@ -148,5 +168,6 @@ if ! checkInstalledVersion; then
   downloadFile
   installFile
 fi
+appendShellPath
 testVersion
 cleanup
