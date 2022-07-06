@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright The Groundcover Authors.
+# Copyright The groundcover Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
 # limitations under the License.
 
 
-: ${BINARY_NAME:="groundcover"}
-: ${INSTALL_DIR:="/usr/local/bin"}
+: "${BINARY_NAME:="groundcover"}"
+: "${INSTALL_DIR:="/usr/local/bin"}"
 
 # initArch discovers the architecture for this system.
 initArch() {
@@ -35,7 +35,7 @@ initArch() {
 
 # initOS discovers the operating system for this system.
 initOS() {
-  OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
+  OS=$(uname |tr '[:upper:]' '[:lower:]')
 
   case "$OS" in
     # Minimalist GNU for Windows
@@ -46,12 +46,12 @@ initOS() {
 # initLatestTag discovers latest version on GitHub releases.
 initLatestTag() {
   local latest_release_url="https://api.github.com/repos/groundcover-com/cli/releases/latest"
-  LATEST_TAG=$(curl -Ls $latest_release_url | awk -F\" '/tag_name/{print $(NF-1)}')
+  LATEST_TAG=$(curl -Ls ${latest_release_url} | awk -F\" '/tag_name/{print $(NF-1)}')
 }
 
 # runs the given command as root (detects if we are root already)
 runAsRoot() {
-  if [ $EUID -ne 0 -a "$USE_SUDO" = "true" ]; then
+  if [ ${EUID} -ne 0 ]; then
     sudo "${@}"
   else
     "${@}"
@@ -68,16 +68,17 @@ verifySupported() {
   fi
 }
 
-# checkHelmInstalledVersion checks which version of cli is installed and
+# checkInstalledVersion checks which version of cli is installed and
 # if it needs to be changed.
 checkInstalledVersion() {
   if [[ -f "${INSTALL_DIR}/${BINARY_NAME}" ]]; then
-    local version=$("${INSTALL_DIR}/${BINARY_NAME}" version)
+    local version
+    version=$("${INSTALL_DIR}/${BINARY_NAME}" version)
     if [[ "$version" == "${LATEST_TAG#v}" ]]; then
-      echo "Groundcover ${version} is already latest"
+      echo "groundcover ${version} is already latest"
       return 0
     else
-      echo "Groundcover ${LATEST_TAG} is available. Changing from version ${version}."
+      echo "groundcover ${LATEST_TAG} is available. Updating from version ${version}."
       return 1
     fi
   else
@@ -87,28 +88,29 @@ checkInstalledVersion() {
 
 # downloadFile downloads the latest binary package.
 downloadFile() {
-  ARCHIVE_NAME="groundcover_${LATEST_TAG#v}_${OS}_${ARCH}.tar.gz"
+  ARCHIVE_NAME="${BINARY_NAME}_${LATEST_TAG#v}_${OS}_${ARCH}.tar.gz"
   DOWNLOAD_URL="https://github.com/groundcover-com/cli/releases/download/${LATEST_TAG}/${ARCHIVE_NAME}"
   TMP_ROOT="$(mktemp -dt groundcover-installer-XXXXXX)"
-  ARCHIVE_TMP_PATH="$TMP_ROOT/$ARCHIVE_NAME"
-  curl -SsL "$DOWNLOAD_URL" -o "$ARCHIVE_TMP_PATH"
+  ARCHIVE_TMP_PATH="${TMP_ROOT}/${ARCHIVE_NAME}"
+  curl -SsL "${DOWNLOAD_URL}" -o "${ARCHIVE_TMP_PATH}"
 }
 
 # installFile installs the cli binary.
 installFile() {
-  tar xf "$ARCHIVE_TMP_PATH" -C "$TMP_ROOT"
-  BIN_TMP_PATH="$TMP_ROOT/$BINARY_NAME"
-  echo "Preparing to install $BINARY_NAME into ${INSTALL_DIR}"
-  runAsRoot cp "$BIN_TMP_PATH" "$INSTALL_DIR/$BINARY_NAME"
-  echo "$BINARY_NAME installed into $INSTALL_DIR/$BINARY_NAME"
+  tar xf "${ARCHIVE_TMP_PATH}" -C "${TMP_ROOT}"
+  BIN_PATH="${INSTALL_DIR}/${BINARY_NAME}"
+  BIN_TMP_PATH="${TMP_ROOT}/${BINARY_NAME}"
+  echo "Preparing to install ${BINARY_NAME} into ${INSTALL_DIR}"
+  runAsRoot cp "$BIN_TMP_PATH" "${BIN_PATH}"
+  echo "${BINARY_NAME} installed into ${BIN_PATH}"
 }
 
 # testVersion tests the installed client to make sure it is working.
 testVersion() {
   set +e
-  CLI="$(command -v $BINARY_NAME)"
+  command -v "${BINARY_NAME}"
   if [ "$?" = "1" ]; then
-    echo "$BINARY_NAME not found. Is $INSTALL_DIR on your "'$PATH?'
+    echo "${BINARY_NAME} not found. Is ${INSTALL_DIR} on your PATH"
     exit 1
   fi
   set -e
@@ -118,7 +120,7 @@ testVersion() {
 # cleanup temporary files
 cleanup() {
   if [[ -d "${TMP_ROOT:-}" ]]; then
-    rm -rf "$TMP_ROOT"
+    rm -rf "${TMP_ROOT}"
   fi
 }
 
@@ -126,7 +128,7 @@ cleanup() {
 fail_trap() {
   result=$?
   if [ "$result" != "0" ]; then
-    echo "Failed to install $BINARY_NAME"
+    echo "Failed to install ${BINARY_NAME}"
     echo -e "\tFor support, go to https://github.com/groundcover-com/cli."
   fi
   cleanup
