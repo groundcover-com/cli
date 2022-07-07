@@ -67,7 +67,7 @@ func selfUpdate(ctx context.Context, release *github.GitHubLatestRelease) (err e
 		if tarHeader.Typeflag == tar.TypeReg {
 			if err = selfupdate.Apply(tarReader, selfupdate.Options{}); err != nil {
 				logrus.Error(err)
-				fmt.Println("self update has failed")
+				fmt.Println("Self update has failed")
 				os.Exit(1)
 			}
 			fmt.Println("Self update was successfully")

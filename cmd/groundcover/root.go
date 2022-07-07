@@ -40,7 +40,7 @@ groundcover, more data at: https://groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		currentVersion, err := GetVersion()
 		if !viper.GetBool(selfupdate.SKIP_SELFUPDATE_FLAG) && err == nil {
-			if err = selfupdate.TrySelfUpdate(context.Background(), currentVersion); err != nil {
+			if err = selfupdate.TrySelfUpdate(cmd.Context(), currentVersion); err != nil {
 				return err
 			}
 		}
