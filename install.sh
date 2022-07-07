@@ -91,7 +91,7 @@ verifySupported() {
 checkInstalledVersion() {
   if [[ -f "${INSTALL_DIR}/${BINARY_NAME}" ]]; then
     local version
-    version=$("${INSTALL_DIR}/${BINARY_NAME}" version)
+    version=$("${INSTALL_DIR}/${BINARY_NAME}" --skip-selfupdate version)
     if [[ "$version" == "${LATEST_TAG#v}" ]]; then
       echo "groundcover ${version} is already latest"
       return 0

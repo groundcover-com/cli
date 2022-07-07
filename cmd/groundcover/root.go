@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/auth"
+	"groundcover.com/pkg/selfupdate"
 )
 
 const (
@@ -14,8 +15,11 @@ const (
 )
 
 func init() {
+	RootCmd.PersistentFlags().Bool(selfupdate.SKIP_SELFUPDATE_FLAG, false, "disable automatic selfupdate check")
+	viper.BindPFlag(selfupdate.SKIP_SELFUPDATE_FLAG, RootCmd.PersistentFlags().Lookup(selfupdate.SKIP_SELFUPDATE_FLAG))
+
 	RootCmd.PersistentFlags().String(KUBECONFIG_PATH_FLAG, "", "kubeconfig path")
-	viper.BindPFlag(KUBECONFIG_PATH_FLAG, DeployCmd.PersistentFlags().Lookup(KUBECONFIG_PATH_FLAG))
+	viper.BindPFlag(KUBECONFIG_PATH_FLAG, RootCmd.PersistentFlags().Lookup(KUBECONFIG_PATH_FLAG))
 
 	RootCmd.PersistentFlags().String(GROUNDCOVER_NAMESPACE_FLAG, DEFAULT_GROUNDCOVER_NAMESPACE, "groundcover deployment namespace")
 	viper.BindPFlag(GROUNDCOVER_NAMESPACE_FLAG, RootCmd.PersistentFlags().Lookup(GROUNDCOVER_NAMESPACE_FLAG))
@@ -34,6 +38,12 @@ var RootCmd = &cobra.Command{
 
 groundcover, more data at: https://groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		currentVersion, err := GetVersion()
+		if !viper.GetBool(selfupdate.SKIP_SELFUPDATE_FLAG) && err == nil {
+			if err = selfupdate.TrySelfUpdate(context.Background(), currentVersion); err != nil {
+				return err
+			}
+		}
 		customClaims, err := checkAuthForCmd(cmd)
 		if err != nil {
 			return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
