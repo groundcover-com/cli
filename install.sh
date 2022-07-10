@@ -55,22 +55,28 @@ appendShellPath() {
   local bashrc_file="${HOME}/.bashrc"
   if [[ -f "${bashrc_file}" ]]; then
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
-    grep -q "${export_path_expression}" "${bashrc_file}" || echo "${export_path_expression}" >> "${bashrc_file}"
-    echo "Added ${INSTALL_DIR} to \$PATH in ${bashrc_file}"
+    if ! grep -q "${export_path_expression}" "${bashrc_file}"; then
+      echo "${export_path_expression}" >> "${bashrc_file}"
+      echo "Added ${INSTALL_DIR} to \$PATH in ${bashrc_file}"
+    fi    
   fi
 
   local zshrc_file="${HOME}/.zshrc"
   if [[ -f "${zshrc_file}" ]]; then
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
-    grep -q "${export_path_expression}" "${zshrc_file}" || echo "${export_path_expression}" >> "${zshrc_file}"
-    echo "Added ${INSTALL_DIR} to \$PATH in ${zshrc_file}"
+    if ! grep -q "${export_path_expression}" "${zshrc_file}"; then
+      echo "${export_path_expression}" >> "${zshrc_file}"
+      echo "Added ${INSTALL_DIR} to \$PATH in ${zshrc_file}"
+    fi
   fi
 
   local fish_config_file="${HOME}/.config/fish/config.fish"
   if [[ -f "${fish_config_file}" ]]; then
     local export_path_expression="set -U fish_user_paths ${INSTALL_DIR} \$fish_user_paths"
-    grep -q "${export_path_expression}" "${fish_config_file}" || echo "${export_path_expression}" >> "${fish_config_file}"
-    echo "Added ${INSTALL_DIR} to \$PATH in ${fish_config_file}"
+    if ! grep -q "${export_path_expression}" "${fish_config_file}"; then
+      echo "${export_path_expression}" >> "${fish_config_file}"
+      echo "Added ${INSTALL_DIR} to \$PATH in ${fish_config_file}"
+    fi
   fi
 
   exec "${SHELL}" # Reload shell
@@ -110,6 +116,7 @@ downloadFile() {
   DOWNLOAD_URL="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${LATEST_TAG}/${ARCHIVE_NAME}"
   TMP_ROOT="$(mktemp -dt groundcover-installer-XXXXXX)"
   ARCHIVE_TMP_PATH="${TMP_ROOT}/${ARCHIVE_NAME}"
+  echo "Downloading ${DOWNLOAD_URL}"
   curl -SsL "${DOWNLOAD_URL}" -o "${ARCHIVE_TMP_PATH}"
 }
 
