@@ -3,20 +3,27 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 
+	"github.com/blang/semver/v4"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/auth"
+	sentry "groundcover.com/pkg/custom_sentry"
 	"groundcover.com/pkg/selfupdate"
+	"groundcover.com/pkg/utils"
 )
 
 const (
+	GITHUB_REPO            = "cli"
+	GITHUB_OWNER           = "groundcover-com"
+	SKIP_SELFUPDATE_FLAG   = "skip-selfupdate"
 	USER_CUSTOM_CLAIMS_KEY = "user_custom_claims"
 )
 
 func init() {
-	RootCmd.PersistentFlags().Bool(selfupdate.SKIP_SELFUPDATE_FLAG, false, "disable automatic selfupdate check")
-	viper.BindPFlag(selfupdate.SKIP_SELFUPDATE_FLAG, RootCmd.PersistentFlags().Lookup(selfupdate.SKIP_SELFUPDATE_FLAG))
+	RootCmd.PersistentFlags().Bool(SKIP_SELFUPDATE_FLAG, false, "disable automatic selfupdate check")
+	viper.BindPFlag(SKIP_SELFUPDATE_FLAG, RootCmd.PersistentFlags().Lookup(SKIP_SELFUPDATE_FLAG))
 
 	RootCmd.PersistentFlags().String(KUBECONFIG_PATH_FLAG, "", "kubeconfig path")
 	viper.BindPFlag(KUBECONFIG_PATH_FLAG, RootCmd.PersistentFlags().Lookup(KUBECONFIG_PATH_FLAG))
@@ -38,12 +45,17 @@ var RootCmd = &cobra.Command{
 
 groundcover, more data at: https://groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		currentVersion, err := GetVersion()
-		if !viper.GetBool(selfupdate.SKIP_SELFUPDATE_FLAG) && err == nil {
-			if err = selfupdate.TrySelfUpdate(cmd.Context(), currentVersion); err != nil {
-				return err
+		if !viper.GetBool(SKIP_SELFUPDATE_FLAG) {
+			if shouldUpdate, selfUpdater := checkLatestVersionUpdate(cmd.Context()); shouldUpdate {
+				if err := selfUpdater.Apply(); err != nil {
+					fmt.Println("Self update has failed")
+					return err
+				}
+				fmt.Println("Self update was successfully")
+				os.Exit(0)
 			}
 		}
+
 		customClaims, err := checkAuthForCmd(cmd)
 		if err != nil {
 			return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
@@ -57,6 +69,27 @@ groundcover, more data at: https://groundcover.com/docs`,
 	SilenceUsage: true,
 	// this mutes error printing on command errors
 	SilenceErrors: true,
+}
+
+func checkLatestVersionUpdate(ctx context.Context) (shouldUpdate bool, selfUpdater *selfupdate.SelfUpdater) {
+	var err error
+	var currentVersion semver.Version
+
+	shouldUpdate = false
+	if currentVersion, err = GetVersion(); err != nil {
+		sentry.CaptureException(err)
+		return
+	}
+	if selfUpdater, err = selfupdate.NewSelfUpdater(ctx, GITHUB_OWNER, GITHUB_REPO); err != nil {
+		sentry.CaptureException(err)
+		return
+	}
+	if !selfUpdater.IsLatestNewer(currentVersion) {
+		return
+	}
+	promptFormat := "Your version %s is out of date! The latest version is %s.\nDo you want to update?"
+	shouldUpdate = utils.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
+	return
 }
 
 func checkAuthForCmd(c *cobra.Command) (*auth.CustomClaims, error) {
