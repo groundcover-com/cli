@@ -15,7 +15,7 @@
 # limitations under the License.
 
 : "${GITHUB_REPO:="cli"}"
-: "${GITHUB_OWNER:="groundcover"}"
+: "${GITHUB_OWNER:="groundcover-com"}"
 : "${BINARY_NAME:="groundcover"}"
 : "${INSTALL_DIR:="${HOME}/.groundcover/bin"}"
 
@@ -121,7 +121,7 @@ installFile() {
   echo "Preparing to install ${BINARY_NAME} into ${INSTALL_DIR}"
   mkdir -p "${INSTALL_DIR}"
   cp "${BIN_TMP_PATH}" "${BIN_PATH}"
-  chmod +x "${BIN_PATH}2"
+  chmod +x "${BIN_PATH}"
   echo "${BINARY_NAME} installed into ${BIN_PATH}"
 }
 
