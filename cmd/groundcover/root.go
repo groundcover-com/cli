@@ -71,25 +71,25 @@ groundcover, more data at: https://groundcover.com/docs`,
 	SilenceErrors: true,
 }
 
-func checkLatestVersionUpdate(ctx context.Context) (shouldUpdate bool, selfUpdater *selfupdate.SelfUpdater) {
+func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdater) {
 	var err error
 	var currentVersion semver.Version
+	var selfUpdater *selfupdate.SelfUpdater
 
-	shouldUpdate = false
 	if currentVersion, err = GetVersion(); err != nil {
 		sentry.CaptureException(err)
-		return
+		return false, selfUpdater
 	}
 	if selfUpdater, err = selfupdate.NewSelfUpdater(ctx, GITHUB_OWNER, GITHUB_REPO); err != nil {
 		sentry.CaptureException(err)
-		return
+		return false, selfUpdater
 	}
 	if !selfUpdater.IsLatestNewer(currentVersion) {
-		return
+		return false, selfUpdater
 	}
 	promptFormat := "Your version %s is out of date! The latest version is %s.\nDo you want to update?"
-	shouldUpdate = utils.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
-	return
+	shouldUpdate := utils.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
+	return shouldUpdate, selfUpdater
 }
 
 func checkAuthForCmd(c *cobra.Command) (*auth.CustomClaims, error) {

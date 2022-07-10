@@ -25,38 +25,43 @@ type SelfUpdater struct {
 	Version     semver.Version
 }
 
-func NewSelfUpdater(ctx context.Context, githubOwner, githubRepo string) (selfUpdater *SelfUpdater, err error) {
+func NewSelfUpdater(ctx context.Context, githubOwner, githubRepo string) (*SelfUpdater, error) {
+	var err error
 	var githubRelease *github.RepositoryRelease
 
-	selfUpdater = new(SelfUpdater)
+	selfUpdater := new(SelfUpdater)
 	selfUpdater.githubOwner = githubOwner
 	selfUpdater.githubRepo = githubRepo
 
 	client := github.NewClient(nil)
 	if githubRelease, _, err = client.Repositories.GetLatestRelease(ctx, githubOwner, githubRepo); err != nil {
-		return
+		return selfUpdater, err
 	}
 	if err = selfUpdater.fetchVersion(githubRelease); err != nil {
-		return
+		return selfUpdater, err
 	}
 	if err = selfUpdater.fetchAsset(ctx, client, githubRelease); err != nil {
-		return
+		return selfUpdater, err
 	}
-	return
+	return selfUpdater, err
 }
 
-func (selfUpdater *SelfUpdater) fetchVersion(githubRelease *github.RepositoryRelease) (err error) {
+func (selfUpdater *SelfUpdater) fetchVersion(githubRelease *github.RepositoryRelease) error {
+	var err error
+
 	selfUpdater.Version, err = semver.ParseTolerant(githubRelease.GetTagName())
-	return
+	return err
 }
 
-func (selfUpdater *SelfUpdater) fetchAsset(ctx context.Context, client *github.Client, githubRelease *github.RepositoryRelease) (err error) {
+func (selfUpdater *SelfUpdater) fetchAsset(ctx context.Context, client *github.Client, githubRelease *github.RepositoryRelease) error {
+	var err error
+
 	assetSuffix := fmt.Sprintf("%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 	for _, asset := range githubRelease.Assets {
 		if strings.HasSuffix(asset.GetName(), assetSuffix) {
 			selfUpdater.assetId = asset.GetID()
 			_, selfUpdater.assetUrl, err = client.Repositories.DownloadReleaseAsset(ctx, selfUpdater.githubOwner, selfUpdater.githubRepo, selfUpdater.assetId)
-			return
+			return err
 		}
 	}
 	return fmt.Errorf("failed to find asset for %s", assetSuffix)
@@ -70,7 +75,7 @@ func (selfUpdater *SelfUpdater) Apply() (err error) {
 	var assetReader io.Reader
 	var assetResponse *http.Response
 
-	if assetResponse, err = selfUpdater.downloadAsset(); err != nil {
+	if assetResponse, err = http.Get(selfUpdater.assetUrl); err != nil {
 		return
 	}
 	defer assetResponse.Body.Close()
@@ -81,22 +86,20 @@ func (selfUpdater *SelfUpdater) Apply() (err error) {
 	return selfupdate.Apply(assetReader, selfupdate.Options{})
 }
 
-func (selfUpdater *SelfUpdater) downloadAsset() (*http.Response, error) {
-	return http.Get(selfUpdater.assetUrl)
-}
-
-func (selfUpdater *SelfUpdater) untarAsset(assetReader io.ReadCloser) (tarReader *tar.Reader, err error) {
+func (selfUpdater *SelfUpdater) untarAsset(assetReader io.ReadCloser) (*tar.Reader, error) {
+	var err error
 	var exectuablePath string
 	var tarHeader *tar.Header
+	var tarReader *tar.Reader
 	var gzipReader *gzip.Reader
 
 	if exectuablePath, err = os.Executable(); err != nil {
-		return
+		return tarReader, err
 	}
 	exectuableName := filepath.Base(exectuablePath)
 
 	if gzipReader, err = gzip.NewReader(assetReader); err != nil {
-		return
+		return tarReader, err
 	}
 	defer gzipReader.Close()
 
@@ -107,10 +110,10 @@ func (selfUpdater *SelfUpdater) untarAsset(assetReader io.ReadCloser) (tarReader
 			break
 		}
 		if err != nil {
-			return
+			return tarReader, err
 		}
 		if tarHeader.Name == exectuableName {
-			return
+			return tarReader, err
 		}
 	}
 	return tarReader, fmt.Errorf("failed to find %s in archive", exectuableName)
