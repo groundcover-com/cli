@@ -6,7 +6,7 @@
 
 CLI now has an installer script that will automatically grab the latest version and install it locally.
 
-`curl -fsSL https://raw.githubusercontent.com/groundcover-com/cli/HEAD/install.sh | sh`
+`curl -fsSL https://groundcover.com/install.sh | sh`
 
 ### From the Binary Releases
 
