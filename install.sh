@@ -53,7 +53,7 @@ initLatestTag() {
 # appendShellPath append our install bin directory to PATH on bash, zsh and fish shells
 appendShellPath() {
   local bashrc_file="${HOME}/.bashrc"
-  if [[ -f "${bashrc_file}" ]]; then
+  if [ -f "${bashrc_file}" ]; then
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
     if ! grep -q "${export_path_expression}" "${bashrc_file}"; then
       echo "${export_path_expression}" >> "${bashrc_file}"
@@ -62,7 +62,7 @@ appendShellPath() {
   fi
 
   local zshrc_file="${HOME}/.zshrc"
-  if [[ -f "${zshrc_file}" ]]; then
+  if [ -f "${zshrc_file}" ]; then
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
     if ! grep -q "${export_path_expression}" "${zshrc_file}"; then
       echo "${export_path_expression}" >> "${zshrc_file}"
@@ -71,7 +71,7 @@ appendShellPath() {
   fi
 
   local fish_config_file="${HOME}/.config/fish/config.fish"
-  if [[ -f "${fish_config_file}" ]]; then
+  if [ -f "${fish_config_file}" ]; then
     local export_path_expression="set -U fish_user_paths ${INSTALL_DIR} \$fish_user_paths"
     if ! grep -q "${export_path_expression}" "${fish_config_file}"; then
       echo "${export_path_expression}" >> "${fish_config_file}"
@@ -95,10 +95,10 @@ verifySupported() {
 # checkInstalledVersion checks which version of cli is installed and
 # if it needs to be changed.
 checkInstalledVersion() {
-  if [[ -f "${INSTALL_DIR}/${BINARY_NAME}" ]]; then
+  if [ -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
     local version
-    version=$("${INSTALL_DIR}/${BINARY_NAME}" version)
-    if [[ "$version" == "${LATEST_TAG#v}" ]]; then
+    version=$("${INSTALL_DIR}/${BINARY_NAME}" --skip-selfupdate version)
+    if [ "${version}" = "${LATEST_TAG#v}" ]; then
       echo "groundcover ${version} is already latest"
       return 0
     else
@@ -146,7 +146,7 @@ testVersion() {
 
 # cleanup temporary files
 cleanup() {
-  if [[ -d "${TMP_ROOT:-}" ]]; then
+  if [ -d "${TMP_ROOT:-}" ]; then
     rm -rf "${TMP_ROOT}"
   fi
 }
