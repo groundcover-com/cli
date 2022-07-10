@@ -95,7 +95,7 @@ func (selfUpdater *SelfUpdater) untarAsset(assetReader io.ReadCloser) (*tar.Read
 	var gzipReader *gzip.Reader
 
 	if exectuablePath, err = os.Executable(); err != nil {
-		return tarReader, err
+		return nil, err
 	}
 	exectuableName := filepath.Base(exectuablePath)
 
