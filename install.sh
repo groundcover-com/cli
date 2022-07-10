@@ -15,7 +15,7 @@
 # limitations under the License.
 
 : "${GITHUB_REPO:="cli"}"
-: "${GITHUB_OWNER:="groundcover"}"
+: "${GITHUB_OWNER:="groundcover-com"}"
 : "${BINARY_NAME:="groundcover"}"
 : "${INSTALL_DIR:="${HOME}/.groundcover/bin"}"
 
@@ -53,24 +53,30 @@ initLatestTag() {
 # appendShellPath append our install bin directory to PATH on bash, zsh and fish shells
 appendShellPath() {
   local bashrc_file="${HOME}/.bashrc"
-  if [[ -f "${bashrc_file}" ]]; then
+  if [ -f "${bashrc_file}" ]; then
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
-    grep -q "${export_path_expression}" "${bashrc_file}" || echo "${export_path_expression}" >> "${bashrc_file}"
-    echo "Added ${INSTALL_DIR} to \$PATH in ${bashrc_file}"
+    if ! grep -q "${export_path_expression}" "${bashrc_file}"; then
+      echo "${export_path_expression}" >> "${bashrc_file}"
+      echo "Added ${INSTALL_DIR} to \$PATH in ${bashrc_file}"
+    fi    
   fi
 
   local zshrc_file="${HOME}/.zshrc"
-  if [[ -f "${zshrc_file}" ]]; then
+  if [ -f "${zshrc_file}" ]; then
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
-    grep -q "${export_path_expression}" "${zshrc_file}" || echo "${export_path_expression}" >> "${zshrc_file}"
-    echo "Added ${INSTALL_DIR} to \$PATH in ${zshrc_file}"
+    if ! grep -q "${export_path_expression}" "${zshrc_file}"; then
+      echo "${export_path_expression}" >> "${zshrc_file}"
+      echo "Added ${INSTALL_DIR} to \$PATH in ${zshrc_file}"
+    fi
   fi
 
   local fish_config_file="${HOME}/.config/fish/config.fish"
-  if [[ -f "${fish_config_file}" ]]; then
+  if [ -f "${fish_config_file}" ]; then
     local export_path_expression="set -U fish_user_paths ${INSTALL_DIR} \$fish_user_paths"
-    grep -q "${export_path_expression}" "${fish_config_file}" || echo "${export_path_expression}" >> "${fish_config_file}"
-    echo "Added ${INSTALL_DIR} to \$PATH in ${fish_config_file}"
+    if ! grep -q "${export_path_expression}" "${fish_config_file}"; then
+      echo "${export_path_expression}" >> "${fish_config_file}"
+      echo "Added ${INSTALL_DIR} to \$PATH in ${fish_config_file}"
+    fi
   fi
 
   exec "${SHELL}" # Reload shell
@@ -89,10 +95,10 @@ verifySupported() {
 # checkInstalledVersion checks which version of cli is installed and
 # if it needs to be changed.
 checkInstalledVersion() {
-  if [[ -f "${INSTALL_DIR}/${BINARY_NAME}" ]]; then
+  if [ -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
     local version
     version=$("${INSTALL_DIR}/${BINARY_NAME}" --skip-selfupdate version)
-    if [[ "$version" == "${LATEST_TAG#v}" ]]; then
+    if [ "${version}" = "${LATEST_TAG#v}" ]; then
       echo "groundcover ${version} is already latest"
       return 0
     else
@@ -110,6 +116,7 @@ downloadFile() {
   DOWNLOAD_URL="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${LATEST_TAG}/${ARCHIVE_NAME}"
   TMP_ROOT="$(mktemp -dt groundcover-installer-XXXXXX)"
   ARCHIVE_TMP_PATH="${TMP_ROOT}/${ARCHIVE_NAME}"
+  echo "Downloading ${DOWNLOAD_URL}"
   curl -SsL "${DOWNLOAD_URL}" -o "${ARCHIVE_TMP_PATH}"
 }
 
@@ -121,7 +128,7 @@ installFile() {
   echo "Preparing to install ${BINARY_NAME} into ${INSTALL_DIR}"
   mkdir -p "${INSTALL_DIR}"
   cp "${BIN_TMP_PATH}" "${BIN_PATH}"
-  chmod +x "${BIN_PATH}2"
+  chmod +x "${BIN_PATH}"
   echo "${BINARY_NAME} installed into ${BIN_PATH}"
 }
 
@@ -139,7 +146,7 @@ testVersion() {
 
 # cleanup temporary files
 cleanup() {
-  if [[ -d "${TMP_ROOT:-}" ]]; then
+  if [ -d "${TMP_ROOT:-}" ]; then
     rm -rf "${TMP_ROOT}"
   fi
 }
