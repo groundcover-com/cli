@@ -78,14 +78,14 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 
 	if currentVersion, err = GetVersion(); err != nil {
 		sentry.CaptureException(err)
-		return false, selfUpdater
+		return false, nil
 	}
 	if selfUpdater, err = selfupdate.NewSelfUpdater(ctx, GITHUB_OWNER, GITHUB_REPO); err != nil {
 		sentry.CaptureException(err)
-		return false, selfUpdater
+		return false, nil
 	}
 	if !selfUpdater.IsLatestNewer(currentVersion) {
-		return false, selfUpdater
+		return false, nil
 	}
 	promptFormat := "Your version %s is out of date! The latest version is %s.\nDo you want to update?"
 	shouldUpdate := utils.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
