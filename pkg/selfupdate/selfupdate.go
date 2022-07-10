@@ -35,13 +35,13 @@ func NewSelfUpdater(ctx context.Context, githubOwner, githubRepo string) (*SelfU
 
 	client := github.NewClient(nil)
 	if githubRelease, _, err = client.Repositories.GetLatestRelease(ctx, githubOwner, githubRepo); err != nil {
-		return selfUpdater, err
+		return nil, err
 	}
 	if err = selfUpdater.fetchVersion(githubRelease); err != nil {
-		return selfUpdater, err
+		return nil, err
 	}
 	if err = selfUpdater.fetchAsset(ctx, client, githubRelease); err != nil {
-		return selfUpdater, err
+		return nil, err
 	}
 	return selfUpdater, err
 }
@@ -71,17 +71,18 @@ func (selfUpdater *SelfUpdater) IsLatestNewer(currentVersion semver.Version) boo
 	return selfUpdater.Version.Compare(currentVersion) > 0
 }
 
-func (selfUpdater *SelfUpdater) Apply() (err error) {
+func (selfUpdater *SelfUpdater) Apply() error {
+	var err error
 	var assetReader io.Reader
 	var assetResponse *http.Response
 
 	if assetResponse, err = http.Get(selfUpdater.assetUrl); err != nil {
-		return
+		return err
 	}
 	defer assetResponse.Body.Close()
 
 	if assetReader, err = selfUpdater.untarAsset(assetResponse.Body); err != nil {
-		return
+		return err
 	}
 	return selfupdate.Apply(assetReader, selfupdate.Options{})
 }
@@ -99,7 +100,7 @@ func (selfUpdater *SelfUpdater) untarAsset(assetReader io.ReadCloser) (*tar.Read
 	exectuableName := filepath.Base(exectuablePath)
 
 	if gzipReader, err = gzip.NewReader(assetReader); err != nil {
-		return tarReader, err
+		return nil, err
 	}
 	defer gzipReader.Close()
 
@@ -110,11 +111,11 @@ func (selfUpdater *SelfUpdater) untarAsset(assetReader io.ReadCloser) (*tar.Read
 			break
 		}
 		if err != nil {
-			return tarReader, err
+			return nil, err
 		}
 		if tarHeader.Name == exectuableName {
 			return tarReader, err
 		}
 	}
-	return tarReader, fmt.Errorf("failed to find %s in archive", exectuableName)
+	return nil, fmt.Errorf("failed to find %s in archive", exectuableName)
 }
