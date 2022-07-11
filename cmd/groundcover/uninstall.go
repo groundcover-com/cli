@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	TSDB_SERVICE_CONFIG_NAME = "service/groundcover-tsdb-config"
-	RELEASE_LABEL_KEY        = "release"
-	APP_K8S_IO_LABEL_KEY     = "app.kubernetes.io/instance"
+	TSDB_SERVICE_CONFIG_NAME  = "service/groundcover-tsdb-config"
+	TSDB_ENDPOINT_CONFIG_NAME = "endpoints/groundcover-tsdb"
+	RELEASE_LABEL_KEY         = "release"
+	APP_K8S_IO_LABEL_KEY      = "app.kubernetes.io/instance"
 )
 
 func buildPVCLabels(releaseName string) []string {
@@ -47,6 +48,11 @@ var UninstallCmd = &cobra.Command{
 		}
 
 		err = helmCmd.Uninstall(cmd.Context(), groundcoverNamespace, viper.GetString(GROUNDCOVER_HELM_RELEASE_FLAG))
+		if err != nil {
+			return err
+		}
+
+		err = kubectl.Delete(cmd.Context(), groundcoverNamespace, TSDB_ENDPOINT_CONFIG_NAME)
 		if err != nil {
 			return err
 		}
