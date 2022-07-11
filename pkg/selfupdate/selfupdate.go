@@ -47,21 +47,25 @@ func NewSelfUpdater(ctx context.Context, githubOwner, githubRepo string) (*SelfU
 }
 
 func (selfUpdater *SelfUpdater) fetchVersion(githubRelease *github.RepositoryRelease) error {
-	var err error
-
-	selfUpdater.Version, err = semver.ParseTolerant(githubRelease.GetTagName())
-	return err
+	version, err := semver.ParseTolerant(githubRelease.GetTagName())
+	if err != nil {
+		return err
+	}
+	selfUpdater.Version = version
+	return nil
 }
 
 func (selfUpdater *SelfUpdater) fetchAsset(ctx context.Context, client *github.Client, githubRelease *github.RepositoryRelease) error {
-	var err error
-
 	assetSuffix := fmt.Sprintf("%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 	for _, asset := range githubRelease.Assets {
 		if strings.HasSuffix(asset.GetName(), assetSuffix) {
 			selfUpdater.assetId = asset.GetID()
-			_, selfUpdater.assetUrl, err = client.Repositories.DownloadReleaseAsset(ctx, selfUpdater.githubOwner, selfUpdater.githubRepo, selfUpdater.assetId)
-			return err
+			_, assetUrl, err := client.Repositories.DownloadReleaseAsset(ctx, selfUpdater.githubOwner, selfUpdater.githubRepo, selfUpdater.assetId)
+			if err != nil {
+				return err
+			}
+			selfUpdater.assetUrl = assetUrl
+			return nil
 		}
 	}
 	return fmt.Errorf("failed to find asset for %s", assetSuffix)
