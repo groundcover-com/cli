@@ -53,8 +53,8 @@ func getHelmExecutablePath() (string, error) {
 	return helmPath, nil
 }
 
-func (h *HelmCmd) Upgrade(ctx context.Context, apiKey string, clusterName string, namespace string) error {
-	_, err := utils.ExecuteCommand(h.helmPath, "upgrade", "--install", h.repoName, h.chartName,
+func (h *HelmCmd) Upgrade(ctx context.Context, apiKey, clusterName, namespace, releaseName string) error {
+	_, err := utils.ExecuteCommand(h.helmPath, "upgrade", "--install", releaseName, h.chartName,
 		"--set", fmt.Sprintf("global.groundcover_token=%s", apiKey),
 		"--set", fmt.Sprintf("clusterId=%s", clusterName),
 		"--create-namespace", "-n", namespace,
@@ -128,12 +128,12 @@ func (h *HelmCmd) ShowChartCommand(ctx context.Context) (string, error) {
 	return output, nil
 }
 
-func (h *HelmCmd) BuildInstallCommand(apiKey, clusterName, namespace string) string {
+func (h *HelmCmd) BuildInstallCommand(apiKey, clusterName, namespace, releaseName string) string {
 	return fmt.Sprintf("helm repo add %s %s && helm repo update %s && helm upgrade --install %s %s --set global.groundcover_token=%s,clusterId=%s --create-namespace -n %s\n",
 		h.repoName,
 		h.repoAddr,
 		h.repoName,
-		h.repoName,
+		releaseName,
 		h.chartName,
 		apiKey,
 		clusterName,

@@ -11,9 +11,7 @@ import (
 )
 
 const (
-	GROUNDCOVER_HELM_RELEASE_FLAG = "groundcover-release"
-	GROUNDCOVER_HELM_RELEASE_NAME = "groundcover"
-	TSDB_SERVICE_CONFIG_NAME      = "service/groundcover-tsdb-config"
+	TSDB_SERVICE_CONFIG_NAME = "service/groundcover-tsdb-config"
 )
 
 var (
@@ -22,9 +20,6 @@ var (
 
 func init() {
 	RootCmd.AddCommand(UninstallCmd)
-
-	UninstallCmd.PersistentFlags().String(GROUNDCOVER_HELM_RELEASE_FLAG, GROUNDCOVER_HELM_RELEASE_NAME, "groundcover release name")
-	viper.BindPFlag(GROUNDCOVER_HELM_RELEASE_FLAG, UninstallCmd.PersistentFlags().Lookup(GROUNDCOVER_HELM_RELEASE_FLAG))
 }
 
 var UninstallCmd = &cobra.Command{
