@@ -13,7 +13,7 @@ func ExecuteCommand(command string, args ...string) (string, error) {
 	cmd.Stderr = &output
 
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("failed to run command: %q helm chart. exit code: %v otuput: %q", command, err.Error(), output.String())
+		return "", fmt.Errorf(output.String())
 	}
 
 	return output.String(), nil
