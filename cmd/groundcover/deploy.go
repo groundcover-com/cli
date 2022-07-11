@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -31,15 +30,8 @@ const (
 	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
 )
 
-var (
-	waitForClusterConnectedToSaasTimeout = time.Minute * 5
-)
-
 func init() {
 	RootCmd.AddCommand(DeployCmd)
-
-	DeployCmd.PersistentFlags().Bool(MANUAL_FLAG, true, "install groundcover helm chart manually")
-	viper.BindPFlag(MANUAL_FLAG, DeployCmd.PersistentFlags().Lookup(MANUAL_FLAG))
 
 	DeployCmd.PersistentFlags().String(CLUSTER_NAME_FLAG, "", "cluster name")
 	viper.BindPFlag(CLUSTER_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(CLUSTER_NAME_FLAG))
