@@ -21,9 +21,6 @@ const (
 
 func init() {
 	RootCmd.AddCommand(StatusCmd)
-
-	StatusCmd.PersistentFlags().String(GROUNDCOVER_NAMESPACE_FLAG, DEFAULT_GROUNDCOVER_NAMESPACE, "groundcover deployment namespace")
-	viper.BindPFlag(GROUNDCOVER_NAMESPACE_FLAG, StatusCmd.PersistentFlags().Lookup(GROUNDCOVER_NAMESPACE_FLAG))
 }
 
 var StatusCmd = &cobra.Command{

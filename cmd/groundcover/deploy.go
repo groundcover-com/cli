@@ -41,12 +41,6 @@ func init() {
 
 	DeployCmd.PersistentFlags().String(CLUSTER_NAME_FLAG, "", "cluster name")
 	viper.BindPFlag(CLUSTER_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(CLUSTER_NAME_FLAG))
-
-	DeployCmd.PersistentFlags().String(GROUNDCOVER_NAMESPACE_FLAG, DEFAULT_GROUNDCOVER_NAMESPACE, "groundcover deployment namespace")
-	viper.BindPFlag(GROUNDCOVER_NAMESPACE_FLAG, DeployCmd.PersistentFlags().Lookup(GROUNDCOVER_NAMESPACE_FLAG))
-
-	DeployCmd.PersistentFlags().String(KUBECONFIG_PATH_FLAG, "", "kubeconfig path")
-	viper.BindPFlag(KUBECONFIG_PATH_FLAG, DeployCmd.PersistentFlags().Lookup(KUBECONFIG_PATH_FLAG))
 }
 
 var DeployCmd = &cobra.Command{
