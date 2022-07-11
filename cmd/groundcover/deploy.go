@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -27,17 +26,12 @@ const (
 	AUTO_DEPLOYMENT_TAG           = "auto"
 	GROUNDCOVER_NAMESPACE_FLAG    = "groundcover-namespace"
 	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
-)
-
-var (
-	waitForClusterConnectedToSaasTimeout = time.Minute * 5
+	GROUNDCOVER_HELM_RELEASE_FLAG = "groundcover-release"
+	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
 )
 
 func init() {
 	RootCmd.AddCommand(DeployCmd)
-
-	DeployCmd.PersistentFlags().Bool(MANUAL_FLAG, true, "install groundcover helm chart manually")
-	viper.BindPFlag(MANUAL_FLAG, DeployCmd.PersistentFlags().Lookup(MANUAL_FLAG))
 
 	DeployCmd.PersistentFlags().String(CLUSTER_NAME_FLAG, "", "cluster name")
 	viper.BindPFlag(CLUSTER_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(CLUSTER_NAME_FLAG))
@@ -90,14 +84,15 @@ var DeployCmd = &cobra.Command{
 		fmt.Printf("Installing groundcover version: %s\n", version)
 
 		groundcoverNamespace := viper.GetString(GROUNDCOVER_NAMESPACE_FLAG)
+		groundcoverReleaseName := viper.GetString(GROUNDCOVER_HELM_RELEASE_FLAG)
 		automatedInstallation := utils.YesNoPrompt("Do you want to run automated installation", true)
 		if !automatedInstallation {
 			cs.CaptureDeploymentEvent(customClaims, MANUAL_DEPLOYMENT_TAG, version, numberOfNodes)
-			return manualInstallation(helmCmd, apiKey.ApiKey, formattedClusterName, groundcoverNamespace)
+			return manualInstallation(helmCmd, apiKey.ApiKey, formattedClusterName, groundcoverNamespace, groundcoverReleaseName)
 		}
 
 		cs.CaptureDeploymentEvent(customClaims, AUTO_DEPLOYMENT_TAG, version, numberOfNodes)
-		return autoInstallation(cmd.Context(), helmCmd, metadataFetcher, apiKey.ApiKey, formattedClusterName, groundcoverNamespace)
+		return autoInstallation(cmd.Context(), helmCmd, metadataFetcher, apiKey.ApiKey, formattedClusterName, groundcoverNamespace, groundcoverReleaseName)
 	},
 }
 
@@ -114,7 +109,7 @@ func getClusterName(cmd *cobra.Command) (string, error) {
 	return clusterName, nil
 }
 
-func autoInstallation(ctx context.Context, helmCmd *helm.HelmCmd, metadataFetcher *k8s.MetadataFetcher, apiKey, clusterName, groundcoverNamespace string) error {
+func autoInstallation(ctx context.Context, helmCmd *helm.HelmCmd, metadataFetcher *k8s.MetadataFetcher, apiKey, clusterName, groundcoverNamespace, groundcoverReleaseName string) error {
 	fmt.Println("Installing groundcover...")
 
 	err := helmCmd.RepoAdd(ctx)
@@ -127,7 +122,7 @@ func autoInstallation(ctx context.Context, helmCmd *helm.HelmCmd, metadataFetche
 		return err
 	}
 
-	err = helmCmd.Upgrade(ctx, apiKey, clusterName, groundcoverNamespace)
+	err = helmCmd.Upgrade(ctx, apiKey, clusterName, groundcoverNamespace, groundcoverReleaseName)
 	if err != nil {
 		return err
 	}
@@ -153,9 +148,9 @@ func autoInstallation(ctx context.Context, helmCmd *helm.HelmCmd, metadataFetche
 	return nil
 }
 
-func manualInstallation(helmCmd *helm.HelmCmd, apiKey, clusterName, groundcoverNamespace string) error {
+func manualInstallation(helmCmd *helm.HelmCmd, apiKey, clusterName, groundcoverNamespace, groundcoverReleaseName string) error {
 	fmt.Print("To deploy groundcover please run the following command:\n")
 	fmt.Print("\n\n")
-	fmt.Printf(helmCmd.BuildInstallCommand(apiKey, clusterName, groundcoverNamespace))
+	fmt.Print(helmCmd.BuildInstallCommand(apiKey, clusterName, groundcoverNamespace, groundcoverReleaseName))
 	return nil
 }

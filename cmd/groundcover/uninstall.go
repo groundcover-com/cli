@@ -11,20 +11,21 @@ import (
 )
 
 const (
-	GROUNDCOVER_HELM_RELEASE_FLAG = "groundcover-release"
-	GROUNDCOVER_HELM_RELEASE_NAME = "groundcover"
-	TSDB_SERVICE_CONFIG_NAME      = "service/groundcover-tsdb-config"
+	TSDB_SERVICE_CONFIG_NAME  = "service/groundcover-tsdb-config"
+	TSDB_ENDPOINT_CONFIG_NAME = "endpoints/groundcover-tsdb"
+	RELEASE_LABEL_KEY         = "release"
+	APP_K8S_IO_LABEL_KEY      = "app.kubernetes.io/instance"
 )
 
-var (
-	labelsToDelete = []string{"release=groundcover", "app.kubernetes.io/instance=groundcover"}
-)
+func buildPVCLabels(releaseName string) []string {
+	return []string{
+		fmt.Sprintf("%s=%s", RELEASE_LABEL_KEY, releaseName),
+		fmt.Sprintf("%s=%s", APP_K8S_IO_LABEL_KEY, releaseName),
+	}
+}
 
 func init() {
 	RootCmd.AddCommand(UninstallCmd)
-
-	UninstallCmd.PersistentFlags().String(GROUNDCOVER_HELM_RELEASE_FLAG, GROUNDCOVER_HELM_RELEASE_NAME, "groundcover release name")
-	viper.BindPFlag(GROUNDCOVER_HELM_RELEASE_FLAG, UninstallCmd.PersistentFlags().Lookup(GROUNDCOVER_HELM_RELEASE_FLAG))
 }
 
 var UninstallCmd = &cobra.Command{
@@ -32,6 +33,7 @@ var UninstallCmd = &cobra.Command{
 	Short: "Uninstall groundcover",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		groundcoverNamespace := viper.GetString(GROUNDCOVER_NAMESPACE_FLAG)
+		groundcoverReleaseName := viper.GetString(GROUNDCOVER_HELM_RELEASE_FLAG)
 		fmt.Printf("Uninstalling groundcover with namespace: '%s'\n", groundcoverNamespace)
 
 		uninstall := utils.YesNoPrompt("Are you sure you want to uninstall groundcover?", false)
@@ -50,6 +52,11 @@ var UninstallCmd = &cobra.Command{
 			return err
 		}
 
+		err = kubectl.Delete(cmd.Context(), groundcoverNamespace, TSDB_ENDPOINT_CONFIG_NAME)
+		if err != nil {
+			return err
+		}
+
 		err = kubectl.Delete(cmd.Context(), groundcoverNamespace, TSDB_SERVICE_CONFIG_NAME)
 		if err != nil {
 			return err
@@ -60,6 +67,6 @@ var UninstallCmd = &cobra.Command{
 			fmt.Println("Not removing groundcover pvcs")
 			return nil
 		}
-		return kubectl.DeletePvcByLabels(cmd.Context(), groundcoverNamespace, labelsToDelete)
+		return kubectl.DeletePvcByLabels(cmd.Context(), groundcoverNamespace, buildPVCLabels(groundcoverReleaseName))
 	},
 }

@@ -30,6 +30,9 @@ func init() {
 
 	RootCmd.PersistentFlags().String(GROUNDCOVER_NAMESPACE_FLAG, DEFAULT_GROUNDCOVER_NAMESPACE, "groundcover deployment namespace")
 	viper.BindPFlag(GROUNDCOVER_NAMESPACE_FLAG, RootCmd.PersistentFlags().Lookup(GROUNDCOVER_NAMESPACE_FLAG))
+
+	RootCmd.PersistentFlags().String(GROUNDCOVER_HELM_RELEASE_FLAG, DEFAULT_GROUNDCOVER_RELEASE, "groundcover chart release name")
+	viper.BindPFlag(GROUNDCOVER_HELM_RELEASE_FLAG, RootCmd.PersistentFlags().Lookup(GROUNDCOVER_HELM_RELEASE_FLAG))
 }
 
 var RootCmd = &cobra.Command{
