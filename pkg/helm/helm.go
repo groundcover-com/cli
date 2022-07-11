@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"groundcover.com/pkg/utils"
 )
 
 const (
@@ -45,20 +47,20 @@ func NewHelmCmd() (*HelmCmd, error) {
 func getHelmExecutablePath() (string, error) {
 	helmPath, err := exec.LookPath(HELM_BINARY_NAME)
 	if err != nil {
-		return "", errors.New("Failed to find helm executable. make sure helm is installed and in your PATH")
+		return "", errors.New("failed to find helm executable. make sure helm is installed and in your PATH")
 	}
 
 	return helmPath, nil
 }
 
 func (h *HelmCmd) Upgrade(ctx context.Context, apiKey string, clusterName string, namespace string) error {
-	helmUpgradeCmd := exec.Command(h.helmPath, "upgrade", "--install", h.repoName, h.chartName,
+	_, err := utils.ExecuteCommand(h.helmPath, "upgrade", "--install", h.repoName, h.chartName,
 		"--set", fmt.Sprintf("global.groundcover_token=%s", apiKey),
 		"--set", fmt.Sprintf("clusterId=%s", clusterName),
 		"--create-namespace", "-n", namespace,
 	)
 
-	if err := helmUpgradeCmd.Run(); err != nil {
+	if err != nil {
 		return fmt.Errorf("failed to upgrade helm chart. error: %s", err.Error())
 	}
 
@@ -71,8 +73,8 @@ func (h *HelmCmd) RepoAdd(ctx context.Context) error {
 		return err
 	}
 
-	helmRepoAddCmd := exec.Command(helmBinary, "repo", "add", h.repoName, h.repoAddr)
-	if err := helmRepoAddCmd.Run(); err != nil {
+	_, err = utils.ExecuteCommand(helmBinary, "repo", "add", h.repoName, h.repoAddr)
+	if err != nil {
 		return fmt.Errorf("failed to add helm repo. error: %s", err.Error())
 	}
 
@@ -85,8 +87,8 @@ func (h *HelmCmd) RepoUpdate(ctx context.Context) error {
 		return err
 	}
 
-	helmRepoUpdateCmd := exec.Command(helmBinary, "repo", "update", h.repoName)
-	if err := helmRepoUpdateCmd.Run(); err != nil {
+	_, err = utils.ExecuteCommand(helmBinary, "repo", "update", h.repoName)
+	if err != nil {
 		return fmt.Errorf("failed to update helm repo. error: %s", err.Error())
 	}
 
@@ -118,15 +120,12 @@ func (h *HelmCmd) GetLatestChartVersion(ctx context.Context) (string, error) {
 }
 
 func (h *HelmCmd) ShowChartCommand(ctx context.Context) (string, error) {
-	helmGetVersionCmd := exec.Command(h.helmPath, "show", "chart", h.chartName)
-
-	output := strings.Builder{}
-	helmGetVersionCmd.Stdout = &output
-	if err := helmGetVersionCmd.Run(); err != nil {
+	output, err := utils.ExecuteCommand(h.helmPath, "show", "chart", h.chartName)
+	if err != nil {
 		return "", fmt.Errorf("failed to get run show chart. error: %s", err.Error())
 	}
 
-	return output.String(), nil
+	return output, nil
 }
 
 func (h *HelmCmd) BuildInstallCommand(apiKey, clusterName, namespace string) string {
@@ -142,14 +141,10 @@ func (h *HelmCmd) BuildInstallCommand(apiKey, clusterName, namespace string) str
 }
 
 func (h *HelmCmd) Uninstall(ctx context.Context, namespace string, helmRelease string) error {
-	cmdOutput := strings.Builder{}
-	helmUninstallCmd := exec.Command(h.helmPath, "uninstall", "--namespace", namespace, helmRelease)
-	helmUninstallCmd.Stdout = &cmdOutput
-	helmUninstallCmd.Stderr = &cmdOutput
-
-	if err := helmUninstallCmd.Run(); err != nil {
+	output, err := utils.ExecuteCommand(h.helmPath, "uninstall", "--namespace", namespace, helmRelease)
+	if err != nil {
 		// if the release is not found this is not an actual error
-		if strings.Contains(cmdOutput.String(), "release: not found") {
+		if strings.Contains(output, "release: not found") {
 			return nil
 		}
 

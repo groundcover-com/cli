@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strings"
@@ -17,6 +16,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	jwt_modern_claims "github.com/golang-jwt/jwt/v4"
 	"github.com/sirupsen/logrus"
+	"groundcover.com/pkg/utils"
 )
 
 const (
@@ -323,8 +323,7 @@ func Login(ctx context.Context, manualMode bool) error {
 	if manualMode {
 		fmt.Printf("In order to login, browse: %s\n", deviceCodeFlow.VerificationURIComplete)
 	} else {
-		cmd := exec.Command("xdg-open", deviceCodeFlow.VerificationURIComplete)
-		err := cmd.Run()
+		_, err = utils.ExecuteCommand("xdg-open", deviceCodeFlow.VerificationURIComplete)
 		if err != nil {
 			return fmt.Errorf("failed to open browser, try running with --manual flag")
 		}

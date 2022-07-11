@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -146,8 +145,7 @@ func autoInstallation(ctx context.Context, helmCmd *helm.HelmCmd, metadataFetche
 	fmt.Printf("Cluster %q is connected to SaaS!\n", clusterName)
 
 	url := fmt.Sprintf("%s/?clusterId=%s", GROUNDCOVER_URL, clusterName)
-	cmd := exec.Command("xdg-open", url)
-	err = cmd.Run()
+	_, err = utils.ExecuteCommand("xdg-open", url)
 	if err != nil {
 		fmt.Printf("Failed to open groundcover url in browser. You can browse to: %s", url)
 	}
