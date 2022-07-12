@@ -19,6 +19,47 @@
 : "${BINARY_NAME:="groundcover"}"
 : "${INSTALL_DIR:="${HOME}/.groundcover/bin"}"
 
+
+BOLD="$(tput bold 2>/dev/null || printf '')"
+UNDERLINE="$(tput smul 2>/dev/null || printf '')"
+GREY="$(tput setaf 0 2>/dev/null || printf '')"
+REV_BG="$(tput rev 2>/dev/null || printf '')"
+RED="$(tput setaf 1 2>/dev/null || printf '')"
+GREEN="$(tput setaf 2 2>/dev/null || printf '')"
+BLUE="$(tput setaf 4 2>/dev/null || printf '')"
+YELLOW="$(tput setaf 3 2>/dev/null || printf '')"
+NO_COLOR="$(tput sgr0 2>/dev/null || printf '')"
+
+info() {
+  printf '%s\n' "${BOLD}${GREY}>${NO_COLOR} $*"
+}
+
+warn() {
+  printf '%s\n' "${YELLOW}! $*${NO_COLOR}"
+}
+
+error() {
+  printf '%s\n' "${RED}x $*${NO_COLOR}" >&2
+}
+
+completed() {
+  printf '%s\n' "${GREEN}✓${NO_COLOR} $*"
+}
+
+printBanner() {
+  BANNER=$(cat << 'EOL'
+                                   _                         
+    __ _ _ __ ___  _   _ _ __   __| | ___ _____   _____ _ __ 
+   / _` + "`" + ` | '__/ _ \| | | | '_ \ / _` + "`" + ` |/ __/
+  | (_| | | | (_) | |_| | | | | (_| | (_| (_) \ V /  __/ |   
+   \__, |_|  \___/ \__,_|_| |_|\__,_|\___\___/ \_/ \___|_|   
+   |___/                                                     
+         #NO TRADE-OFFS
+EOL
+)
+  printf "%s\n\n" "${BANNER}"
+}
+
 # initArch discovers the architecture for this system.
 initArch() {
   ARCH=$(uname -m)
@@ -57,7 +98,7 @@ appendShellPath() {
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
     if ! grep -q "${export_path_expression}" "${bashrc_file}"; then
       echo "${export_path_expression}" >> "${bashrc_file}"
-      echo "Added ${INSTALL_DIR} to \$PATH in ${bashrc_file}"
+      completed "Added ${INSTALL_DIR} to \$PATH in ${bashrc_file}"
     fi    
   fi
 
@@ -66,7 +107,7 @@ appendShellPath() {
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
     if ! grep -q "${export_path_expression}" "${zshrc_file}"; then
       echo "${export_path_expression}" >> "${zshrc_file}"
-      echo "Added ${INSTALL_DIR} to \$PATH in ${zshrc_file}"
+      completed "Added ${INSTALL_DIR} to \$PATH in ${zshrc_file}"
     fi
   fi
 
@@ -75,11 +116,9 @@ appendShellPath() {
     local export_path_expression="set -U fish_user_paths ${INSTALL_DIR} \$fish_user_paths"
     if ! grep -q "${export_path_expression}" "${fish_config_file}"; then
       echo "${export_path_expression}" >> "${fish_config_file}"
-      echo "Added ${INSTALL_DIR} to \$PATH in ${fish_config_file}"
+      completed "Added ${INSTALL_DIR} to \$PATH in ${fish_config_file}"
     fi
   fi
-
-  exec "${SHELL}" # Reload shell
 }
 
 # verifySupported checks that the os/arch combination is supported for
@@ -87,7 +126,7 @@ appendShellPath() {
 verifySupported() {
   local supported="darwin-amd64\ndarwin-arm64\nlinux-amd64\nlinux-arm64"
   if ! echo "${supported}" | grep -q "${OS}-${ARCH}"; then
-    echo "No prebuilt binary for ${OS}-${ARCH}."
+    error "No prebuilt binary for ${OS}-${ARCH}."
     exit 1
   fi
 }
@@ -99,10 +138,10 @@ checkInstalledVersion() {
     local version
     version=$("${INSTALL_DIR}/${BINARY_NAME}" --skip-selfupdate version)
     if [ "${version}" = "${LATEST_TAG#v}" ]; then
-      echo "groundcover ${version} is already latest"
+      completed "groundcover ${version} is already latest"
       return 0
     else
-      echo "groundcover ${LATEST_TAG} is available. Updating from version ${version}."
+      info "groundcover ${LATEST_TAG} is available. Updating from version ${version}."
       return 1
     fi
   else
@@ -112,11 +151,11 @@ checkInstalledVersion() {
 
 # downloadFile downloads the latest binary package.
 downloadFile() {
-  ARCHIVE_NAME="${BINARY_NAME}_${LATEST_TAG#v}_${OS}_${ARCH}.tar.gz"
+  ARCHIVE_NAME="${BINARY_NAME}_v${LATEST_TAG#v}_${OS}-${ARCH}.tar.gz"
   DOWNLOAD_URL="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${LATEST_TAG}/${ARCHIVE_NAME}"
   TMP_ROOT="$(mktemp -dt groundcover-installer-XXXXXX)"
   ARCHIVE_TMP_PATH="${TMP_ROOT}/${ARCHIVE_NAME}"
-  echo "Downloading ${DOWNLOAD_URL}"
+  info "Downloading ${DOWNLOAD_URL}"
   curl -SsL "${DOWNLOAD_URL}" -o "${ARCHIVE_TMP_PATH}"
 }
 
@@ -125,24 +164,12 @@ installFile() {
   tar xf "${ARCHIVE_TMP_PATH}" -C "${TMP_ROOT}"
   BIN_PATH="${INSTALL_DIR}/${BINARY_NAME}"
   BIN_TMP_PATH="${TMP_ROOT}/${BINARY_NAME}"
-  echo "Preparing to install ${BINARY_NAME} into ${INSTALL_DIR}"
+  info "Preparing to install ${BINARY_NAME} into ${INSTALL_DIR}"
   mkdir -p "${INSTALL_DIR}"
   cp "${BIN_TMP_PATH}" "${BIN_PATH}"
   chmod +x "${BIN_PATH}"
-  echo "${BINARY_NAME} installed into ${BIN_PATH}"
+  completed "${BINARY_NAME} installed into ${BIN_PATH}"
 }
-
-# testVersion tests the installed client to make sure it is working.
-testVersion() {
-  set +e
-  command -v "${BINARY_NAME}" >/dev/null 2>&1
-  if [ "$?" = "1" ]; then
-    echo "${BINARY_NAME} not found. Is ${INSTALL_DIR} on your PATH"
-    exit 1
-  fi
-  set -e
-}
-
 
 # cleanup temporary files
 cleanup() {
@@ -151,12 +178,21 @@ cleanup() {
   fi
 }
 
+printWhatNow() {
+  printf "\n%s\
+what now?\n\
+* run ${GREEN}groundcover login${NO_COLOR}\n\
+* then ${GREEN}groundcover deploy${NO_COLOR}\n\
+* ${REV_BG}let the magic begin.${NO_COLOR}\n\n\
+run ${BLUE}groundcover help${NO_COLOR}, or dive deeper with ${BLUE}${UNDERLINE}https://docs.groundcover.com/docs${NO_COLOR}.\n"
+}
+
 # fail_trap is executed if an error occurs.
 fail_trap() {
   result=$?
   if [ "$result" != "0" ]; then
-    echo "Failed to install ${BINARY_NAME}"
-    echo -e "\tFor support, go to https://github.com/groundcover-com/cli."
+    error "Failed to install ${BINARY_NAME}"
+    info "For support, go to ${BOLD}${UNDERLINE}https://github.com/groundcover-com/cli${NO_COLOR}"
   fi
   cleanup
   exit $result
@@ -168,6 +204,8 @@ fail_trap() {
 trap "fail_trap" EXIT
 set -e
 
+
+printBanner
 initArch
 initOS
 initLatestTag
@@ -176,5 +214,7 @@ if ! checkInstalledVersion; then
   installFile
 fi
 appendShellPath
-testVersion
+completed "groundcover cli was successfully installed!"
+printWhatNow
 cleanup
+exec "${SHELL}" # Reload shell
