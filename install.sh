@@ -155,7 +155,7 @@ checkInstalledVersion() {
 
 # downloadFile downloads the latest binary package.
 downloadFile() {
-  ARCHIVE_NAME="${BINARY_NAME}_v${LATEST_TAG#v}_${OS}-${ARCH}.tar.gz"
+  ARCHIVE_NAME="${BINARY_NAME}_v${LATEST_TAG#v}_${OS}_${ARCH}.tar.gz"
   DOWNLOAD_URL="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${LATEST_TAG}/${ARCHIVE_NAME}"
   TMP_ROOT="$(mktemp -dt groundcover-installer-XXXXXX)"
   ARCHIVE_TMP_PATH="${TMP_ROOT}/${ARCHIVE_NAME}"
