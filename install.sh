@@ -89,6 +89,10 @@ initOS() {
 initLatestTag() {
   local latest_release_url="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest"
   LATEST_TAG=$(curl -Ls ${latest_release_url} | awk -F\" '/tag_name/{print $(NF-1)}')
+  if [ -z "${LATEST_TAG}" ]; then
+    error "Failed to fetch latest version from ${latest_release_url}"
+    exit 1
+  fi
 }
 
 # appendShellPath append our install bin directory to PATH on bash, zsh and fish shells
@@ -192,7 +196,7 @@ fail_trap() {
   result=$?
   if [ "$result" != "0" ]; then
     error "Failed to install ${BINARY_NAME}"
-    info "For support, go to ${BOLD}${UNDERLINE}https://github.com/groundcover-com/cli${NO_COLOR}"
+    info "For support, go to ${BLUE}${UNDERLINE}https://github.com/groundcover-com/cli${NO_COLOR}"
   fi
   cleanup
   exit $result
