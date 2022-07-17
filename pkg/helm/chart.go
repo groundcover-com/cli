@@ -23,11 +23,12 @@ type HelmCharter struct {
 func NewHelmCharter(name, repoUrl string) (*HelmCharter, error) {
 	var err error
 
-	helmCharter := new(HelmCharter)
-	helmCharter.Name = name
-	helmCharter.repoUrl = repoUrl
-	helmCharter.settings = cli.New()
-	helmCharter.config = new(action.Configuration)
+	helmCharter := &HelmCharter{
+		Name:     name,
+		repoUrl:  repoUrl,
+		settings: cli.New(),
+		config:   new(action.Configuration),
+	}
 
 	if err = helmCharter.config.Init(helmCharter.settings.RESTClientGetter(), helmCharter.settings.Namespace(), os.Getenv("HELM_DRIVER"), log.L.Debugf); err != nil {
 		return nil, err

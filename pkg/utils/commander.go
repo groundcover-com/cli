@@ -18,3 +18,9 @@ func ExecuteCommand(command string, args ...string) (string, error) {
 
 	return output.String(), nil
 }
+
+func OpenBrowser(url string) {
+	if _, err := ExecuteCommand("xdg-open", url); err != nil {
+		fmt.Printf("Failed to open browser. You can browse to: %s", url)
+	}
+}

@@ -25,10 +25,12 @@ type HelmReleaser struct {
 func NewHelmReleaser(name string) (*HelmReleaser, error) {
 	var err error
 
-	helmReleaser := new(HelmReleaser)
-	helmReleaser.Name = name
-	helmReleaser.settings = cli.New()
-	helmReleaser.config = new(action.Configuration)
+	helmReleaser := &HelmReleaser{
+		Name:     name,
+		settings: cli.New(),
+		config:   new(action.Configuration),
+	}
+
 	helmReleaser.Namespace = helmReleaser.settings.Namespace()
 
 	if err = helmReleaser.config.Init(helmReleaser.settings.RESTClientGetter(), helmReleaser.Namespace, os.Getenv("HELM_DRIVER"), log.L.Debugf); err != nil {

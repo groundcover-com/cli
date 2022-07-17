@@ -46,7 +46,7 @@ var StatusCmd = &cobra.Command{
 			return err
 		}
 
-		currentVersion, isLatestNewer := checkCurrentDeploy(helmRelease, helmChart)
+		currentVersion, isLatestNewer := checkCurrentDeployedVersion(helmRelease, helmChart)
 		if isLatestNewer {
 			fmt.Printf("Current groundcover %s is out of date!, The latest version is %s.", currentVersion, helmChart.Version)
 		}
@@ -59,7 +59,7 @@ var StatusCmd = &cobra.Command{
 	},
 }
 
-func checkCurrentDeploy(helmRelease *helm.HelmReleaser, helmChart *helm.HelmCharter) (string, bool) {
+func checkCurrentDeployedVersion(helmRelease *helm.HelmReleaser, helmChart *helm.HelmCharter) (string, bool) {
 	var err error
 	var release *release.Release
 	var currentVersion semver.Version

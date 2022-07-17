@@ -67,7 +67,7 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		currentVersion, isLatestNewer := checkCurrentDeploy(helmRelease, helmChart)
+		currentVersion, isLatestNewer := checkCurrentDeployedVersion(helmRelease, helmChart)
 		isUpgrade := currentVersion != ""
 		switch {
 		case !isUpgrade:
@@ -108,7 +108,7 @@ var DeployCmd = &cobra.Command{
 		}
 		fmt.Printf("Cluster %q is connected to SaaS!\n", clusterName)
 
-		openBrowser(clusterName)
+		utils.OpenBrowser(fmt.Sprintf("%s/clusterId=%s", GROUNDCOVER_URL, clusterName))
 		return nil
 	},
 }
@@ -126,12 +126,4 @@ func getClusterName(kuber *k8s.Kuber) (string, error) {
 	}
 
 	return clusterName, nil
-}
-
-func openBrowser(clusterName string) {
-	url := fmt.Sprintf("%s/?clusterId=%s", GROUNDCOVER_URL, clusterName)
-
-	if _, err := utils.ExecuteCommand("xdg-open", url); err != nil {
-		fmt.Printf("Failed to open groundcover url in browser. You can browse to: %s", url)
-	}
 }
