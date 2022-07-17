@@ -31,9 +31,5 @@ func GetVersion() (semver.Version, error) {
 
 func IsDevVersion() bool {
 	_, err := semver.Parse(BinaryVersion)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err != nil
 }

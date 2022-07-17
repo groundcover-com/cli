@@ -312,27 +312,21 @@ func SaveAuthFile(fname string, apiKey interface{}) error {
 	return nil
 }
 
-func Login(ctx context.Context, manualMode bool) error {
-	deviceCodeFlow, err := getDeviceCodeFlow()
-	if err != nil {
+func Login(ctx context.Context) error {
+	var err error
+	var token *Auth0Token
+	var deviceCodeFlow *DeviceCodeFlow
+
+	if deviceCodeFlow, err = getDeviceCodeFlow(); err != nil {
 		return fmt.Errorf("failed to get device code flow: %s", err.Error())
 	}
-
 	fmt.Printf("Device confirmation code, make sure you see it in your browser: '%s'\n", deviceCodeFlow.UserCode)
 
-	if manualMode {
-		fmt.Printf("In order to login, browse: %s\n", deviceCodeFlow.VerificationURIComplete)
-	} else {
-		_, err = utils.ExecuteCommand("xdg-open", deviceCodeFlow.VerificationURIComplete)
-		if err != nil {
-			return fmt.Errorf("failed to open browser, try running with --manual flag")
-		}
-
+	if _, err = utils.ExecuteCommand("xdg-open", deviceCodeFlow.VerificationURIComplete); err != nil {
 		fmt.Printf("In order to login, browse: %s\n", deviceCodeFlow.VerificationURIComplete)
 	}
 
-	token, err := pollToken(deviceCodeFlow, ctx)
-	if err != nil {
+	if token, err = pollToken(deviceCodeFlow, ctx); err != nil {
 		return err
 	}
 
