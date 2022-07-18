@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # Copyright The groundcover Authors.
 #
@@ -47,7 +47,7 @@ completed() {
 }
 
 printBanner() {
-  BANNER=$(cat << 'EOL'
+cat << 'BANNER'
                                    _                         
     __ _ _ __ ___  _   _ _ __   __| | ___ _____   _____ _ __ 
    / _` + "`" + ` | '__/ _ \| | | | '_ \ / _` + "`" + ` |/ __/
@@ -55,9 +55,8 @@ printBanner() {
    \__, |_|  \___/ \__,_|_| |_|\__,_|\___\___/ \_/ \___|_|   
    |___/                                                     
          #NO TRADE-OFFS
-EOL
-)
-  printf "%s\n\n" "${BANNER}"
+
+BANNER
 }
 
 # initArch discovers the architecture for this system.
