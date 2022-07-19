@@ -21,6 +21,6 @@ func ExecuteCommand(command string, args ...string) (string, error) {
 
 func OpenBrowser(url string) {
 	if _, err := ExecuteCommand("xdg-open", url); err != nil {
-		fmt.Printf("Failed to open browser. You can browse to: %s", url)
+		fmt.Printf("You can browse to: %s", url)
 	}
 }

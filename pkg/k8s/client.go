@@ -7,67 +7,67 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-type Kuber struct {
+type KubeClient struct {
+	*kubernetes.Clientset
 	kubecontext string
 	config      clientcmd.ClientConfig
-	client      *kubernetes.Clientset
 }
 
-func NewKuber(kubeconfig, kubecontext string) (*Kuber, error) {
+func NewKubeClient(kubeconfig, kubecontext string) (*KubeClient, error) {
 	var err error
 
-	kuber := new(Kuber)
+	kubeClient := new(KubeClient)
 
-	if err = kuber.loadConfig(kubeconfig, kubecontext); err != nil {
+	if err = kubeClient.loadConfig(kubeconfig, kubecontext); err != nil {
 		return nil, err
 	}
 
-	if err = kuber.loadClient(); err != nil {
+	if err = kubeClient.loadClient(); err != nil {
 		return nil, err
 	}
 
-	return kuber, nil
+	return kubeClient, nil
 }
 
-func (kuber *Kuber) loadConfig(kubeconfig, kubecontext string) error {
+func (kubeClient *KubeClient) loadConfig(kubeconfig, kubecontext string) error {
 	var err error
 
 	configOverrides := &clientcmd.ConfigOverrides{CurrentContext: kubecontext}
 	configLoader := &clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig}
-	kuber.config = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoader, configOverrides)
+	kubeClient.config = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoader, configOverrides)
 
 	if kubecontext != "" {
-		kuber.kubecontext = kubecontext
+		kubeClient.kubecontext = kubecontext
 		return nil
 	}
 
-	if kuber.kubecontext, err = kuber.defaultContext(); err != nil {
+	if kubeClient.kubecontext, err = kubeClient.defaultContext(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (kuber *Kuber) defaultContext() (string, error) {
+func (kubeClient *KubeClient) defaultContext() (string, error) {
 	var err error
 	var rawConfig clientcmdapi.Config
 
-	if rawConfig, err = kuber.config.RawConfig(); err != nil {
+	if rawConfig, err = kubeClient.config.RawConfig(); err != nil {
 		return "", err
 	}
 
 	return rawConfig.CurrentContext, nil
 }
 
-func (kuber *Kuber) loadClient() error {
+func (kubeClient *KubeClient) loadClient() error {
 	var err error
 	var restConfig *restclient.Config
 
-	if restConfig, err = kuber.config.ClientConfig(); err != nil {
+	if restConfig, err = kubeClient.config.ClientConfig(); err != nil {
 		return err
 	}
 
-	if kuber.client, err = kubernetes.NewForConfig(restConfig); err != nil {
+	if kubeClient.Clientset, err = kubernetes.NewForConfig(restConfig); err != nil {
 		return err
 	}
 

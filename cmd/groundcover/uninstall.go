@@ -24,26 +24,26 @@ var UninstallCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		var clusterName string
-		var kuber *k8s.Kuber
 		var release *release.Release
+		var kubeClient *k8s.KubeClient
 		var helmRelease *helm.HelmReleaser
 
-		if kuber, err = k8s.NewKuber(viper.GetString(KUBECONFIG_FLAG), viper.GetString(KUBECONTEXT_FLAG)); err != nil {
+		if kubeClient, err = k8s.NewKubeClient(viper.GetString(KUBECONFIG_FLAG), viper.GetString(KUBECONTEXT_FLAG)); err != nil {
 			return err
 		}
-		if helmRelease, err = helm.NewHelmReleaser(viper.GetString(HELM_RELEASE_FLAG)); err != nil {
+		if helmRelease, err = helm.NewHelmReleaser(viper.GetString(HELM_RELEASE_FLAG), viper.GetString(NAMESPACE_FLAG), viper.GetString(KUBECONTEXT_FLAG)); err != nil {
 			return err
 		}
 		if release, err = helmRelease.Get(); err != nil {
 			return err
 		}
 
-		if clusterName, err = getClusterName(kuber); err != nil {
+		if clusterName, err = getClusterName(kubeClient); err != nil {
 			return err
 		}
 
 		promptMessage := fmt.Sprintf(
-			"Current groundcover (cluster: %s, namespace: %s, version: %s), are you sure you want to uninstall?",
+			"Current groundcover (cluster: %s, namespace: %s, version: %s)\nAre you sure you want to uninstall?",
 			clusterName, helmRelease.Namespace, release.Chart.Metadata.Version,
 		)
 		if !utils.YesNoPrompt(promptMessage, false) {
@@ -53,7 +53,7 @@ var UninstallCmd = &cobra.Command{
 		if err = helmRelease.Uninstall(); err != nil {
 			return err
 		}
-		if err = deleteReleaseLeftovers(cmd.Context(), kuber, helmRelease); err != nil {
+		if err = deleteReleaseLeftovers(cmd.Context(), kubeClient, helmRelease); err != nil {
 			return err
 		}
 
@@ -61,7 +61,7 @@ var UninstallCmd = &cobra.Command{
 			return nil
 		}
 
-		if err = deletePvcs(cmd.Context(), kuber, helmRelease); err != nil {
+		if err = deletePvcs(cmd.Context(), kubeClient, helmRelease); err != nil {
 			return err
 		}
 
@@ -69,27 +69,30 @@ var UninstallCmd = &cobra.Command{
 	},
 }
 
-func deleteReleaseLeftovers(ctx context.Context, kuber *k8s.Kuber, helmRelease *helm.HelmReleaser) error {
+func deleteReleaseLeftovers(ctx context.Context, kubeClient *k8s.KubeClient, helmRelease *helm.HelmReleaser) error {
 	var err error
-	var svcList []v1.Service
-	var epList []v1.Endpoints
+	var svcList *v1.ServiceList
+	var epList *v1.EndpointsList
 
+	deleteOptions := metav1.DeleteOptions{}
 	listOptions := metav1.ListOptions{LabelSelector: fmt.Sprintf("release=%s", helmRelease.Name)}
 
-	if svcList, err = kuber.ListSvcs(ctx, helmRelease.Namespace, listOptions); err != nil {
+	svcClient := kubeClient.CoreV1().Services(helmRelease.Namespace)
+	if svcList, err = svcClient.List(ctx, listOptions); err != nil {
 		return err
 	}
-	for _, svc := range svcList {
-		if err = kuber.DeleteSvc(ctx, svc); err != nil {
+	for _, svc := range svcList.Items {
+		if err = svcClient.Delete(ctx, svc.Name, deleteOptions); err != nil {
 			return err
 		}
 	}
 
-	if epList, err = kuber.ListEps(ctx, helmRelease.Namespace, listOptions); err != nil {
+	epClient := kubeClient.CoreV1().Endpoints(helmRelease.Namespace)
+	if epList, err = epClient.List(ctx, listOptions); err != nil {
 		return err
 	}
-	for _, ep := range epList {
-		if err = kuber.DeleteEp(ctx, ep); err != nil {
+	for _, ep := range epList.Items {
+		if err = epClient.Delete(ctx, ep.Name, deleteOptions); err != nil {
 			return err
 		}
 	}
@@ -97,23 +100,25 @@ func deleteReleaseLeftovers(ctx context.Context, kuber *k8s.Kuber, helmRelease *
 	return nil
 }
 
-func deletePvcs(ctx context.Context, kuber *k8s.Kuber, helmRelease *helm.HelmReleaser) error {
+func deletePvcs(ctx context.Context, kubeClient *k8s.KubeClient, helmRelease *helm.HelmReleaser) error {
 	var err error
-	var _pvcList []v1.PersistentVolumeClaim
+	var pvcList *v1.PersistentVolumeClaimList
 
-	pvcList := make([]v1.PersistentVolumeClaim, 0)
+	deleteOptions := metav1.DeleteOptions{}
+	allPvcs := make([]v1.PersistentVolumeClaim, 0)
 	labelNames := []string{"release", "app.kubernetes.io/instance"}
 
+	pvcClient := kubeClient.CoreV1().PersistentVolumeClaims(helmRelease.Namespace)
 	for _, labelName := range labelNames {
 		listOptions := metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", labelName, helmRelease.Name)}
-		if _pvcList, err = kuber.ListPvcs(ctx, helmRelease.Namespace, listOptions); err != nil {
+		if pvcList, err = pvcClient.List(ctx, listOptions); err != nil {
 			return err
 		}
-		pvcList = append(pvcList, _pvcList...)
+		allPvcs = append(allPvcs, pvcList.Items...)
 	}
 
-	for _, pvc := range pvcList {
-		if err = kuber.DeletePvc(ctx, pvc); err != nil {
+	for _, pvc := range allPvcs {
+		if err = pvcClient.Delete(ctx, pvc.Name, deleteOptions); err != nil {
 			return err
 		}
 	}

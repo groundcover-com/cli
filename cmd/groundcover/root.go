@@ -83,21 +83,14 @@ groundcover, more data at: https://groundcover.com/docs`,
 		if customClaims, err = checkAuthForCmd(cmd); err != nil {
 			return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
 		}
-
 		viper.Set(USER_CUSTOM_CLAIMS_KEY, customClaims)
-		setHelmEnvironment()
+
 		return nil
 	},
 	// this mutes usage printing on command errors
 	SilenceUsage: true,
 	// this mutes error printing on command errors
 	SilenceErrors: true,
-}
-
-func setHelmEnvironment() {
-	os.Setenv("KUBECONFIG", viper.GetString(KUBECONFIG_FLAG))
-	os.Setenv("HELM_NAMESPACE", viper.GetString(NAMESPACE_FLAG))
-	os.Setenv("HELM_KUBECONTEXT", viper.GetString(KUBECONTEXT_FLAG))
 }
 
 func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdater) {
@@ -127,7 +120,7 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 func checkAuthForCmd(cmd *cobra.Command) (*auth.CustomClaims, error) {
 	// here we need to check if the command requires auth, currently we only check for the login command
 	switch cmd {
-	case LoginCmd:
+	case LoginCmd, VersionCmd:
 		// skip IsAuthenticated
 		return nil, nil
 	default:

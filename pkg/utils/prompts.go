@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const ASSUME_YES_FLAG = "assume-yes"
+const ASSUME_YES_FLAG = "yes"
 
 // This file has components that interact with the user via prompts.
 

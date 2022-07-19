@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,63 +8,44 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/briandowns/spinner"
 	"groundcover.com/pkg/auth"
+	"groundcover.com/pkg/utils"
 )
 
 const (
-	API_KEY_GENERATE_URL                       = "https://app.groundcover.com/api/cluster/list"
-	CLUSTER_POLLING_INTERVAL                   = time.Second * 10
-	WAIT_FOR_CLUSTER_CONNECTED_TO_SAAS_TIMEOUT = time.Minute * 5
-	SPINNER_TYPE                               = 27 // ▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▏▎▍▌▋▊▉█▇▆▅▄▃▂▁
+	API_KEY_GENERATE_URL     = "https://app.groundcover.com/api/cluster/list"
+	CLUSTER_POLLING_INTERVAL = time.Second * 10
+	CLUSTER_POLLING_TIMEOUT  = time.Minute * 5
+	SPINNER_TYPE             = 27 // ▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▏▎▍▌▋▊▉█▇▆▅▄▃▂▁
 )
 
 type ListResponse struct {
 	ClusterIds []string `json:"clusterIds"`
 }
 
-func WaitUntilClusterConnectedToSaas(ctx context.Context, token *auth.Auth0Token, clusterToPoll string) error {
-	ctx, cancel := context.WithTimeout(ctx, WAIT_FOR_CLUSTER_CONNECTED_TO_SAAS_TIMEOUT)
-	defer cancel()
+func WaitUntilClusterConnectedToSaas(token *auth.Auth0Token, clusterToPoll string) error {
+	var err error
+	var clusterNames []string
 
-	s := spinner.New(spinner.CharSets[SPINNER_TYPE], 100*time.Millisecond)
-	s.Suffix = " Waiting until groundcover connected to saas"
-	s.Color("red")
-	s.Start()
-	defer s.Stop()
+	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until groundcover connected to saas ")
 
-	ticker := time.NewTicker(CLUSTER_POLLING_INTERVAL)
-
-	for {
-		select {
-		case <-ticker.C:
-			clusterExists, err := doesClusterExistsInSass(token, clusterToPoll)
-			if err != nil {
-				return err
-			}
-
-			if clusterExists {
-				return nil
-			}
-		case <-ctx.Done():
-			return errors.New("timed out while waiting for groundcover to connect to saas")
+	isClusterExistInSassFunc := func() (bool, error) {
+		if clusterNames, err = getClusters(token); err != nil {
+			return false, err
 		}
-	}
-}
-
-func doesClusterExistsInSass(token *auth.Auth0Token, clusterToPoll string) (bool, error) {
-	clusters, err := getClusters(token)
-	if err != nil {
-		return false, err
-	}
-
-	for _, cluster := range clusters {
-		if clusterToPoll == cluster {
-			return true, nil
+		for _, clusterName := range clusterNames {
+			if clusterToPoll == clusterName {
+				return true, nil
+			}
 		}
+		return false, nil
 	}
 
-	return false, nil
+	if err = spinner.Poll(isClusterExistInSassFunc, CLUSTER_POLLING_INTERVAL, CLUSTER_POLLING_TIMEOUT); err != nil {
+		return fmt.Errorf("timed out while waiting for groundcover to connect to saas")
+	}
+
+	return nil
 }
 
 func getClusters(token *auth.Auth0Token) ([]string, error) {

@@ -22,7 +22,7 @@ type HelmReleaser struct {
 	config    *action.Configuration
 }
 
-func NewHelmReleaser(name string) (*HelmReleaser, error) {
+func NewHelmReleaser(name, namespace, kubecontext string) (*HelmReleaser, error) {
 	var err error
 
 	helmReleaser := &HelmReleaser{
@@ -31,7 +31,8 @@ func NewHelmReleaser(name string) (*HelmReleaser, error) {
 		config:   new(action.Configuration),
 	}
 
-	helmReleaser.Namespace = helmReleaser.settings.Namespace()
+	helmReleaser.Namespace = namespace
+	helmReleaser.settings.KubeContext = kubecontext
 
 	if err = helmReleaser.config.Init(helmReleaser.settings.RESTClientGetter(), helmReleaser.Namespace, os.Getenv("HELM_DRIVER"), log.L.Debugf); err != nil {
 		return nil, err
