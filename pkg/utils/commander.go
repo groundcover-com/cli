@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/skratchdot/open-golang/open"
 )
 
 func ExecuteCommand(command string, args ...string) (string, error) {
@@ -20,7 +22,7 @@ func ExecuteCommand(command string, args ...string) (string, error) {
 }
 
 func OpenBrowser(url string) {
-	if _, err := ExecuteCommand("xdg-open", url); err != nil {
+	if err := open.Run(url); err != nil {
 		fmt.Printf("You can browse to: %s", url)
 	}
 }
