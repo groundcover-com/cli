@@ -16,7 +16,7 @@ func (chart *Chart) Version() semver.Version {
 	return version
 }
 
-func (helmClient *Client) Show(name, repoUrl string) (*Chart, error) {
+func (helmClient *Client) GetLatestChart(name, repoUrl string) (*Chart, error) {
 	var err error
 	var chartPath string
 	var chart *chart.Chart

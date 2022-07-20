@@ -32,58 +32,70 @@ var DeployCmd = &cobra.Command{
 	Short: "deploy groundcover",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var clusterName string
-		var promptMessage string
-		var chart *helm.Chart
-		var release *helm.Release
-		var nodeList *v1.NodeList
-		var apiKey *auth.ApiKey
-		var token *auth.Auth0Token
-		var kubeClient *k8s.Client
-		var helmClient *helm.Client
-		var customClaims *auth.CustomClaims
 
 		namespace := viper.GetString(NAMESPACE_FLAG)
 		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
 		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 		releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
+		var apiKey *auth.ApiKey
 		if apiKey, err = auth.LoadApiKey(); err != nil {
 			return fmt.Errorf("failed to load api key. error: %s", err.Error())
 		}
+
+		var token *auth.Auth0Token
 		if token, err = auth.MustLoadDefaultCredentials(); err != nil {
 			return err
 		}
+
+		var customClaims *auth.CustomClaims
 		if customClaims = viper.Get(USER_CUSTOM_CLAIMS_KEY).(*auth.CustomClaims); customClaims == nil {
 			return fmt.Errorf("deployment failed to get user custom claims")
 		}
 
+		var kubeClient *k8s.Client
 		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
+
+		var helmClient *helm.Client
 		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
 			return err
 		}
 
-		isUpgrade := false
-		isLatestNewer := false
-		if chart, err = helmClient.Show(CHART_NAME, HELM_REPO_URL); err != nil {
-			return err
-		}
-		if release, _ = helmClient.Status(releaseName); release != nil {
-			isUpgrade = true
-			isLatestNewer = chart.Version().GT(release.Version())
-		}
-
+		var clusterName string
 		if clusterName, err = getClusterName(kubeClient); err != nil {
 			return err
 		}
 
+		var nodeList *v1.NodeList
 		if nodeList, err = kubeClient.CoreV1().Nodes().List(cmd.Context(), metav1.ListOptions{}); err != nil {
 			return err
 		}
 		numberOfNodes := len(nodeList.Items)
 
+		var chart *helm.Chart
+		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
+			return err
+		}
+
+		var isReleaseInstalled bool
+		if isReleaseInstalled, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
+			return err
+		}
+
+		isUpgrade := false
+		isLatestNewer := false
+		if isReleaseInstalled {
+			var release *helm.Release
+			if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
+				return err
+			}
+			isUpgrade = true
+			isLatestNewer = chart.Version().GT(release.Version())
+		}
+
+		var promptMessage string
 		switch {
 		case !isUpgrade:
 			promptMessage = fmt.Sprintf(
@@ -97,8 +109,8 @@ var DeployCmd = &cobra.Command{
 			)
 		case isLatestNewer:
 			promptMessage = fmt.Sprintf(
-				"Current groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s) is out of date!, The latest version is %s.\nDo you want to upgrade?",
-				clusterName, namespace, numberOfNodes, release.Version(), chart.Version(),
+				"Current groundcover (cluster: %s, namespace: %s, nodes: %d) is out of date!, The latest version is %s.\nDo you want to upgrade?",
+				clusterName, namespace, numberOfNodes, chart.Version(),
 			)
 		}
 
@@ -107,13 +119,13 @@ var DeployCmd = &cobra.Command{
 		}
 		sentry.CaptureDeploymentEvent(customClaims, isUpgrade, chart.Version().String(), numberOfNodes)
 
-		chartValues := make(map[string]interface{})
-		chartValues["clusterId"] = clusterName
-		chartValues["global"] = map[string]interface{}{"groundcover_token": apiKey.ApiKey}
+		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
 		if err = helmClient.Upgrade(cmd.Context(), releaseName, chart, chartValues); err != nil {
 			return err
 		}
-		if release, err = helmClient.Status(releaseName); err != nil {
+
+		var release *helm.Release
+		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 			return err
 		}
 
@@ -144,4 +156,12 @@ func getClusterName(kubeClient *k8s.Client) (string, error) {
 	}
 
 	return clusterName, nil
+}
+
+func defaultChartValues(clusterName, apikey string) map[string]interface{} {
+	chartValues := make(map[string]interface{})
+	chartValues["clusterId"] = clusterName
+	chartValues["global"] = map[string]interface{}{"groundcover_token": apikey}
+
+	return chartValues
 }

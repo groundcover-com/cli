@@ -29,28 +29,29 @@ var StatusCmd = &cobra.Command{
 	Short: "Get groundcover current status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var chart *helm.Chart
-		var release *helm.Release
-		var kubeClient *k8s.Client
-		var helmClient *helm.Client
 
 		namespace := viper.GetString(NAMESPACE_FLAG)
 		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
 		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 		releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
+		var kubeClient *k8s.Client
 		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
+
+		var helmClient *helm.Client
 		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
 			return err
 		}
 
-		if release, err = helmClient.Status(releaseName); err != nil {
+		var release *helm.Release
+		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 			return err
 		}
 
-		if chart, err = helmClient.Show(CHART_NAME, HELM_REPO_URL); err != nil {
+		var chart *helm.Chart
+		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
 			return err
 		}
 

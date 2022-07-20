@@ -22,26 +22,28 @@ var UninstallCmd = &cobra.Command{
 	Short: "Uninstall groundcover",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var clusterName string
-		var release *helm.Release
-		var kubeClient *k8s.Client
-		var helmClient *helm.Client
 
 		namespace := viper.GetString(NAMESPACE_FLAG)
 		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
 		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 		releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
+		var kubeClient *k8s.Client
 		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
+
+		var helmClient *helm.Client
 		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
 			return err
 		}
-		if release, err = helmClient.Status(releaseName); err != nil {
+
+		var release *helm.Release
+		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 			return err
 		}
 
+		var clusterName string
 		if clusterName, err = getClusterName(kubeClient); err != nil {
 			return err
 		}

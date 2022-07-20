@@ -19,12 +19,27 @@ func (release *Release) Version() semver.Version {
 	return version
 }
 
-func (helmClient *Client) Status(name string) (*Release, error) {
+func (helmClient *Client) IsReleaseInstalled(name string) (bool, error) {
+	var err error
+
+	client := action.NewStatus(helmClient.cfg)
+	_, err = client.Run(name)
+
+	switch {
+	case errors.Is(err, driver.ErrReleaseNotFound):
+		return false, nil
+	case err != nil:
+		return false, err
+	default:
+		return true, nil
+	}
+}
+
+func (helmClient *Client) GetCurrentRelease(name string) (*Release, error) {
 	var err error
 	var release *release.Release
 
 	client := action.NewStatus(helmClient.cfg)
-
 	if release, err = client.Run(name); err != nil {
 		return nil, err
 	}
