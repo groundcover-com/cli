@@ -2,6 +2,7 @@ package custom_sentry
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/getsentry/sentry-go"
 	"groundcover.com/pkg/auth"
@@ -12,7 +13,7 @@ const (
 	DEPLOYMENT_EVENT_MESSAGE = "deployment"
 	ORGANIZATION_TAG         = "organization"
 	VERSION_TAG              = "version"
-	DEPLOYMENT_MODE_TAG      = "deployment_mode"
+	UPGRADE_TAG              = "upgrade"
 	NUMBER_OF_NODES_TAG      = "number_of_nodes"
 )
 
@@ -31,14 +32,14 @@ func CaptureLoginEvent(customClaims *auth.CustomClaims) {
 	sentry.CaptureEvent(event)
 }
 
-func CaptureDeploymentEvent(customClaims *auth.CustomClaims, deploymentMode string, version string, numberOfNodes int) {
+func CaptureDeploymentEvent(customClaims *auth.CustomClaims, isUpgrade bool, version string, numberOfNodes int) {
 	event := sentry.NewEvent()
 
 	event.Message = DEPLOYMENT_EVENT_MESSAGE
 	event.Tags = map[string]string{
 		ORGANIZATION_TAG:    customClaims.Org,
 		VERSION_TAG:         version,
-		DEPLOYMENT_MODE_TAG: deploymentMode,
+		UPGRADE_TAG:         strconv.FormatBool(isUpgrade),
 		NUMBER_OF_NODES_TAG: fmt.Sprintf("%d", numberOfNodes),
 	}
 	event.User = sentry.User{

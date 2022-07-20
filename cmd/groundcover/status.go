@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
+	"groundcover.com/pkg/utils"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	WAITING_ALL_NODES_MONITORED_MSG = " Waiting until all nodes are monitored. %d/%d"
-	WAIT_FOR_ALLIGATORS_TO_RUN      = time.Minute * 2
-	ALLIGATORS_POLLING_INTERVAL     = time.Second * 10
-	SPINNER_TYPE                    = 8 // .oO@*
+	SPINNER_TYPE                = 8 // .oO@*
+	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 2
+	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
 )
 
 func init() {
@@ -27,64 +28,84 @@ var StatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Get groundcover current status",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		helmCmd, err := helm.NewHelmCmd()
-		if err != nil {
+		var err error
+
+		namespace := viper.GetString(NAMESPACE_FLAG)
+		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
+		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
+		releaseName := viper.GetString(HELM_RELEASE_FLAG)
+
+		var kubeClient *k8s.Client
+		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
 
-		version, err := helmCmd.GetLatestChartVersion(cmd.Context())
-		if err != nil {
+		var helmClient *helm.Client
+		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
 			return err
 		}
 
-		metadataFetcher, err := k8s.NewMetadataFetcher(viper.GetString(KUBECONFIG_PATH_FLAG))
-		if err != nil {
+		var release *helm.Release
+		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 			return err
 		}
 
-		err = waitForAlligators(cmd.Context(), metadataFetcher, viper.GetString(GROUNDCOVER_NAMESPACE_FLAG), version)
-		if err != nil {
-			return fmt.Errorf("failed while waiting for all nodes to be monitored: %s", err.Error())
+		var chart *helm.Chart
+		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
+			return err
+		}
+
+		if chart.Version().GT(release.Version()) {
+			fmt.Printf("Current groundcover %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
+		}
+
+		if err = waitForAlligators(cmd.Context(), kubeClient, release); err != nil {
+			return err
 		}
 
 		return nil
 	},
 }
 
-func waitForAlligators(ctx context.Context, metadataFetcher *k8s.MetadataFetcher, groundcoverNamespace string, version string) error {
-	ctx, cancel := context.WithTimeout(ctx, WAIT_FOR_ALLIGATORS_TO_RUN)
-	defer cancel()
+func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release) error {
+	var err error
+	var podList *v1.PodList
+	var nodeList *v1.NodeList
 
-	numberOfNodes, err := metadataFetcher.GetNumberOfNodes(ctx)
-	if err != nil {
+	version := helmRelease.Version().String()
+	nodeClient := kubeClient.CoreV1().Nodes()
+	podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
+	listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
+
+	if nodeList, err = nodeClient.List(ctx, metav1.ListOptions{}); err != nil {
+		return err
+	}
+	numberOfNodes := len(nodeList.Items)
+
+	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until all nodes are monitored ")
+	spinner.Suffix = fmt.Sprintf(" (%d/%d)", 0, numberOfNodes)
+
+	areAlligatorsRunning := func() (bool, error) {
+		runningAlligators := 0
+		if podList, err = podClient.List(ctx, listOptions); err != nil {
+			return false, err
+		}
+		for _, pod := range podList.Items {
+			if pod.Annotations["groundcover_version"] == version {
+				runningAlligators++
+			}
+		}
+		spinner.Suffix = fmt.Sprintf(" (%d/%d)", runningAlligators, numberOfNodes)
+		if numberOfNodes > runningAlligators {
+			return false, nil
+		}
+		spinner.FinalMSG = fmt.Sprintf("All nodes are monitored (%d/%d) !\n", runningAlligators, numberOfNodes)
+		return true, nil
+	}
+
+	if err = spinner.Poll(areAlligatorsRunning, ALLIGATORS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT); err != nil {
 		return err
 	}
 
-	var numberOfAlligators int
-	s := spinner.New(spinner.CharSets[SPINNER_TYPE], 100*time.Millisecond)
-	s.Suffix = fmt.Sprintf(WAITING_ALL_NODES_MONITORED_MSG, numberOfAlligators, numberOfNodes)
-	s.Color("red")
-	s.Start()
-	defer s.Stop()
-
-	ticker := time.NewTicker(ALLIGATORS_POLLING_INTERVAL)
-	for {
-		select {
-		case <-ticker.C:
-			numberOfAlligators, err = metadataFetcher.GetNumberOfAlligators(ctx, groundcoverNamespace, version)
-			if err != nil {
-				return err
-			}
-			if numberOfAlligators == numberOfNodes {
-				s.Stop()
-				fmt.Printf("All nodes are monitored %d/%d !\n", numberOfAlligators, numberOfNodes)
-				return nil
-			}
-
-			s.Suffix = fmt.Sprintf(WAITING_ALL_NODES_MONITORED_MSG, numberOfAlligators, numberOfNodes)
-		case <-ctx.Done():
-			fmt.Printf("timed out while waiting for all nodes to be monitored, got only: %d/%d", numberOfAlligators, numberOfNodes)
-			return nil
-		}
-	}
+	return nil
 }

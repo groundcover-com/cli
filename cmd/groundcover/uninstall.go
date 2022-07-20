@@ -1,28 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/helm"
-	"groundcover.com/pkg/kubectl"
+	"groundcover.com/pkg/k8s"
 	"groundcover.com/pkg/utils"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-const (
-	TSDB_SERVICE_CONFIG_NAME  = "service/groundcover-tsdb-config"
-	TSDB_ENDPOINT_CONFIG_NAME = "endpoints/groundcover-tsdb"
-	RELEASE_LABEL_KEY         = "release"
-	APP_K8S_IO_LABEL_KEY      = "app.kubernetes.io/instance"
-)
-
-func buildPVCLabels(releaseName string) []string {
-	return []string{
-		fmt.Sprintf("%s=%s", RELEASE_LABEL_KEY, releaseName),
-		fmt.Sprintf("%s=%s", APP_K8S_IO_LABEL_KEY, releaseName),
-	}
-}
 
 func init() {
 	RootCmd.AddCommand(UninstallCmd)
@@ -32,41 +21,98 @@ var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
 	Short: "Uninstall groundcover",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		groundcoverNamespace := viper.GetString(GROUNDCOVER_NAMESPACE_FLAG)
-		groundcoverReleaseName := viper.GetString(GROUNDCOVER_HELM_RELEASE_FLAG)
-		fmt.Printf("Uninstalling groundcover with namespace: '%s'\n", groundcoverNamespace)
+		var err error
 
-		uninstall := utils.YesNoPrompt("Are you sure you want to uninstall groundcover?", false)
-		if !uninstall {
-			fmt.Println("Not uninstalling groundcover :)")
+		namespace := viper.GetString(NAMESPACE_FLAG)
+		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
+		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
+		releaseName := viper.GetString(HELM_RELEASE_FLAG)
+
+		var kubeClient *k8s.Client
+		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
+			return err
+		}
+
+		var helmClient *helm.Client
+		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
+			return err
+		}
+
+		var release *helm.Release
+		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
+			return err
+		}
+
+		var clusterName string
+		if clusterName, err = getClusterName(kubeClient); err != nil {
+			return err
+		}
+
+		promptMessage := fmt.Sprintf(
+			"Current groundcover (cluster: %s, namespace: %s, version: %s)\nAre you sure you want to uninstall?",
+			clusterName, namespace, release.Chart.Metadata.Version,
+		)
+		if !utils.YesNoPrompt(promptMessage, false) {
 			return nil
 		}
 
-		helmCmd, err := helm.NewHelmCmd()
-		if err != nil {
+		if err = helmClient.Uninstall(releaseName); err != nil {
+			return err
+		}
+		if err = deleteReleaseLeftovers(cmd.Context(), kubeClient, release); err != nil {
 			return err
 		}
 
-		err = helmCmd.Uninstall(cmd.Context(), groundcoverNamespace, viper.GetString(GROUNDCOVER_HELM_RELEASE_FLAG))
-		if err != nil {
-			return err
-		}
-
-		err = kubectl.Delete(cmd.Context(), groundcoverNamespace, TSDB_ENDPOINT_CONFIG_NAME)
-		if err != nil {
-			return err
-		}
-
-		err = kubectl.Delete(cmd.Context(), groundcoverNamespace, TSDB_SERVICE_CONFIG_NAME)
-		if err != nil {
-			return err
-		}
-
-		shouldUninstallPvcs := utils.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false)
-		if !shouldUninstallPvcs {
-			fmt.Println("Not removing groundcover pvcs")
+		if !utils.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false) {
 			return nil
 		}
-		return kubectl.DeletePvcByLabels(cmd.Context(), groundcoverNamespace, buildPVCLabels(groundcoverReleaseName))
+
+		if err = deletePvcs(cmd.Context(), kubeClient, release); err != nil {
+			return err
+		}
+
+		return nil
 	},
+}
+
+func deleteReleaseLeftovers(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release) error {
+	var err error
+	var svcList *v1.ServiceList
+
+	deleteOptions := metav1.DeleteOptions{}
+	listOptions := metav1.ListOptions{LabelSelector: fmt.Sprintf("release=%s", helmRelease.Name)}
+
+	svcClient := kubeClient.CoreV1().Services(helmRelease.Namespace)
+	if svcList, err = svcClient.List(ctx, listOptions); err != nil {
+		return err
+	}
+	for _, svc := range svcList.Items {
+		if err = svcClient.Delete(ctx, svc.Name, deleteOptions); err != nil {
+			return err
+		}
+	}
+
+	epClient := kubeClient.CoreV1().Endpoints(helmRelease.Namespace)
+	if err = epClient.DeleteCollection(ctx, deleteOptions, listOptions); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deletePvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release) error {
+	var err error
+
+	deleteOptions := metav1.DeleteOptions{}
+	labelNames := []string{"release", "app.kubernetes.io/instance"}
+
+	pvcClient := kubeClient.CoreV1().PersistentVolumeClaims(helmRelease.Namespace)
+	for _, labelName := range labelNames {
+		listOptions := metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", labelName, helmRelease.Name)}
+		if err = pvcClient.DeleteCollection(ctx, deleteOptions, listOptions); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

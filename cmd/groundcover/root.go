@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/blang/semver/v4"
 	"github.com/spf13/cobra"
@@ -12,27 +13,44 @@ import (
 	sentry "groundcover.com/pkg/custom_sentry"
 	"groundcover.com/pkg/selfupdate"
 	"groundcover.com/pkg/utils"
+	"k8s.io/client-go/util/homedir"
 )
 
 const (
 	GITHUB_REPO            = "cli"
 	GITHUB_OWNER           = "groundcover-com"
+	NAMESPACE_FLAG         = "namespace"
+	KUBECONFIG_FLAG        = "kubeconfig"
+	KUBECONTEXT_FLAG       = "kube-context"
+	HELM_RELEASE_FLAG      = "release-name"
+	CLUSTER_NAME_FLAG      = "cluster-name"
 	SKIP_SELFUPDATE_FLAG   = "skip-selfupdate"
 	USER_CUSTOM_CLAIMS_KEY = "user_custom_claims"
 )
 
 func init() {
+	home := homedir.HomeDir()
+
+	RootCmd.PersistentFlags().Bool(utils.ASSUME_YES_FLAG, false, "assume yes on interactive prompts")
+	viper.BindPFlag(utils.ASSUME_YES_FLAG, RootCmd.PersistentFlags().Lookup(utils.ASSUME_YES_FLAG))
+
 	RootCmd.PersistentFlags().Bool(SKIP_SELFUPDATE_FLAG, false, "disable automatic selfupdate check")
 	viper.BindPFlag(SKIP_SELFUPDATE_FLAG, RootCmd.PersistentFlags().Lookup(SKIP_SELFUPDATE_FLAG))
 
-	RootCmd.PersistentFlags().String(KUBECONFIG_PATH_FLAG, "", "kubeconfig path")
-	viper.BindPFlag(KUBECONFIG_PATH_FLAG, RootCmd.PersistentFlags().Lookup(KUBECONFIG_PATH_FLAG))
+	RootCmd.PersistentFlags().String(CLUSTER_NAME_FLAG, "", "cluster name")
+	viper.BindPFlag(CLUSTER_NAME_FLAG, RootCmd.PersistentFlags().Lookup(CLUSTER_NAME_FLAG))
 
-	RootCmd.PersistentFlags().String(GROUNDCOVER_NAMESPACE_FLAG, DEFAULT_GROUNDCOVER_NAMESPACE, "groundcover deployment namespace")
-	viper.BindPFlag(GROUNDCOVER_NAMESPACE_FLAG, RootCmd.PersistentFlags().Lookup(GROUNDCOVER_NAMESPACE_FLAG))
+	RootCmd.PersistentFlags().String(KUBECONTEXT_FLAG, "", "name of the kubeconfig context to use")
+	viper.BindPFlag(KUBECONTEXT_FLAG, RootCmd.PersistentFlags().Lookup(KUBECONTEXT_FLAG))
 
-	RootCmd.PersistentFlags().String(GROUNDCOVER_HELM_RELEASE_FLAG, DEFAULT_GROUNDCOVER_RELEASE, "groundcover chart release name")
-	viper.BindPFlag(GROUNDCOVER_HELM_RELEASE_FLAG, RootCmd.PersistentFlags().Lookup(GROUNDCOVER_HELM_RELEASE_FLAG))
+	RootCmd.PersistentFlags().String(KUBECONFIG_FLAG, filepath.Join(home, ".kube", "config"), "path to the kubeconfig file")
+	viper.BindPFlag(KUBECONFIG_FLAG, RootCmd.PersistentFlags().Lookup(KUBECONFIG_FLAG))
+
+	RootCmd.PersistentFlags().String(NAMESPACE_FLAG, DEFAULT_GROUNDCOVER_NAMESPACE, "groundcover deployment namespace")
+	viper.BindPFlag(NAMESPACE_FLAG, RootCmd.PersistentFlags().Lookup(NAMESPACE_FLAG))
+
+	RootCmd.PersistentFlags().String(HELM_RELEASE_FLAG, DEFAULT_GROUNDCOVER_RELEASE, "groundcover chart release name")
+	viper.BindPFlag(HELM_RELEASE_FLAG, RootCmd.PersistentFlags().Lookup(HELM_RELEASE_FLAG))
 }
 
 var RootCmd = &cobra.Command{
@@ -48,9 +66,12 @@ var RootCmd = &cobra.Command{
 
 groundcover, more data at: https://groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		var customClaims *auth.CustomClaims
+
 		if !viper.GetBool(SKIP_SELFUPDATE_FLAG) {
 			if shouldUpdate, selfUpdater := checkLatestVersionUpdate(cmd.Context()); shouldUpdate {
-				if err := selfUpdater.Apply(); err != nil {
+				if err = selfUpdater.Apply(); err != nil {
 					fmt.Println("Self update has failed")
 					return err
 				}
@@ -59,13 +80,11 @@ groundcover, more data at: https://groundcover.com/docs`,
 			}
 		}
 
-		customClaims, err := checkAuthForCmd(cmd)
-		if err != nil {
+		if customClaims, err = checkAuthForCmd(cmd); err != nil {
 			return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
 		}
+		viper.Set(USER_CUSTOM_CLAIMS_KEY, customClaims)
 
-		ctx := context.WithValue(cmd.Context(), USER_CUSTOM_CLAIMS_KEY, customClaims)
-		cmd.SetContext(ctx)
 		return nil
 	},
 	// this mutes usage printing on command errors
@@ -83,22 +102,25 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 		sentry.CaptureException(err)
 		return false, nil
 	}
+
 	if selfUpdater, err = selfupdate.NewSelfUpdater(ctx, GITHUB_OWNER, GITHUB_REPO); err != nil {
 		sentry.CaptureException(err)
 		return false, nil
 	}
+
 	if !selfUpdater.IsLatestNewer(currentVersion) {
 		return false, nil
 	}
+
 	promptFormat := "Your version %s is out of date! The latest version is %s.\nDo you want to update?"
 	shouldUpdate := utils.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
 	return shouldUpdate, selfUpdater
 }
 
-func checkAuthForCmd(c *cobra.Command) (*auth.CustomClaims, error) {
+func checkAuthForCmd(cmd *cobra.Command) (*auth.CustomClaims, error) {
 	// here we need to check if the command requires auth, currently we only check for the login command
-	switch c {
-	case LoginCmd:
+	switch cmd {
+	case LoginCmd, VersionCmd:
 		// skip IsAuthenticated
 		return nil, nil
 	default:

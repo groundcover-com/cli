@@ -1,156 +1,167 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
-	cs "groundcover.com/pkg/custom_sentry"
+	sentry "groundcover.com/pkg/custom_sentry"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	"groundcover.com/pkg/utils"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	CLUSTER_NAME_FLAG             = "cluster-name"
-	KUBECONFIG_PATH_FLAG          = "kubeconfig-path"
-	GROUNDCOVER_URL               = "https://app.groundcover.com"
-	GROUNDCOVER_HELM_REPO_ADDR    = "https://helm.groundcover.com"
-	GROUNDCOVER_HELM_REPO_NAME    = "groundcover"
-	GROUNDCOVER_CHART_NAME        = "groundcover/groundcover"
-	HELM_BINARY_NAME              = "helm"
-	MANUAL_DEPLOYMENT_TAG         = "manual"
-	AUTO_DEPLOYMENT_TAG           = "auto"
-	GROUNDCOVER_NAMESPACE_FLAG    = "groundcover-namespace"
-	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
-	GROUNDCOVER_HELM_RELEASE_FLAG = "groundcover-release"
+	CHART_NAME                    = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
+	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
+	GROUNDCOVER_URL               = "https://app.groundcover.com"
+	HELM_REPO_URL                 = "https://helm.groundcover.com"
 )
 
 func init() {
 	RootCmd.AddCommand(DeployCmd)
-
-	DeployCmd.PersistentFlags().String(CLUSTER_NAME_FLAG, "", "cluster name")
-	viper.BindPFlag(CLUSTER_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(CLUSTER_NAME_FLAG))
 }
 
 var DeployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "deploy groundcover",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("Deploying groundcover")
+		var err error
 
-		customClaims, ok := cmd.Context().Value(USER_CUSTOM_CLAIMS_KEY).(*auth.CustomClaims)
-		if !ok {
-			return fmt.Errorf("deployment failed to get user custom claims")
-		}
+		namespace := viper.GetString(NAMESPACE_FLAG)
+		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
+		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
+		releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
-		apiKey, err := auth.LoadApiKey()
-		if err != nil {
+		var apiKey *auth.ApiKey
+		if apiKey, err = auth.LoadApiKey(); err != nil {
 			return fmt.Errorf("failed to load api key. error: %s", err.Error())
 		}
 
-		clusterName, err := getClusterName(cmd)
-		if err != nil {
-			return err
-		}
-		formattedClusterName := k8s.FormatClusterName(clusterName)
-
-		metadataFetcher, err := k8s.NewMetadataFetcher(viper.GetString(KUBECONFIG_PATH_FLAG))
-		if err != nil {
+		var token *auth.Auth0Token
+		if token, err = auth.MustLoadDefaultCredentials(); err != nil {
 			return err
 		}
 
-		numberOfNodes, err := metadataFetcher.GetNumberOfNodes(cmd.Context())
-		if err != nil {
+		var customClaims *auth.CustomClaims
+		if customClaims = viper.Get(USER_CUSTOM_CLAIMS_KEY).(*auth.CustomClaims); customClaims == nil {
+			return fmt.Errorf("deployment failed to get user custom claims")
+		}
+
+		var kubeClient *k8s.Client
+		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
 
-		helmCmd, err := helm.NewHelmCmd()
-		if err != nil {
+		var helmClient *helm.Client
+		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
 			return err
 		}
 
-		version, err := helmCmd.GetLatestChartVersion(cmd.Context())
-		if err != nil {
+		var clusterName string
+		if clusterName, err = getClusterName(kubeClient); err != nil {
 			return err
 		}
 
-		fmt.Printf("Installing groundcover on cluster: %q with cluster name: %q\n", clusterName, formattedClusterName)
-		fmt.Printf("Available Nodes: %d\n", numberOfNodes)
-		fmt.Printf("Installing groundcover version: %s\n", version)
+		var nodeList *v1.NodeList
+		if nodeList, err = kubeClient.CoreV1().Nodes().List(cmd.Context(), metav1.ListOptions{}); err != nil {
+			return err
+		}
+		numberOfNodes := len(nodeList.Items)
 
-		groundcoverNamespace := viper.GetString(GROUNDCOVER_NAMESPACE_FLAG)
-		groundcoverReleaseName := viper.GetString(GROUNDCOVER_HELM_RELEASE_FLAG)
-		automatedInstallation := utils.YesNoPrompt("Do you want to run automated installation", true)
-		if !automatedInstallation {
-			cs.CaptureDeploymentEvent(customClaims, MANUAL_DEPLOYMENT_TAG, version, numberOfNodes)
-			return manualInstallation(helmCmd, apiKey.ApiKey, formattedClusterName, groundcoverNamespace, groundcoverReleaseName)
+		var chart *helm.Chart
+		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
+			return err
 		}
 
-		cs.CaptureDeploymentEvent(customClaims, AUTO_DEPLOYMENT_TAG, version, numberOfNodes)
-		return autoInstallation(cmd.Context(), helmCmd, metadataFetcher, apiKey.ApiKey, formattedClusterName, groundcoverNamespace, groundcoverReleaseName)
+		var isReleaseInstalled bool
+		if isReleaseInstalled, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
+			return err
+		}
+
+		isUpgrade := false
+		isLatestNewer := false
+		if isReleaseInstalled {
+			var release *helm.Release
+			if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
+				return err
+			}
+			isUpgrade = true
+			isLatestNewer = chart.Version().GT(release.Version())
+		}
+
+		var promptMessage string
+		switch {
+		case !isUpgrade:
+			promptMessage = fmt.Sprintf(
+				"Deploying groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s).\nDo you want to deploy?",
+				clusterName, namespace, numberOfNodes, chart.Version(),
+			)
+		case !isLatestNewer:
+			promptMessage = fmt.Sprintf(
+				"Current groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s) is latest version.\nDo you want to redeploy?",
+				clusterName, namespace, numberOfNodes, chart.Version(),
+			)
+		case isLatestNewer:
+			promptMessage = fmt.Sprintf(
+				"Current groundcover (cluster: %s, namespace: %s, nodes: %d) is out of date!, The latest version is %s.\nDo you want to upgrade?",
+				clusterName, namespace, numberOfNodes, chart.Version(),
+			)
+		}
+
+		if !utils.YesNoPrompt(promptMessage, false) {
+			return nil
+		}
+		sentry.CaptureDeploymentEvent(customClaims, isUpgrade, chart.Version().String(), numberOfNodes)
+
+		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
+		if err = helmClient.Upgrade(cmd.Context(), releaseName, chart, chartValues); err != nil {
+			return err
+		}
+
+		var release *helm.Release
+		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
+			return err
+		}
+
+		if err = waitForAlligators(cmd.Context(), kubeClient, release); err != nil {
+			return err
+		}
+
+		if err = api.WaitUntilClusterConnectedToSaas(token, clusterName); err != nil {
+			return err
+		}
+		fmt.Printf("Cluster %q is connected to SaaS!\n", clusterName)
+
+		utils.TryOpenBrowser(fmt.Sprintf("%s/clusterId=%s", GROUNDCOVER_URL, clusterName))
+		return nil
 	},
 }
 
-func getClusterName(cmd *cobra.Command) (string, error) {
-	if cmd.Flags().Lookup(CLUSTER_NAME_FLAG).Changed {
-		return viper.GetString(CLUSTER_NAME_FLAG), nil
+func getClusterName(kubeClient *k8s.Client) (string, error) {
+	var err error
+	var clusterName string
+
+	if clusterName = viper.GetString(CLUSTER_NAME_FLAG); clusterName != "" {
+		return clusterName, nil
 	}
 
-	clusterName, err := k8s.GetClusterName(viper.GetString(KUBECONFIG_PATH_FLAG))
-	if err != nil {
-		return "", fmt.Errorf("failed to get cluster name. error: %s", err.Error())
+	if clusterName, err = kubeClient.GetClusterShortName(); err != nil {
+		return "", err
 	}
 
 	return clusterName, nil
 }
 
-func autoInstallation(ctx context.Context, helmCmd *helm.HelmCmd, metadataFetcher *k8s.MetadataFetcher, apiKey, clusterName, groundcoverNamespace, groundcoverReleaseName string) error {
-	fmt.Println("Installing groundcover...")
+func defaultChartValues(clusterName, apikey string) map[string]interface{} {
+	chartValues := make(map[string]interface{})
+	chartValues["clusterId"] = clusterName
+	chartValues["global"] = map[string]interface{}{"groundcover_token": apikey}
 
-	err := helmCmd.RepoAdd(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = helmCmd.RepoUpdate(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = helmCmd.Upgrade(ctx, apiKey, clusterName, groundcoverNamespace, groundcoverReleaseName)
-	if err != nil {
-		return err
-	}
-
-	token, err := auth.MustLoadDefaultCredentials()
-	if err != nil {
-		return err
-	}
-
-	err = api.WaitUntilClusterConnectedToSaas(ctx, token, clusterName)
-	if err != nil {
-		return fmt.Errorf("failed while waiting for groundcover installation to connect: %s", err.Error())
-	}
-
-	fmt.Printf("Cluster %q is connected to SaaS!\n", clusterName)
-
-	url := fmt.Sprintf("%s/?clusterId=%s", GROUNDCOVER_URL, clusterName)
-	_, err = utils.ExecuteCommand("xdg-open", url)
-	if err != nil {
-		fmt.Printf("Failed to open groundcover url in browser. You can browse to: %s", url)
-	}
-
-	return nil
-}
-
-func manualInstallation(helmCmd *helm.HelmCmd, apiKey, clusterName, groundcoverNamespace, groundcoverReleaseName string) error {
-	fmt.Print("To deploy groundcover please run the following command:\n")
-	fmt.Print("\n\n")
-	fmt.Print(helmCmd.BuildInstallCommand(apiKey, clusterName, groundcoverNamespace, groundcoverReleaseName))
-	return nil
+	return chartValues
 }

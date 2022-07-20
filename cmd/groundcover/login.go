@@ -5,45 +5,37 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"groundcover.com/pkg/auth"
-	cs "groundcover.com/pkg/custom_sentry"
-)
-
-const (
-	MANUAL_FLAG = "manual"
+	sentry "groundcover.com/pkg/custom_sentry"
 )
 
 var (
 	authTimeout = time.Second * 30
-	ManualLogin bool
 )
 
 func init() {
 	RootCmd.AddCommand(LoginCmd)
-
-	LoginCmd.PersistentFlags().Bool(MANUAL_FLAG, false, "Open your browser manualy using the auth url")
-	viper.BindPFlag(MANUAL_FLAG, LoginCmd.PersistentFlags().Lookup(MANUAL_FLAG))
 }
 
 var LoginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login to groundcover",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		var customClaims *auth.CustomClaims
+
 		ctx, cancel := context.WithTimeout(cmd.Context(), authTimeout)
 		defer cancel()
 
-		err := auth.Login(ctx, viper.GetBool(MANUAL_FLAG))
-		if err != nil {
+		if err = auth.Login(ctx); err != nil {
 			return err
 		}
 
-		customClaims, err := auth.FetchAndSaveApiKey()
-		if err != nil {
+		if customClaims, err = auth.FetchAndSaveApiKey(); err != nil {
 			return err
 		}
 
-		cs.CaptureLoginEvent(customClaims)
+		sentry.CaptureLoginEvent(customClaims)
 		return nil
 	},
 }

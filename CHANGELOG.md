@@ -14,6 +14,18 @@ We use the following categories for changes:
 - `Fixed` for any bug fixes.
 - `Security` in case of vulnerabilities.
 
+## [Unreleased]
+
+### Added
+
+- Add assume-yes flag [#sc-3193]
+- Add kube-context flag [#sc-3397]
+
+### Changed
+
+- Use Helm V3 SDK [#sc-3397]
+- Use Kubernetes SDK [#sc-3242]
+
 ## [0.1.0] - 2022-07-04
 
 ### Added

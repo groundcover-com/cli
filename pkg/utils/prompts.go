@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const ASSUME_YES_FLAG = "yes"
+
 // This file has components that interact with the user via prompts.
 
 // Prompter proves a user input dialog.
@@ -78,6 +80,9 @@ func (p *Prompter) skip() bool {
 
 // YesNoPrompt is a helper function that prompts the user for a Y/N response.
 func YesNoPrompt(message string, defaultValue bool) bool {
+	if viper.GetBool(ASSUME_YES_FLAG) {
+		return true
+	}
 	defaultChoice := "n"
 	if defaultValue {
 		defaultChoice = "y"

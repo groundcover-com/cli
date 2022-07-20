@@ -13,20 +13,20 @@ const (
 )
 
 func main() {
-	sentryDsn := SENTRY_PROD_DSN
-	if cmd.IsDevVersion() {
-		sentryDsn = ""
+	var err error
+	var sentryDsn string
+
+	if !cmd.IsDevVersion() {
+		sentryDsn = SENTRY_PROD_DSN
 	}
 
-	err := sentry.Init(sentryDsn)
-	if err != nil {
+	if err = sentry.Init(sentryDsn); err != nil {
 		logrus.Error(err)
 		os.Exit(1)
 	}
-
 	defer sentry.Flush()
-	err = cmd.Execute()
-	if err != nil {
+
+	if err = cmd.Execute(); err != nil {
 		sentry.CaptureException(err)
 		logrus.Error(err)
 	}
