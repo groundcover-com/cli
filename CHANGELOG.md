@@ -32,7 +32,7 @@ We use the following categories for changes:
 
 ### Security
 
-- Upgrade dependencies to resolve security vulnerabilities
+- Upgrade dependencies to resolve security vulnerabilities [#sc-3755]
 
 ## [0.2.0] 2022-07-20
 
