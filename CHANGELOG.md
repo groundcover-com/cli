@@ -14,7 +14,7 @@ We use the following categories for changes:
 - `Fixed` for any bug fixes.
 - `Security` in case of vulnerabilities.
 
-## [Unreleased]
+## [0.2.0] 2022-07-20
 
 ### Added
 
