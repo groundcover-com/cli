@@ -7,16 +7,16 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-type KubeClient struct {
+type Client struct {
 	*kubernetes.Clientset
+	clientcmd.ClientConfig
 	kubecontext string
-	config      clientcmd.ClientConfig
 }
 
-func NewKubeClient(kubeconfig, kubecontext string) (*KubeClient, error) {
+func NewKubeClient(kubeconfig, kubecontext string) (*Client, error) {
 	var err error
 
-	kubeClient := new(KubeClient)
+	kubeClient := new(Client)
 
 	if err = kubeClient.loadConfig(kubeconfig, kubecontext); err != nil {
 		return nil, err
@@ -29,12 +29,12 @@ func NewKubeClient(kubeconfig, kubecontext string) (*KubeClient, error) {
 	return kubeClient, nil
 }
 
-func (kubeClient *KubeClient) loadConfig(kubeconfig, kubecontext string) error {
+func (kubeClient *Client) loadConfig(kubeconfig, kubecontext string) error {
 	var err error
 
 	configOverrides := &clientcmd.ConfigOverrides{CurrentContext: kubecontext}
 	configLoader := &clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig}
-	kubeClient.config = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoader, configOverrides)
+	kubeClient.ClientConfig = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoader, configOverrides)
 
 	if kubecontext != "" {
 		kubeClient.kubecontext = kubecontext
@@ -48,22 +48,22 @@ func (kubeClient *KubeClient) loadConfig(kubeconfig, kubecontext string) error {
 	return nil
 }
 
-func (kubeClient *KubeClient) defaultContext() (string, error) {
+func (kubeClient *Client) defaultContext() (string, error) {
 	var err error
 	var rawConfig clientcmdapi.Config
 
-	if rawConfig, err = kubeClient.config.RawConfig(); err != nil {
+	if rawConfig, err = kubeClient.RawConfig(); err != nil {
 		return "", err
 	}
 
 	return rawConfig.CurrentContext, nil
 }
 
-func (kubeClient *KubeClient) loadClient() error {
+func (kubeClient *Client) loadClient() error {
 	var err error
 	var restConfig *restclient.Config
 
-	if restConfig, err = kubeClient.config.ClientConfig(); err != nil {
+	if restConfig, err = kubeClient.ClientConfig.ClientConfig(); err != nil {
 		return err
 	}
 
