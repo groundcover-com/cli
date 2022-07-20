@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.2.0] 2022-07-20
+
+### Added
+
 - Add assume-yes flag [#sc-3193]
 - Add kube-context flag [#sc-3397]
 
