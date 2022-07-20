@@ -6,8 +6,8 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
-func OpenBrowser(url string) {
+func TryOpenBrowser(url string) {
 	if err := open.Run(url); err != nil {
-		fmt.Printf("You can browse to: %s", url)
+		fmt.Printf("Browse to: %s", url)
 	}
 }

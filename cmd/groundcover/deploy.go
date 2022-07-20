@@ -126,7 +126,7 @@ var DeployCmd = &cobra.Command{
 		}
 		fmt.Printf("Cluster %q is connected to SaaS!\n", clusterName)
 
-		utils.OpenBrowser(fmt.Sprintf("%s/clusterId=%s", GROUNDCOVER_URL, clusterName))
+		utils.TryOpenBrowser(fmt.Sprintf("%s/clusterId=%s", GROUNDCOVER_URL, clusterName))
 		return nil
 	},
 }

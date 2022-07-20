@@ -322,7 +322,7 @@ func Login(ctx context.Context) error {
 	}
 	fmt.Printf("Device confirmation code, make sure you see it in your browser: '%s'\n", deviceCodeFlow.UserCode)
 
-	utils.OpenBrowser(deviceCodeFlow.VerificationURIComplete)
+	utils.TryOpenBrowser(deviceCodeFlow.VerificationURIComplete)
 
 	if token, err = pollToken(deviceCodeFlow, ctx); err != nil {
 		return err
