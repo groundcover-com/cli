@@ -25,7 +25,7 @@ require (
 
 require helm.sh/helm/v3 v3.9.0
 
-require github.com/containerd/containerd v1.6.3
+require github.com/containerd/containerd v1.6.6
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
