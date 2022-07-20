@@ -9,7 +9,6 @@ import (
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	"groundcover.com/pkg/utils"
-	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -24,17 +23,22 @@ var UninstallCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		var clusterName string
-		var release *release.Release
-		var kubeClient *k8s.KubeClient
-		var helmRelease *helm.HelmReleaser
+		var release *helm.Release
+		var kubeClient *k8s.Client
+		var helmClient *helm.Client
 
-		if kubeClient, err = k8s.NewKubeClient(viper.GetString(KUBECONFIG_FLAG), viper.GetString(KUBECONTEXT_FLAG)); err != nil {
+		namespace := viper.GetString(NAMESPACE_FLAG)
+		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
+		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
+		releaseName := viper.GetString(HELM_RELEASE_FLAG)
+
+		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
-		if helmRelease, err = helm.NewHelmReleaser(viper.GetString(HELM_RELEASE_FLAG), viper.GetString(NAMESPACE_FLAG), viper.GetString(KUBECONTEXT_FLAG)); err != nil {
+		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
 			return err
 		}
-		if release, err = helmRelease.Get(); err != nil {
+		if release, err = helmClient.Status(releaseName); err != nil {
 			return err
 		}
 
@@ -44,16 +48,16 @@ var UninstallCmd = &cobra.Command{
 
 		promptMessage := fmt.Sprintf(
 			"Current groundcover (cluster: %s, namespace: %s, version: %s)\nAre you sure you want to uninstall?",
-			clusterName, helmRelease.Namespace, release.Chart.Metadata.Version,
+			clusterName, namespace, release.Chart.Metadata.Version,
 		)
 		if !utils.YesNoPrompt(promptMessage, false) {
 			return nil
 		}
 
-		if err = helmRelease.Uninstall(); err != nil {
+		if err = helmClient.Uninstall(releaseName); err != nil {
 			return err
 		}
-		if err = deleteReleaseLeftovers(cmd.Context(), kubeClient, helmRelease); err != nil {
+		if err = deleteReleaseLeftovers(cmd.Context(), kubeClient, release); err != nil {
 			return err
 		}
 
@@ -61,7 +65,7 @@ var UninstallCmd = &cobra.Command{
 			return nil
 		}
 
-		if err = deletePvcs(cmd.Context(), kubeClient, helmRelease); err != nil {
+		if err = deletePvcs(cmd.Context(), kubeClient, release); err != nil {
 			return err
 		}
 
@@ -69,10 +73,9 @@ var UninstallCmd = &cobra.Command{
 	},
 }
 
-func deleteReleaseLeftovers(ctx context.Context, kubeClient *k8s.KubeClient, helmRelease *helm.HelmReleaser) error {
+func deleteReleaseLeftovers(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release) error {
 	var err error
 	var svcList *v1.ServiceList
-	var epList *v1.EndpointsList
 
 	deleteOptions := metav1.DeleteOptions{}
 	listOptions := metav1.ListOptions{LabelSelector: fmt.Sprintf("release=%s", helmRelease.Name)}
@@ -88,37 +91,23 @@ func deleteReleaseLeftovers(ctx context.Context, kubeClient *k8s.KubeClient, hel
 	}
 
 	epClient := kubeClient.CoreV1().Endpoints(helmRelease.Namespace)
-	if epList, err = epClient.List(ctx, listOptions); err != nil {
+	if err = epClient.DeleteCollection(ctx, deleteOptions, listOptions); err != nil {
 		return err
-	}
-	for _, ep := range epList.Items {
-		if err = epClient.Delete(ctx, ep.Name, deleteOptions); err != nil {
-			return err
-		}
 	}
 
 	return nil
 }
 
-func deletePvcs(ctx context.Context, kubeClient *k8s.KubeClient, helmRelease *helm.HelmReleaser) error {
+func deletePvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release) error {
 	var err error
-	var pvcList *v1.PersistentVolumeClaimList
 
 	deleteOptions := metav1.DeleteOptions{}
-	allPvcs := make([]v1.PersistentVolumeClaim, 0)
 	labelNames := []string{"release", "app.kubernetes.io/instance"}
 
 	pvcClient := kubeClient.CoreV1().PersistentVolumeClaims(helmRelease.Namespace)
 	for _, labelName := range labelNames {
 		listOptions := metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", labelName, helmRelease.Name)}
-		if pvcList, err = pvcClient.List(ctx, listOptions); err != nil {
-			return err
-		}
-		allPvcs = append(allPvcs, pvcList.Items...)
-	}
-
-	for _, pvc := range allPvcs {
-		if err = pvcClient.Delete(ctx, pvc.Name, deleteOptions); err != nil {
+		if err = pvcClient.DeleteCollection(ctx, deleteOptions, listOptions); err != nil {
 			return err
 		}
 	}

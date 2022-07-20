@@ -12,18 +12,18 @@ var (
 	EKS_CLUSTER_REGEX = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
 )
 
-func (kubeClient *KubeClient) GetClusterName() (string, error) {
+func (kubeClient *Client) GetClusterName() (string, error) {
 	var err error
 	var rawConfig clientcmdapi.Config
 
-	if rawConfig, err = kubeClient.config.RawConfig(); err != nil {
+	if rawConfig, err = kubeClient.RawConfig(); err != nil {
 		return "", err
 	}
 
 	return rawConfig.Contexts[kubeClient.kubecontext].Cluster, nil
 }
 
-func (kubeClient *KubeClient) GetClusterShortName() (string, error) {
+func (kubeClient *Client) GetClusterShortName() (string, error) {
 	var err error
 	var clusterName string
 

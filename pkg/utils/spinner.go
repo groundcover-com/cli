@@ -21,9 +21,6 @@ func NewSpinner(charset int, prefix string) *Spinner {
 }
 
 func (spinner *Spinner) Poll(function func() (bool, error), interval, duration time.Duration) error {
-	var err error
-	var functionDone bool
-
 	timeout := time.After(duration)
 	ticker := time.NewTicker(interval)
 
@@ -35,7 +32,7 @@ func (spinner *Spinner) Poll(function func() (bool, error), interval, duration t
 		case <-timeout:
 			return fmt.Errorf("spinner timeout after %s", duration.String())
 		case <-ticker.C:
-			functionDone, err = function()
+			functionDone, err := function()
 			switch {
 			case err != nil:
 				return err

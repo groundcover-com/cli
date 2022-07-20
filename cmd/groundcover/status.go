@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/blang/semver/v4"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	sentry "groundcover.com/pkg/custom_sentry"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	"groundcover.com/pkg/utils"
-	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,26 +29,36 @@ var StatusCmd = &cobra.Command{
 	Short: "Get groundcover current status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var kubeClient *k8s.KubeClient
-		var helmChart *helm.HelmCharter
-		var helmRelease *helm.HelmReleaser
+		var chart *helm.Chart
+		var release *helm.Release
+		var kubeClient *k8s.Client
+		var helmClient *helm.Client
 
-		if kubeClient, err = k8s.NewKubeClient(viper.GetString(KUBECONFIG_FLAG), viper.GetString(KUBECONTEXT_FLAG)); err != nil {
+		namespace := viper.GetString(NAMESPACE_FLAG)
+		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
+		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
+		releaseName := viper.GetString(HELM_RELEASE_FLAG)
+
+		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
-		if helmRelease, err = helm.NewHelmReleaser(viper.GetString(HELM_RELEASE_FLAG), viper.GetString(NAMESPACE_FLAG), viper.GetString(KUBECONTEXT_FLAG)); err != nil {
-			return err
-		}
-		if helmChart, err = helm.NewHelmCharter(CHART_NAME, HELM_REPO_URL); err != nil {
+		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
 			return err
 		}
 
-		currentVersion, isLatestNewer := checkCurrentDeployedVersion(helmRelease, helmChart)
-		if isLatestNewer {
-			fmt.Printf("Current groundcover %s is out of date!, The latest version is %s.", currentVersion, helmChart.Version)
+		if release, err = helmClient.Status(releaseName); err != nil {
+			return err
 		}
 
-		if err = waitForAlligators(cmd.Context(), kubeClient, helmRelease); err != nil {
+		if chart, err = helmClient.Show(CHART_NAME, HELM_REPO_URL); err != nil {
+			return err
+		}
+
+		if chart.Version().GT(release.Version()) {
+			fmt.Printf("Current groundcover %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
+		}
+
+		if err = waitForAlligators(cmd.Context(), kubeClient, release); err != nil {
 			return err
 		}
 
@@ -59,30 +66,12 @@ var StatusCmd = &cobra.Command{
 	},
 }
 
-func checkCurrentDeployedVersion(helmRelease *helm.HelmReleaser, helmChart *helm.HelmCharter) (string, bool) {
+func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release) error {
 	var err error
-	var release *release.Release
-	var currentVersion semver.Version
-
-	if release, err = helmRelease.Get(); err != nil {
-		return "", false
-	}
-
-	if currentVersion, err = semver.ParseTolerant(release.Chart.Metadata.Version); err != nil {
-		sentry.CaptureException(err)
-	}
-
-	return currentVersion.String(), helmChart.IsLatestNewer(currentVersion)
-}
-
-func waitForAlligators(ctx context.Context, kubeClient *k8s.KubeClient, helmRelease *helm.HelmReleaser) error {
-	var err error
-	var numberOfNodes int
-	var runningAlligators int
 	var podList *v1.PodList
 	var nodeList *v1.NodeList
 
-	version := helmRelease.Version.String()
+	version := helmRelease.Version().String()
 	nodeClient := kubeClient.CoreV1().Nodes()
 	podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
 	listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
@@ -90,13 +79,13 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.KubeClient, helmRele
 	if nodeList, err = nodeClient.List(ctx, metav1.ListOptions{}); err != nil {
 		return err
 	}
-	numberOfNodes = len(nodeList.Items)
+	numberOfNodes := len(nodeList.Items)
 
 	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until all nodes are monitored ")
-	spinner.Suffix = fmt.Sprintf(" (%d/%d)", runningAlligators, numberOfNodes)
+	spinner.Suffix = fmt.Sprintf(" (%d/%d)", 0, numberOfNodes)
 
 	areAlligatorsRunning := func() (bool, error) {
-		runningAlligators = 0
+		runningAlligators := 0
 		if podList, err = podClient.List(ctx, listOptions); err != nil {
 			return false, err
 		}
