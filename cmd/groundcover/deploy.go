@@ -11,8 +11,6 @@ import (
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	"groundcover.com/pkg/utils"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -68,11 +66,18 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		var nodeList *v1.NodeList
-		if nodeList, err = kubeClient.CoreV1().Nodes().List(cmd.Context(), metav1.ListOptions{}); err != nil {
+		var nodesSummeries []k8s.NodeSummary
+		if nodesSummeries, err = kubeClient.GetNodesSummeries(cmd.Context()); err != nil {
 			return err
 		}
-		numberOfNodes := len(nodeList.Items)
+
+		var numberOfNodes int
+		nodeRequirements := k8s.NewNodeMinimumRequirements()
+		for _, nodeSummary := range nodesSummeries {
+			if nodeRequirements.CheckAndAppendReport(nodeSummary) {
+				numberOfNodes++
+			}
+		}
 
 		var chart *helm.Chart
 		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
@@ -129,7 +134,7 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		if err = waitForAlligators(cmd.Context(), kubeClient, release); err != nil {
+		if err = waitForAlligators(cmd.Context(), kubeClient, release, numberOfNodes); err != nil {
 			return err
 		}
 
