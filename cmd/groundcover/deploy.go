@@ -11,6 +11,8 @@ import (
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	"groundcover.com/pkg/utils"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -66,63 +68,64 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		var nodesSummeries []k8s.NodeSummary
-		if nodesSummeries, err = kubeClient.GetNodesSummeries(cmd.Context()); err != nil {
-			return err
-		}
-
-		var numberOfNodes int
-		nodeRequirements := k8s.NewNodeMinimumRequirements()
-		for _, nodeSummary := range nodesSummeries {
-			if nodeRequirements.CheckAndAppendReport(nodeSummary) {
-				numberOfNodes++
-			}
-		}
-
 		var chart *helm.Chart
 		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
 			return err
 		}
 
-		var isReleaseInstalled bool
-		if isReleaseInstalled, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
+		var nodesSummeries []k8s.NodeSummary
+		if nodesSummeries, err = kubeClient.GetNodesSummeries(cmd.Context()); err != nil {
+			return err
+		}
+		nodesCount := len(nodesSummeries)
+
+		var isUpgrade bool
+		if isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
 			return err
 		}
 
-		isUpgrade := false
-		isLatestNewer := false
-		if isReleaseInstalled {
+		var promptMessage string
+		var expectedAlligatorsCount int
+		switch {
+		case !isUpgrade:
+			nodeRequirements := k8s.NewNodeMinimumRequirements()
+			adequateNodesReports, _ := nodeRequirements.GetAdequateAndInadequateNodeReports(nodesSummeries)
+			expectedAlligatorsCount = len(adequateNodesReports)
+
+			promptMessage = fmt.Sprintf(
+				"Deploying groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s).\nDo you want to deploy?",
+				clusterName, namespace, nodesCount, chart.Version(),
+			)
+		case isUpgrade:
 			var release *helm.Release
 			if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 				return err
 			}
-			isUpgrade = true
-			isLatestNewer = chart.Version().GT(release.Version())
-		}
 
-		var promptMessage string
-		switch {
-		case !isUpgrade:
-			promptMessage = fmt.Sprintf(
-				"Deploying groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s).\nDo you want to deploy?",
-				clusterName, namespace, numberOfNodes, chart.Version(),
-			)
-		case !isLatestNewer:
-			promptMessage = fmt.Sprintf(
-				"Current groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s) is latest version.\nDo you want to redeploy?",
-				clusterName, namespace, numberOfNodes, chart.Version(),
-			)
-		case isLatestNewer:
-			promptMessage = fmt.Sprintf(
-				"Current groundcover (cluster: %s, namespace: %s, nodes: %d) is out of date!, The latest version is %s.\nDo you want to upgrade?",
-				clusterName, namespace, numberOfNodes, chart.Version(),
-			)
+			var podList *v1.PodList
+			listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
+			if podList, err = kubeClient.CoreV1().Pods(release.Namespace).List(cmd.Context(), listOptions); err != nil {
+				return err
+			}
+			expectedAlligatorsCount = len(podList.Items)
+
+			if chart.Version().GT(release.Version()) {
+				promptMessage = fmt.Sprintf(
+					"Current groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s) is out of date!, The latest version is %s.\nDo you want to upgrade?",
+					clusterName, namespace, nodesCount, release.Version(), chart.Version(),
+				)
+			} else {
+				promptMessage = fmt.Sprintf(
+					"Current groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s) is latest version.\nDo you want to redeploy?",
+					clusterName, namespace, nodesCount, chart.Version(),
+				)
+			}
 		}
 
 		if !utils.YesNoPrompt(promptMessage, false) {
 			return nil
 		}
-		sentry.CaptureDeploymentEvent(customClaims, isUpgrade, chart.Version().String(), numberOfNodes)
+		sentry.CaptureDeploymentEvent(customClaims, isUpgrade, chart.Version().String(), nodesCount)
 
 		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
 		if err = helmClient.Upgrade(cmd.Context(), releaseName, chart, chartValues); err != nil {
@@ -134,7 +137,7 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		if err = waitForAlligators(cmd.Context(), kubeClient, release, numberOfNodes); err != nil {
+		if err = waitForAlligators(cmd.Context(), kubeClient, release, expectedAlligatorsCount); err != nil {
 			return err
 		}
 

@@ -30,6 +30,7 @@ type NodeSummary struct {
 	Name            string
 	Kernel          string
 	Provider        string
+	OSImage         string
 	Architecture    string
 	OperatingSystem string
 }
@@ -47,6 +48,7 @@ func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]NodeSummary,
 		nodeSummary := &NodeSummary{
 			Name:            node.ObjectMeta.Name,
 			Provider:        node.Spec.ProviderID,
+			OSImage:         node.Status.NodeInfo.OSImage,
 			Architecture:    node.Status.NodeInfo.Architecture,
 			Kernel:          node.Status.NodeInfo.KernelVersion,
 			OperatingSystem: node.Status.NodeInfo.OperatingSystem,
@@ -66,101 +68,133 @@ type NodeMinimumRequirements struct {
 	BlockedProviders        []string
 	AllowedArchitectures    []string
 	AllowedOperatingSystems []string
-	report                  map[string][]string
+}
+
+type NodeReport struct {
+	*NodeSummary
+	IsAdequate bool
+	Errors     []error
 }
 
 func NewNodeMinimumRequirements() *NodeMinimumRequirements {
 	return &NodeMinimumRequirements{
-		CPUAmount:               2,
-		MemoryAmount:            4,
+		CPUAmount:               1,
+		MemoryAmount:            1,
 		AllowedOperatingSystems: []string{"linux"},
 		AllowedArchitectures:    []string{"amd64"},
 		BlockedProviders:        []string{"fargate"},
 		KernelVersion:           semver.Version{Major: 4, Minor: 14},
-		report:                  make(map[string][]string),
 	}
 }
 
-func (nodeRequirements *NodeMinimumRequirements) CheckAndAppendReport(node NodeSummary) bool {
-	var report []string
+func (nodeRequirements *NodeMinimumRequirements) GetAdequateAndInadequateNodeReports(nodesSummeries []NodeSummary) ([]*NodeReport, []*NodeReport) {
+	var adequates []*NodeReport
+	var inadequates []*NodeReport
 
-	if !nodeRequirements.isCpuSufficient(node.CPU) {
-		report = append(report, fmt.Sprintf(CPU_REPORT_MESSAGE_FORMAT, node.CPU, nodeRequirements.CPUAmount))
-	}
-
-	if !nodeRequirements.isMemorySufficient(node.Memory) {
-		report = append(report, fmt.Sprintf(MEMORY_REPORT_MESSAGE_FORMAT, node.Memory, nodeRequirements.MemoryAmount))
-	}
-
-	if !nodeRequirements.isProviderAllowed(node.Provider) {
-		report = append(report, fmt.Sprintf(PROVIDER_REPORT_MESSAGE_FORMAT, node.Provider))
-	}
-
-	if !nodeRequirements.isKernelVersionAllowed(node.Kernel) {
-		report = append(report, fmt.Sprintf(KERNEL_REPORT_MESSAGE_FORMAT, node.Kernel, nodeRequirements.KernelVersion))
-	}
-
-	if !nodeRequirements.isArchitectureAllowed(node.Architecture) {
-		report = append(report, fmt.Sprintf(ARCHITECTURE_REPORT_MESSAGE_FORMAT, node.Architecture, strings.Join(nodeRequirements.AllowedArchitectures, ", ")))
-	}
-
-	if !nodeRequirements.isOperatingSystemAllowed(node.OperatingSystem) {
-		report = append(report, fmt.Sprintf(OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT, node.OperatingSystem, strings.Join(nodeRequirements.AllowedOperatingSystems, ", ")))
-	}
-
-	if len(report) > 0 {
-		nodeRequirements.report[node.Name] = report
-		return false
-	}
-
-	return true
-}
-
-func (nodeRequirements *NodeMinimumRequirements) isCpuSufficient(cpus int64) bool {
-	return cpus >= nodeRequirements.CPUAmount
-}
-
-func (nodeRequirements *NodeMinimumRequirements) isMemorySufficient(memory int64) bool {
-	return memory >= nodeRequirements.MemoryAmount
-}
-
-func (nodeRequirements *NodeMinimumRequirements) isProviderAllowed(provider string) bool {
-	for _, blockedProvider := range nodeRequirements.BlockedProviders {
-		if strings.Contains(provider, blockedProvider) {
-			return false
+	for _, node := range nodesSummeries {
+		report := nodeRequirements.GetReport(node)
+		if report.IsAdequate {
+			adequates = append(adequates, report)
+		} else {
+			inadequates = append(inadequates, report)
 		}
 	}
 
-	return true
+	return adequates, inadequates
 }
 
-func (nodeRequirements *NodeMinimumRequirements) isKernelVersionAllowed(kernel string) bool {
+func (nodeRequirements *NodeMinimumRequirements) GetReport(node NodeSummary) *NodeReport {
+	var err error
+	var errors []error
+
+	if err = nodeRequirements.isCpuSufficient(node.CPU); err != nil {
+		errors = append(errors, err)
+	}
+
+	if err = nodeRequirements.isMemorySufficient(node.Memory); err != nil {
+		errors = append(errors, err)
+	}
+
+	if err = nodeRequirements.isProviderAllowed(node.Provider); err != nil {
+		errors = append(errors, err)
+	}
+
+	if err = nodeRequirements.isKernelVersionAllowed(node.Kernel); err != nil {
+		errors = append(errors, err)
+	}
+
+	if err = nodeRequirements.isArchitectureAllowed(node.Architecture); err != nil {
+		errors = append(errors, err)
+	}
+
+	if err = nodeRequirements.isOperatingSystemAllowed(node.OperatingSystem); err != nil {
+		errors = append(errors, err)
+	}
+
+	return &NodeReport{
+		NodeSummary: &node,
+		Errors:      errors,
+		IsAdequate:  len(errors) == 0,
+	}
+}
+
+func (nodeRequirements *NodeMinimumRequirements) isCpuSufficient(cpus int64) error {
+	if nodeRequirements.CPUAmount > cpus {
+		return fmt.Errorf(CPU_REPORT_MESSAGE_FORMAT, cpus, nodeRequirements.CPUAmount)
+	}
+
+	return nil
+}
+
+func (nodeRequirements *NodeMinimumRequirements) isMemorySufficient(memory int64) error {
+	if nodeRequirements.MemoryAmount > memory {
+		return fmt.Errorf(MEMORY_REPORT_MESSAGE_FORMAT, memory, nodeRequirements.MemoryAmount)
+	}
+
+	return nil
+}
+
+func (nodeRequirements *NodeMinimumRequirements) isProviderAllowed(provider string) error {
+	for _, blockedProvider := range nodeRequirements.BlockedProviders {
+		if strings.Contains(provider, blockedProvider) {
+			return fmt.Errorf(PROVIDER_REPORT_MESSAGE_FORMAT, provider)
+		}
+	}
+
+	return nil
+}
+
+func (nodeRequirements *NodeMinimumRequirements) isKernelVersionAllowed(kernel string) error {
 	var err error
 	var kernelVersion semver.Version
 
 	if kernelVersion, err = semver.Parse(KERNEL_VERSION_REGEX.FindString(kernel)); err != nil {
-		return false
+		return fmt.Errorf(KERNEL_REPORT_MESSAGE_FORMAT, kernel, nodeRequirements.KernelVersion)
 	}
 
-	return kernelVersion.GTE(nodeRequirements.KernelVersion)
+	if nodeRequirements.KernelVersion.GT(kernelVersion) {
+		return fmt.Errorf(KERNEL_REPORT_MESSAGE_FORMAT, kernel, nodeRequirements.KernelVersion)
+	}
+
+	return nil
 }
 
-func (nodeRequirements *NodeMinimumRequirements) isArchitectureAllowed(architecture string) bool {
+func (nodeRequirements *NodeMinimumRequirements) isArchitectureAllowed(architecture string) error {
 	for _, allowedArchitecture := range nodeRequirements.AllowedArchitectures {
 		if allowedArchitecture == architecture {
-			return true
+			return nil
 		}
 	}
 
-	return false
+	return fmt.Errorf(ARCHITECTURE_REPORT_MESSAGE_FORMAT, architecture, strings.Join(nodeRequirements.AllowedArchitectures, ", "))
 }
 
-func (nodeRequirements *NodeMinimumRequirements) isOperatingSystemAllowed(operatingSystem string) bool {
+func (nodeRequirements *NodeMinimumRequirements) isOperatingSystemAllowed(operatingSystem string) error {
 	for _, allowedOperatingSystem := range nodeRequirements.AllowedOperatingSystems {
 		if allowedOperatingSystem == operatingSystem {
-			return true
+			return nil
 		}
 	}
 
-	return false
+	return fmt.Errorf(OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT, operatingSystem, strings.Join(nodeRequirements.AllowedOperatingSystems, ", "))
 }

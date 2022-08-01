@@ -73,7 +73,7 @@ var StatusCmd = &cobra.Command{
 	},
 }
 
-func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, numberOfNodes int) error {
+func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, expectedAlligatorsCount int) error {
 	var err error
 	var podList *v1.PodList
 
@@ -81,7 +81,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
 	listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
 	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until all nodes are monitored ")
-	spinner.Suffix = fmt.Sprintf(" (%d/%d)", 0, numberOfNodes)
+	spinner.Suffix = fmt.Sprintf(" (%d/%d)", 0, expectedAlligatorsCount)
 
 	areAlligatorsRunning := func() (bool, error) {
 		runningAlligators := 0
@@ -93,11 +93,11 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 				runningAlligators++
 			}
 		}
-		spinner.Suffix = fmt.Sprintf(" (%d/%d)", runningAlligators, numberOfNodes)
-		if numberOfNodes > runningAlligators {
+		spinner.Suffix = fmt.Sprintf(" (%d/%d)", runningAlligators, expectedAlligatorsCount)
+		if expectedAlligatorsCount > runningAlligators {
 			return false, nil
 		}
-		spinner.FinalMSG = fmt.Sprintf("All nodes are monitored (%d/%d) !\n", runningAlligators, numberOfNodes)
+		spinner.FinalMSG = fmt.Sprintf("All nodes are monitored (%d/%d) !\n", runningAlligators, expectedAlligatorsCount)
 		return true, nil
 	}
 
