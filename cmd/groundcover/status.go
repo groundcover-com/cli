@@ -63,9 +63,9 @@ var StatusCmd = &cobra.Command{
 		if nodeList, err = kubeClient.CoreV1().Nodes().List(cmd.Context(), metav1.ListOptions{}); err != nil {
 			return err
 		}
-		numberOfNodes := len(nodeList.Items)
+		nodesCount := len(nodeList.Items)
 
-		if err = waitForAlligators(cmd.Context(), kubeClient, release, numberOfNodes); err != nil {
+		if err = waitForAlligators(cmd.Context(), kubeClient, release, nodesCount); err != nil {
 			return err
 		}
 

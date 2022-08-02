@@ -8,6 +8,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -53,7 +54,7 @@ func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]NodeSummary,
 			Kernel:          node.Status.NodeInfo.KernelVersion,
 			OperatingSystem: node.Status.NodeInfo.OperatingSystem,
 			CPU:             node.Status.Allocatable.Cpu().Value(),
-			Memory:          node.Status.Allocatable.Memory().Value() / (1 << 30),
+			Memory:          node.Status.Allocatable.Memory().ScaledValue(resource.Giga),
 		}
 		nodeSummeries = append(nodeSummeries, *nodeSummary)
 	}
@@ -79,7 +80,7 @@ type NodeReport struct {
 func NewNodeMinimumRequirements() *NodeMinimumRequirements {
 	return &NodeMinimumRequirements{
 		CPUAmount:               1,
-		MemoryAmount:            1,
+		MemoryAmount:            2,
 		AllowedOperatingSystems: []string{"linux"},
 		AllowedArchitectures:    []string{"amd64"},
 		BlockedProviders:        []string{"fargate"},
@@ -87,7 +88,7 @@ func NewNodeMinimumRequirements() *NodeMinimumRequirements {
 	}
 }
 
-func (nodeRequirements *NodeMinimumRequirements) GetAdequateAndInadequateNodeReports(nodesSummeries []NodeSummary) ([]*NodeReport, []*NodeReport) {
+func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReports(nodesSummeries []NodeSummary) ([]*NodeReport, []*NodeReport) {
 	var adequates []*NodeReport
 	var inadequates []*NodeReport
 

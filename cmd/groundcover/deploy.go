@@ -89,12 +89,12 @@ var DeployCmd = &cobra.Command{
 		switch {
 		case !isUpgrade:
 			nodeRequirements := k8s.NewNodeMinimumRequirements()
-			adequateNodesReports, _ := nodeRequirements.GetAdequateAndInadequateNodeReports(nodesSummeries)
+			adequateNodesReports, _ := nodeRequirements.GenerateNodeReports(nodesSummeries)
 			expectedAlligatorsCount = len(adequateNodesReports)
 
 			promptMessage = fmt.Sprintf(
-				"Deploying groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s).\nDo you want to deploy?",
-				clusterName, namespace, nodesCount, chart.Version(),
+				"Deploying groundcover (cluster: %s, namespace: %s, nodes: %d/%d, version: %s).\nDo you want to deploy?",
+				clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
 			)
 		case isUpgrade:
 			var release *helm.Release
