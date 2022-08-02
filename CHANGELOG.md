@@ -18,8 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- Node minimum requirements mechanism [#sc-3920]
-
 ### Changed
 
 ### Fixed
@@ -29,6 +27,13 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.2.2] 2022-08-02
+
+### Added
+
+- Node minimum requirements mechanism [#sc-3920]
+- Support KUBECONFIG environment variable override [#sc-3826]
 
 ## [0.2.1] 2022-07-20
 
