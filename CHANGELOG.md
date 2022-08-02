@@ -33,6 +33,7 @@ We use the following categories for changes:
 ### Added
 
 - Node minimum requirements mechanism [#sc-3920]
+- Support KUBECONFIG environment variable override [#sc-3826]
 
 ## [0.2.1] 2022-07-20
 
