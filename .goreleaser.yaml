@@ -2,6 +2,7 @@ project_name: groundcover
 before:
   hooks:
     - go mod tidy
+    - go test ./...
 builds:
   -
     main: ./cmd/main.go

@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- Node minimum requirements mechanism [#sc-3920]
+
 ### Changed
 
 ### Fixed

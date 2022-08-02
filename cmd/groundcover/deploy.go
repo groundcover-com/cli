@@ -68,56 +68,64 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		var nodeList *v1.NodeList
-		if nodeList, err = kubeClient.CoreV1().Nodes().List(cmd.Context(), metav1.ListOptions{}); err != nil {
-			return err
-		}
-		numberOfNodes := len(nodeList.Items)
-
 		var chart *helm.Chart
 		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
 			return err
 		}
 
-		var isReleaseInstalled bool
-		if isReleaseInstalled, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
+		var nodesSummeries []k8s.NodeSummary
+		if nodesSummeries, err = kubeClient.GetNodesSummeries(cmd.Context()); err != nil {
+			return err
+		}
+		nodesCount := len(nodesSummeries)
+
+		var isUpgrade bool
+		if isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
 			return err
 		}
 
-		isUpgrade := false
-		isLatestNewer := false
-		if isReleaseInstalled {
+		var promptMessage string
+		var expectedAlligatorsCount int
+		switch {
+		case !isUpgrade:
+			nodeRequirements := k8s.NewNodeMinimumRequirements()
+			adequateNodesReports, _ := nodeRequirements.GenerateNodeReports(nodesSummeries)
+			expectedAlligatorsCount = len(adequateNodesReports)
+
+			promptMessage = fmt.Sprintf(
+				"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s).\nDo you want to deploy?",
+				clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
+			)
+		case isUpgrade:
 			var release *helm.Release
 			if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 				return err
 			}
-			isUpgrade = true
-			isLatestNewer = chart.Version().GT(release.Version())
-		}
 
-		var promptMessage string
-		switch {
-		case !isUpgrade:
-			promptMessage = fmt.Sprintf(
-				"Deploying groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s).\nDo you want to deploy?",
-				clusterName, namespace, numberOfNodes, chart.Version(),
-			)
-		case !isLatestNewer:
-			promptMessage = fmt.Sprintf(
-				"Current groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s) is latest version.\nDo you want to redeploy?",
-				clusterName, namespace, numberOfNodes, chart.Version(),
-			)
-		case isLatestNewer:
-			promptMessage = fmt.Sprintf(
-				"Current groundcover (cluster: %s, namespace: %s, nodes: %d) is out of date!, The latest version is %s.\nDo you want to upgrade?",
-				clusterName, namespace, numberOfNodes, chart.Version(),
-			)
+			var podList *v1.PodList
+			listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
+			if podList, err = kubeClient.CoreV1().Pods(release.Namespace).List(cmd.Context(), listOptions); err != nil {
+				return err
+			}
+			expectedAlligatorsCount = len(podList.Items)
+
+			if chart.Version().GT(release.Version()) {
+				promptMessage = fmt.Sprintf(
+					"Current groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s) is out of date!, The latest version is %s.\nDo you want to upgrade?",
+					clusterName, namespace, expectedAlligatorsCount, nodesCount, release.Version(), chart.Version(),
+				)
+			} else {
+				promptMessage = fmt.Sprintf(
+					"Current groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s) is latest version.\nDo you want to redeploy?",
+					clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
+				)
+			}
 		}
 
 		if !utils.YesNoPrompt(promptMessage, false) {
 			return nil
 		}
-		sentry.CaptureDeploymentEvent(customClaims, isUpgrade, chart.Version().String(), numberOfNodes)
+		sentry.CaptureDeploymentEvent(customClaims, isUpgrade, chart.Version().String(), nodesCount)
 
 		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
 		if err = helmClient.Upgrade(cmd.Context(), releaseName, chart, chartValues); err != nil {
@@ -129,7 +137,7 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		if err = waitForAlligators(cmd.Context(), kubeClient, release); err != nil {
+		if err = waitForAlligators(cmd.Context(), kubeClient, release, expectedAlligatorsCount); err != nil {
 			return err
 		}
 

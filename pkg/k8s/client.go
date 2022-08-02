@@ -8,7 +8,7 @@ import (
 )
 
 type Client struct {
-	*kubernetes.Clientset
+	kubernetes.Interface
 	clientcmd.ClientConfig
 	kubecontext string
 }
@@ -67,7 +67,7 @@ func (kubeClient *Client) loadClient() error {
 		return err
 	}
 
-	if kubeClient.Clientset, err = kubernetes.NewForConfig(restConfig); err != nil {
+	if kubeClient.Interface, err = kubernetes.NewForConfig(restConfig); err != nil {
 		return err
 	}
 

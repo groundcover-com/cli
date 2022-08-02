@@ -59,7 +59,13 @@ var StatusCmd = &cobra.Command{
 			fmt.Printf("Current groundcover %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
 		}
 
-		if err = waitForAlligators(cmd.Context(), kubeClient, release); err != nil {
+		var nodeList *v1.NodeList
+		if nodeList, err = kubeClient.CoreV1().Nodes().List(cmd.Context(), metav1.ListOptions{}); err != nil {
+			return err
+		}
+		nodesCount := len(nodeList.Items)
+
+		if err = waitForAlligators(cmd.Context(), kubeClient, release, nodesCount); err != nil {
 			return err
 		}
 
@@ -67,23 +73,15 @@ var StatusCmd = &cobra.Command{
 	},
 }
 
-func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release) error {
+func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, expectedAlligatorsCount int) error {
 	var err error
 	var podList *v1.PodList
-	var nodeList *v1.NodeList
 
 	version := helmRelease.Version().String()
-	nodeClient := kubeClient.CoreV1().Nodes()
 	podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
 	listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
-
-	if nodeList, err = nodeClient.List(ctx, metav1.ListOptions{}); err != nil {
-		return err
-	}
-	numberOfNodes := len(nodeList.Items)
-
 	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until all nodes are monitored ")
-	spinner.Suffix = fmt.Sprintf(" (%d/%d)", 0, numberOfNodes)
+	spinner.Suffix = fmt.Sprintf(" (%d/%d)", 0, expectedAlligatorsCount)
 
 	areAlligatorsRunning := func() (bool, error) {
 		runningAlligators := 0
@@ -95,11 +93,11 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 				runningAlligators++
 			}
 		}
-		spinner.Suffix = fmt.Sprintf(" (%d/%d)", runningAlligators, numberOfNodes)
-		if numberOfNodes > runningAlligators {
+		spinner.Suffix = fmt.Sprintf(" (%d/%d)", runningAlligators, expectedAlligatorsCount)
+		if expectedAlligatorsCount > runningAlligators {
 			return false, nil
 		}
-		spinner.FinalMSG = fmt.Sprintf("All nodes are monitored (%d/%d) !\n", runningAlligators, numberOfNodes)
+		spinner.FinalMSG = fmt.Sprintf("All nodes are monitored (%d/%d) !\n", runningAlligators, expectedAlligatorsCount)
 		return true, nil
 	}
 
