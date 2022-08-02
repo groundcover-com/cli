@@ -93,7 +93,7 @@ var DeployCmd = &cobra.Command{
 			expectedAlligatorsCount = len(adequateNodesReports)
 
 			promptMessage = fmt.Sprintf(
-				"Deploying groundcover (cluster: %s, namespace: %s, nodes: %d/%d, version: %s).\nDo you want to deploy?",
+				"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s).\nDo you want to deploy?",
 				clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
 			)
 		case isUpgrade:
@@ -111,13 +111,13 @@ var DeployCmd = &cobra.Command{
 
 			if chart.Version().GT(release.Version()) {
 				promptMessage = fmt.Sprintf(
-					"Current groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s) is out of date!, The latest version is %s.\nDo you want to upgrade?",
-					clusterName, namespace, nodesCount, release.Version(), chart.Version(),
+					"Current groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s) is out of date!, The latest version is %s.\nDo you want to upgrade?",
+					clusterName, namespace, expectedAlligatorsCount, nodesCount, release.Version(), chart.Version(),
 				)
 			} else {
 				promptMessage = fmt.Sprintf(
-					"Current groundcover (cluster: %s, namespace: %s, nodes: %d, version: %s) is latest version.\nDo you want to redeploy?",
-					clusterName, namespace, nodesCount, chart.Version(),
+					"Current groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s) is latest version.\nDo you want to redeploy?",
+					clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
 				)
 			}
 		}
