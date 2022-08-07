@@ -27,14 +27,14 @@ var (
 )
 
 type NodeSummary struct {
-	CPU             int64
-	Memory          int64
-	Name            string
-	Kernel          string
-	Provider        string
-	OSImage         string
-	Architecture    string
-	OperatingSystem string
+	CPU             int64  `json:",omitempty"`
+	Memory          int64  `json:",omitempty"`
+	Name            string `json:"-"`
+	Kernel          string `json:",omitempty"`
+	Provider        string `json:",omitempty"`
+	OSImage         string `json:",omitempty"`
+	Architecture    string `json:",omitempty"`
+	OperatingSystem string `json:",omitempty"`
 }
 
 func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]NodeSummary, error) {
@@ -86,8 +86,8 @@ type NodeMinimumRequirements struct {
 
 type NodeReport struct {
 	*NodeSummary
-	IsAdequate bool
-	Errors     []error
+	IsAdequate bool    `json:",omitempty"`
+	Errors     []error `json:",omitempty"`
 }
 
 func NewNodeMinimumRequirements() *NodeMinimumRequirements {

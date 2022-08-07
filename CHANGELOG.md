@@ -20,10 +20,6 @@ We use the following categories for changes:
 
 ### Changed
 
-- Improve metrics collection [#sc-3674]
-- More tolerant deployment timeout [#sc-3674]
-- kubeconfig missing error more informative [#sc-4038]
-
 ### Fixed
 
 ### Removed
@@ -31,6 +27,14 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.2.3] 2022-08-07
+
+### Changed
+
+- Improve metrics collection [#sc-3674]
+- More tolerant deployment timeout [#sc-3674]
+- kubeconfig missing error more informative [#sc-4038]
 
 ## [0.2.2] 2022-08-02
 
