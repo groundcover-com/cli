@@ -20,7 +20,7 @@ import (
 
 const (
 	SPINNER_TYPE                = 8 // .oO@*
-	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 0
+	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 3
 	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
 )
 
