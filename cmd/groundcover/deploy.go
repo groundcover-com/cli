@@ -3,13 +3,14 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
-	sentry "groundcover.com/pkg/custom_sentry"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
+	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,18 +49,15 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		var customClaims *auth.CustomClaims
-		if customClaims = viper.Get(USER_CUSTOM_CLAIMS_KEY).(*auth.CustomClaims); customClaims == nil {
-			return fmt.Errorf("deployment failed to get user custom claims")
-		}
+		sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext, namespace)
+		sentryKubeContext.SetOnCurrentScope()
 
 		var kubeClient *k8s.Client
 		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
 
-		var helmClient *helm.Client
-		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
+		if sentryKubeContext.ServerVersion, err = kubeClient.Discovery().ServerVersion(); err != nil {
 			return err
 		}
 
@@ -68,10 +66,8 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		var chart *helm.Chart
-		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
-			return err
-		}
+		sentryKubeContext.Cluster = clusterName
+		sentryKubeContext.SetOnCurrentScope()
 
 		var nodesSummeries []k8s.NodeSummary
 		if nodesSummeries, err = kubeClient.GetNodesSummeries(cmd.Context()); err != nil {
@@ -79,18 +75,50 @@ var DeployCmd = &cobra.Command{
 		}
 		nodesCount := len(nodesSummeries)
 
+		sentryKubeContext.NodesCount = nodesCount
+		sentryKubeContext.SetOnCurrentScope()
+
+		sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
+		sentryHelmContext.SetOnCurrentScope()
+
+		var helmClient *helm.Client
+		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
+			return err
+		}
+
+		var chart *helm.Chart
+		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
+			return err
+		}
+
+		sentryHelmContext.ChartVersion = chart.Version().String()
+		sentryHelmContext.SetOnCurrentScope()
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
+
 		var isUpgrade bool
 		if isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
 			return err
 		}
+
+		sentryHelmContext.Upgrade = isUpgrade
+		sentryHelmContext.SetOnCurrentScope()
 
 		var promptMessage string
 		var expectedAlligatorsCount int
 		switch {
 		case !isUpgrade:
 			nodeRequirements := k8s.NewNodeMinimumRequirements()
-			adequateNodesReports, _ := nodeRequirements.GenerateNodeReports(nodesSummeries)
+			adequateNodesReports, inadequateNodesReports := nodeRequirements.GenerateNodeReports(nodesSummeries)
 			expectedAlligatorsCount = len(adequateNodesReports)
+
+			sentryKubeContext.SetNodeReportsSamples(adequateNodesReports)
+			sentryKubeContext.SetOnCurrentScope()
+
+			if len(inadequateNodesReports) > 0 {
+				sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
+				sentryKubeContext.InadequateNodeReports = inadequateNodesReports
+				sentryKubeContext.SetOnCurrentScope()
+			}
 
 			promptMessage = fmt.Sprintf(
 				"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s).\nDo you want to deploy?",
@@ -101,6 +129,9 @@ var DeployCmd = &cobra.Command{
 			if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 				return err
 			}
+
+			sentryHelmContext.PreviousChartVersion = release.Version().String()
+			sentryHelmContext.SetOnCurrentScope()
 
 			var podList *v1.PodList
 			listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
@@ -123,9 +154,9 @@ var DeployCmd = &cobra.Command{
 		}
 
 		if !utils.YesNoPrompt(promptMessage, false) {
+			sentry.CaptureMessage("deploy execution aborted")
 			return nil
 		}
-		sentry.CaptureDeploymentEvent(customClaims, isUpgrade, chart.Version().String(), nodesCount)
 
 		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
 		if err = helmClient.Upgrade(cmd.Context(), releaseName, chart, chartValues); err != nil {
@@ -144,9 +175,10 @@ var DeployCmd = &cobra.Command{
 		if err = api.WaitUntilClusterConnectedToSaas(token, clusterName); err != nil {
 			return err
 		}
-		fmt.Printf("Cluster %q is connected to SaaS!\n", clusterName)
 
 		utils.TryOpenBrowser(fmt.Sprintf("%s/clusterId=%s", GROUNDCOVER_URL, clusterName))
+
+		sentry.CaptureMessage("deploy executed successfully")
 		return nil
 	},
 }
