@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 
 	"github.com/blang/semver/v4"
+	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"groundcover.com/pkg/auth"
-	sentry "groundcover.com/pkg/custom_sentry"
 	"groundcover.com/pkg/selfupdate"
+	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/utils"
 	"k8s.io/client-go/util/homedir"
 )
@@ -68,7 +68,12 @@ var RootCmd = &cobra.Command{
 groundcover, more data at: https://groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var customClaims *auth.CustomClaims
+
+		sentry_utils.SetTransactionOnCurrentScope(cmd.Name())
+
+		if err = checkAuthForCmd(cmd); err != nil {
+			return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
+		}
 
 		if !viper.GetBool(SKIP_SELFUPDATE_FLAG) {
 			if shouldUpdate, selfUpdater := checkLatestVersionUpdate(cmd.Context()); shouldUpdate {
@@ -80,11 +85,6 @@ groundcover, more data at: https://groundcover.com/docs`,
 				os.Exit(0)
 			}
 		}
-
-		if customClaims, err = checkAuthForCmd(cmd); err != nil {
-			return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
-		}
-		viper.Set(USER_CUSTOM_CLAIMS_KEY, customClaims)
 
 		return nil
 	},
@@ -118,14 +118,12 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 	return shouldUpdate, selfUpdater
 }
 
-func checkAuthForCmd(cmd *cobra.Command) (*auth.CustomClaims, error) {
-	// here we need to check if the command requires auth, currently we only check for the login command
+func checkAuthForCmd(cmd *cobra.Command) error {
 	switch cmd {
 	case LoginCmd, VersionCmd:
-		// skip IsAuthenticated
-		return nil, nil
+		return nil
 	default:
-		return auth.FetchAndSaveApiKey()
+		return isAuthValid()
 	}
 }
 

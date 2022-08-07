@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/getsentry/sentry-go"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
+	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +19,7 @@ import (
 
 const (
 	SPINNER_TYPE                = 8 // .oO@*
-	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 2
+	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 5
 	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
 )
 
@@ -35,10 +38,16 @@ var StatusCmd = &cobra.Command{
 		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 		releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
+		sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext, namespace)
+		sentryKubeContext.SetOnCurrentScope()
+
 		var kubeClient *k8s.Client
 		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
+
+		sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
+		sentryHelmContext.SetOnCurrentScope()
 
 		var helmClient *helm.Client
 		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
@@ -49,6 +58,10 @@ var StatusCmd = &cobra.Command{
 		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 			return err
 		}
+
+		sentryHelmContext.ChartVersion = release.Version().String()
+		sentryHelmContext.SetOnCurrentScope()
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
 
 		var chart *helm.Chart
 		if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
@@ -69,6 +82,7 @@ var StatusCmd = &cobra.Command{
 			return err
 		}
 
+		sentry.CaptureMessage("successfully status")
 		return nil
 	},
 }
@@ -76,6 +90,7 @@ var StatusCmd = &cobra.Command{
 func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, expectedAlligatorsCount int) error {
 	var err error
 	var podList *v1.PodList
+	var runningAlligators int
 
 	version := helmRelease.Version().String()
 	podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
@@ -83,8 +98,8 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until all nodes are monitored ")
 	spinner.Suffix = fmt.Sprintf(" (%d/%d)", 0, expectedAlligatorsCount)
 
-	areAlligatorsRunning := func() (bool, error) {
-		runningAlligators := 0
+	areAlligatorsRunningFunc := func() (bool, error) {
+		runningAlligators = 0
 		if podList, err = podClient.List(ctx, listOptions); err != nil {
 			return false, err
 		}
@@ -97,13 +112,23 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 		if expectedAlligatorsCount > runningAlligators {
 			return false, nil
 		}
-		spinner.FinalMSG = fmt.Sprintf("All nodes are monitored (%d/%d) !\n", runningAlligators, expectedAlligatorsCount)
+		spinner.FinalMSG = fmt.Sprintf("All nodes are monitored (%d/%d)\n", runningAlligators, expectedAlligatorsCount)
 		return true, nil
 	}
 
-	if err = spinner.Poll(areAlligatorsRunning, ALLIGATORS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT); err != nil {
+	err = spinner.Poll(areAlligatorsRunningFunc, ALLIGATORS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT)
+
+	switch err.(type) {
+	case nil:
+		return nil
+	case utils.SpinnerTimeoutError:
+		if runningAlligators == 0 {
+			return fmt.Errorf("none of nodes are monitored yet (%d/%d)", runningAlligators, expectedAlligatorsCount)
+		}
+		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
+		logrus.Warnf("not all nodes are monitored yet (%d/%d)", runningAlligators, expectedAlligatorsCount)
+		return nil
+	default:
 		return err
 	}
-
-	return nil
 }

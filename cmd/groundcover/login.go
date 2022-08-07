@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"groundcover.com/pkg/auth"
-	sentry "groundcover.com/pkg/custom_sentry"
+	sentry_utils "groundcover.com/pkg/sentry"
 )
 
 var (
@@ -22,7 +23,6 @@ var LoginCmd = &cobra.Command{
 	Short: "Login to groundcover",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var customClaims *auth.CustomClaims
 
 		ctx, cancel := context.WithTimeout(cmd.Context(), authTimeout)
 		defer cancel()
@@ -31,11 +31,24 @@ var LoginCmd = &cobra.Command{
 			return err
 		}
 
-		if customClaims, err = auth.FetchAndSaveApiKey(); err != nil {
+		if err = isAuthValid(); err != nil {
 			return err
 		}
 
-		sentry.CaptureLoginEvent(customClaims)
+		sentry.CaptureMessage("successfully login")
 		return nil
 	},
+}
+
+func isAuthValid() error {
+	var err error
+
+	var customClaims *auth.CustomClaims
+	if customClaims, err = auth.FetchAndSaveApiKey(); err != nil {
+		return err
+	}
+
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: customClaims.Email})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, customClaims.Org)
+	return nil
 }
