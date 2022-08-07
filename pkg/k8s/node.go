@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -60,6 +61,18 @@ func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]NodeSummary,
 	}
 
 	return nodeSummeries, nil
+}
+
+type NodeRequirementError struct {
+	error
+}
+
+func NewNodeRequirementError(err error) error {
+	return NodeRequirementError{err}
+}
+
+func (err NodeRequirementError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(err.Error())
 }
 
 type NodeMinimumRequirements struct {
@@ -141,7 +154,7 @@ func (nodeRequirements *NodeMinimumRequirements) GetReport(node NodeSummary) *No
 
 func (nodeRequirements *NodeMinimumRequirements) isCpuSufficient(cpus int64) error {
 	if nodeRequirements.CPUAmount > cpus {
-		return fmt.Errorf(CPU_REPORT_MESSAGE_FORMAT, cpus, nodeRequirements.CPUAmount)
+		return NewNodeRequirementError(fmt.Errorf(CPU_REPORT_MESSAGE_FORMAT, cpus, nodeRequirements.CPUAmount))
 	}
 
 	return nil
@@ -149,7 +162,7 @@ func (nodeRequirements *NodeMinimumRequirements) isCpuSufficient(cpus int64) err
 
 func (nodeRequirements *NodeMinimumRequirements) isMemorySufficient(memory int64) error {
 	if nodeRequirements.MemoryAmount > memory {
-		return fmt.Errorf(MEMORY_REPORT_MESSAGE_FORMAT, memory, nodeRequirements.MemoryAmount)
+		return NewNodeRequirementError(fmt.Errorf(MEMORY_REPORT_MESSAGE_FORMAT, memory, nodeRequirements.MemoryAmount))
 	}
 
 	return nil
@@ -158,7 +171,7 @@ func (nodeRequirements *NodeMinimumRequirements) isMemorySufficient(memory int64
 func (nodeRequirements *NodeMinimumRequirements) isProviderAllowed(provider string) error {
 	for _, blockedProvider := range nodeRequirements.BlockedProviders {
 		if strings.Contains(provider, blockedProvider) {
-			return fmt.Errorf(PROVIDER_REPORT_MESSAGE_FORMAT, provider)
+			return NewNodeRequirementError(fmt.Errorf(PROVIDER_REPORT_MESSAGE_FORMAT, provider))
 		}
 	}
 
@@ -170,11 +183,11 @@ func (nodeRequirements *NodeMinimumRequirements) isKernelVersionAllowed(kernel s
 	var kernelVersion semver.Version
 
 	if kernelVersion, err = semver.Parse(KERNEL_VERSION_REGEX.FindString(kernel)); err != nil {
-		return fmt.Errorf(KERNEL_REPORT_MESSAGE_FORMAT, kernel, nodeRequirements.KernelVersion)
+		return NewNodeRequirementError(fmt.Errorf(KERNEL_REPORT_MESSAGE_FORMAT, kernel, nodeRequirements.KernelVersion))
 	}
 
 	if nodeRequirements.KernelVersion.GT(kernelVersion) {
-		return fmt.Errorf(KERNEL_REPORT_MESSAGE_FORMAT, kernel, nodeRequirements.KernelVersion)
+		return NewNodeRequirementError(fmt.Errorf(KERNEL_REPORT_MESSAGE_FORMAT, kernel, nodeRequirements.KernelVersion))
 	}
 
 	return nil
@@ -187,7 +200,7 @@ func (nodeRequirements *NodeMinimumRequirements) isArchitectureAllowed(architect
 		}
 	}
 
-	return fmt.Errorf(ARCHITECTURE_REPORT_MESSAGE_FORMAT, architecture, strings.Join(nodeRequirements.AllowedArchitectures, ", "))
+	return NewNodeRequirementError(fmt.Errorf(ARCHITECTURE_REPORT_MESSAGE_FORMAT, architecture, strings.Join(nodeRequirements.AllowedArchitectures, ", ")))
 }
 
 func (nodeRequirements *NodeMinimumRequirements) isOperatingSystemAllowed(operatingSystem string) error {
@@ -197,5 +210,5 @@ func (nodeRequirements *NodeMinimumRequirements) isOperatingSystemAllowed(operat
 		}
 	}
 
-	return fmt.Errorf(OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT, operatingSystem, strings.Join(nodeRequirements.AllowedOperatingSystems, ", "))
+	return NewNodeRequirementError(fmt.Errorf(OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT, operatingSystem, strings.Join(nodeRequirements.AllowedOperatingSystems, ", ")))
 }

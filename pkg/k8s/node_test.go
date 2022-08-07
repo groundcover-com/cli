@@ -2,10 +2,13 @@ package k8s_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 	"groundcover.com/pkg/k8s"
 	v1 "k8s.io/api/core/v1"
@@ -142,14 +145,31 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportsSuccess() {
 		IsAdequate:  false,
 		NodeSummary: &nodesSummeries[1],
 		Errors: []error{
-			fmt.Errorf("insufficient cpu - acutal: 0 / minimal: 1"),
-			fmt.Errorf("insufficient memory - acutal: 1G / minimal: 2G"),
-			fmt.Errorf("aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider"),
-			fmt.Errorf("4.13.0 is unsupported kernel - minimal: 4.14.0"),
-			fmt.Errorf("arm64 is unsupported architecture - only amd64 supported"),
-			fmt.Errorf("windows is unsupported os - only linux supported"),
+			k8s.NewNodeRequirementError(fmt.Errorf("insufficient cpu - acutal: 0 / minimal: 1")),
+			k8s.NewNodeRequirementError(fmt.Errorf("insufficient memory - acutal: 1G / minimal: 2G")),
+			k8s.NewNodeRequirementError(fmt.Errorf("aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider")),
+			k8s.NewNodeRequirementError(fmt.Errorf("4.13.0 is unsupported kernel - minimal: 4.14.0")),
+			k8s.NewNodeRequirementError(fmt.Errorf("arm64 is unsupported architecture - only amd64 supported")),
+			k8s.NewNodeRequirementError(fmt.Errorf("windows is unsupported os - only linux supported")),
 		},
 	}
 
 	suite.Equal(inadequateExpected, inadequateNodesReports)
+}
+
+func (suite *KubeNodeTestSuite) TestNodeRequirementErrorMarshalJSONSuccess() {
+	//prepare
+	err := fmt.Errorf(uuid.New().String())
+
+	//act
+	emptyJson, _ := json.Marshal(err)
+	nodeRequirementError := k8s.NewNodeRequirementError(err)
+	json, _ := json.Marshal(nodeRequirementError)
+
+	// assert
+	expectEmpty := []byte("{}")
+	expect := []byte(strconv.Quote(err.Error()))
+
+	suite.Equal(expect, json)
+	suite.Equal(expectEmpty, emptyJson)
 }

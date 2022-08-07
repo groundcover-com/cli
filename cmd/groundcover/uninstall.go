@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
+	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,18 +30,15 @@ var UninstallCmd = &cobra.Command{
 		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 		releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
+		sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext, namespace)
+		sentryKubeContext.SetOnCurrentScope()
+
 		var kubeClient *k8s.Client
 		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 			return err
 		}
 
-		var helmClient *helm.Client
-		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
-			return err
-		}
-
-		var release *helm.Release
-		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
+		if sentryKubeContext.ServerVersion, err = kubeClient.Discovery().ServerVersion(); err != nil {
 			return err
 		}
 
@@ -48,28 +47,55 @@ var UninstallCmd = &cobra.Command{
 			return err
 		}
 
+		sentryKubeContext.Cluster = clusterName
+		sentryKubeContext.SetOnCurrentScope()
+
+		var helmClient *helm.Client
+		if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
+			return err
+		}
+
+		var sentryHelmContext sentry_utils.HelmContext
+		sentryHelmContext.ReleaseName = viper.GetString(HELM_RELEASE_FLAG)
+		sentryHelmContext.SetOnCurrentScope()
+
+		var release *helm.Release
+		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
+			return err
+		}
+
+		sentryHelmContext.RepoUrl = HELM_REPO_URL
+		sentryHelmContext.ChartName = release.Chart.Name()
+		sentryHelmContext.ChartVersion = release.Chart.Metadata.Version
+		sentryHelmContext.SetOnCurrentScope()
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
+
 		promptMessage := fmt.Sprintf(
 			"Current groundcover (cluster: %s, namespace: %s, version: %s)\nAre you sure you want to uninstall?",
-			clusterName, namespace, release.Chart.Metadata.Version,
+			clusterName, namespace, release.Version(),
 		)
 		if !utils.YesNoPrompt(promptMessage, false) {
+			sentry.CaptureMessage("uninstall execution aborted")
 			return nil
 		}
 
-		if err = helmClient.Uninstall(releaseName); err != nil {
+		if err = helmClient.Uninstall(release.Name); err != nil {
 			return err
 		}
 		if err = deleteReleaseLeftovers(cmd.Context(), kubeClient, release); err != nil {
 			return err
 		}
+		sentry.CaptureMessage("uninstall executed successfully")
 
 		if !utils.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false) {
+			sentry.CaptureMessage("delete pvcs execution aborted")
 			return nil
 		}
 
 		if err = deletePvcs(cmd.Context(), kubeClient, release); err != nil {
 			return err
 		}
+		sentry.CaptureMessage("delete pvcs executed successfully")
 
 		return nil
 	},

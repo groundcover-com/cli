@@ -27,7 +27,7 @@ func WaitUntilClusterConnectedToSaas(token *auth.Auth0Token, clusterToPoll strin
 	var err error
 	var clusterNames []string
 
-	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until groundcover connected to saas ")
+	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until groundcover is connected to cloud platform ")
 
 	isClusterExistInSassFunc := func() (bool, error) {
 		if clusterNames, err = getClusters(token); err != nil {
@@ -35,17 +35,23 @@ func WaitUntilClusterConnectedToSaas(token *auth.Auth0Token, clusterToPoll strin
 		}
 		for _, clusterName := range clusterNames {
 			if clusterToPoll == clusterName {
+				spinner.FinalMSG = "groundcover is connected to cloud platform\n"
 				return true, nil
 			}
 		}
 		return false, nil
 	}
 
-	if err = spinner.Poll(isClusterExistInSassFunc, CLUSTER_POLLING_INTERVAL, CLUSTER_POLLING_TIMEOUT); err != nil {
-		return fmt.Errorf("timed out while waiting for groundcover to connect to saas")
-	}
+	err = spinner.Poll(isClusterExistInSassFunc, CLUSTER_POLLING_INTERVAL, CLUSTER_POLLING_TIMEOUT)
 
-	return nil
+	switch err.(type) {
+	case nil:
+		return nil
+	case utils.SpinnerTimeoutError:
+		return fmt.Errorf("groundcover is yet connected to cloud platform")
+	default:
+		return err
+	}
 }
 
 func getClusters(token *auth.Auth0Token) ([]string, error) {

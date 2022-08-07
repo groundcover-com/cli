@@ -1,30 +1,29 @@
 package main
 
 import (
-	"os"
+	"fmt"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/sirupsen/logrus"
 	cmd "groundcover.com/cmd/groundcover"
-	sentry "groundcover.com/pkg/custom_sentry"
-)
-
-const (
-	SENTRY_PROD_DSN = "https://a8ac7024755f47e5b5d4ae620499c7f6@o1295881.ingest.sentry.io/6521983"
+	sentry_utils "groundcover.com/pkg/sentry"
 )
 
 func main() {
 	var err error
-	var sentryDsn string
 
-	if !cmd.IsDevVersion() {
-		sentryDsn = SENTRY_PROD_DSN
+	environment := "prod"
+	release := fmt.Sprintf("cli@%s", cmd.BinaryVersion)
+
+	if cmd.IsDevVersion() {
+		environment = "dev"
 	}
 
-	if err = sentry.Init(sentryDsn); err != nil {
-		logrus.Error(err)
-		os.Exit(1)
+	sentryClientOptions := sentry_utils.GetSentryClientOptions(environment, release)
+	if err = sentry.Init(sentryClientOptions); err != nil {
+		logrus.Panic(err)
 	}
-	defer sentry.Flush()
+	defer sentry.Flush(sentry_utils.FLUSH_TIMEOUT)
 
 	if err = cmd.Execute(); err != nil {
 		sentry.CaptureException(err)

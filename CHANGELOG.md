@@ -20,6 +20,8 @@ We use the following categories for changes:
 
 ### Changed
 
+- Improve metrics collection [#sc-3674]
+
 ### Fixed
 
 ### Removed
