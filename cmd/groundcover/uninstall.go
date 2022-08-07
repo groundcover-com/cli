@@ -38,6 +38,10 @@ var UninstallCmd = &cobra.Command{
 			return err
 		}
 
+		if sentryKubeContext.ServerVersion, err = kubeClient.Discovery().ServerVersion(); err != nil {
+			return err
+		}
+
 		var clusterName string
 		if clusterName, err = getClusterName(kubeClient); err != nil {
 			return err

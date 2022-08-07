@@ -7,6 +7,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
+	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
 )
 
@@ -71,6 +72,8 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 			NodesCount:            nodesCount,
 			Kubeconfig:            kubeconfig,
 			Kubecontext:           kubecontext,
+			NodeReportSamples:     make([]*k8s.NodeReport, sentry_utils.MAX_NODE_REPORT_SAMPLES),
+			ServerVersion:         nil,
 			InadequateNodeReports: nil,
 		},
 	}

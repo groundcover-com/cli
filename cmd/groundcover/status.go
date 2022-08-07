@@ -46,6 +46,11 @@ var StatusCmd = &cobra.Command{
 			return err
 		}
 
+		if sentryKubeContext.ServerVersion, err = kubeClient.Discovery().ServerVersion(); err != nil {
+			return err
+		}
+		sentryKubeContext.SetOnCurrentScope()
+
 		sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
 		sentryHelmContext.SetOnCurrentScope()
 

@@ -3,11 +3,13 @@ package sentry
 import (
 	"github.com/getsentry/sentry-go"
 	"groundcover.com/pkg/k8s"
+	"k8s.io/apimachinery/pkg/version"
 )
 
 const (
-	HELM_CONTEXT_NAME = "helm"
-	KUBE_CONTEXT_NAME = "kubernetes"
+	MAX_NODE_REPORT_SAMPLES = 10
+	HELM_CONTEXT_NAME       = "helm"
+	KUBE_CONTEXT_NAME       = "kubernetes"
 )
 
 type SentryContext interface {
@@ -20,14 +22,17 @@ type KubeContext struct {
 	Namespace             string            `json:",omitempty"`
 	Kubeconfig            string            `json:",omitempty"`
 	Kubecontext           string            `json:",omitempty"`
+	ServerVersion         *version.Info     `json:",omitempty"`
 	InadequateNodeReports []*k8s.NodeReport `json:",omitempty"`
+	NodeReportSamples     []*k8s.NodeReport `json:",omitempty"`
 }
 
 func NewKubeContext(kubeconfig, kubecontext, namespace string) *KubeContext {
 	return &KubeContext{
-		Namespace:   namespace,
-		Kubeconfig:  kubeconfig,
-		Kubecontext: kubecontext,
+		Namespace:         namespace,
+		Kubeconfig:        kubeconfig,
+		Kubecontext:       kubecontext,
+		NodeReportSamples: make([]*k8s.NodeReport, MAX_NODE_REPORT_SAMPLES),
 	}
 }
 

@@ -57,6 +57,10 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
+		if sentryKubeContext.ServerVersion, err = kubeClient.Discovery().ServerVersion(); err != nil {
+			return err
+		}
+
 		var clusterName string
 		if clusterName, err = getClusterName(kubeClient); err != nil {
 			return err
@@ -106,6 +110,8 @@ var DeployCmd = &cobra.Command{
 			nodeRequirements := k8s.NewNodeMinimumRequirements()
 			adequateNodesReports, inadequateNodesReports := nodeRequirements.GenerateNodeReports(nodesSummeries)
 			expectedAlligatorsCount = len(adequateNodesReports)
+
+			copy(sentryKubeContext.NodeReportSamples, adequateNodesReports)
 
 			if len(inadequateNodesReports) > 0 {
 				sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
