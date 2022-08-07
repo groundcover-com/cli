@@ -21,6 +21,8 @@ We use the following categories for changes:
 ### Changed
 
 - Improve metrics collection [#sc-3674]
+- More tolerant deployment timeout [#sc-3674]
+- kubeconfig missing error more informative [#sc-4038]
 
 ### Fixed
 
