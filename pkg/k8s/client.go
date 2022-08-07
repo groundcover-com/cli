@@ -1,6 +1,10 @@
 package k8s
 
 import (
+	"errors"
+	"fmt"
+	"io/fs"
+
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -52,11 +56,16 @@ func (kubeClient *Client) defaultContext() (string, error) {
 	var err error
 	var rawConfig clientcmdapi.Config
 
-	if rawConfig, err = kubeClient.RawConfig(); err != nil {
-		return "", err
+	if rawConfig, err = kubeClient.RawConfig(); err == nil {
+		return rawConfig.CurrentContext, nil
 	}
 
-	return rawConfig.CurrentContext, nil
+	var pathErr *fs.PathError
+	if errors.As(err, &pathErr) {
+		return "", fmt.Errorf("kubeconfig not found in %s, you can override the path with --kubeconfig flag", pathErr.Path)
+	}
+
+	return "", err
 }
 
 func (kubeClient *Client) loadClient() error {
