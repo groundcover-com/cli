@@ -36,6 +36,10 @@ func NewKubeContext(kubeconfig, kubecontext, namespace string) *KubeContext {
 	}
 }
 
+func (context KubeContext) SetNodeReportsSamples(nodeReports []*k8s.NodeReport) {
+	copy(context.NodeReportSamples, nodeReports)
+}
+
 func (context KubeContext) SetOnCurrentScope() {
 	sentry.CurrentHub().Scope().SetContext(KUBE_CONTEXT_NAME, &context)
 }

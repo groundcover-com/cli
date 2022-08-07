@@ -7,14 +7,10 @@ import (
 	_spinner "github.com/briandowns/spinner"
 )
 
+var ErrSpinnerTimeout = fmt.Errorf("spinner timeout")
+
 type SpinnerTimeoutError struct {
 	error
-}
-
-func NewSpinnerTimeoutError(duration time.Duration) SpinnerTimeoutError {
-	return SpinnerTimeoutError{
-		fmt.Errorf("spinner timeout after %s", duration.String()),
-	}
 }
 
 type Spinner struct {
@@ -40,7 +36,7 @@ func (spinner *Spinner) Poll(function func() (bool, error), interval, duration t
 	for {
 		select {
 		case <-timeout:
-			return NewSpinnerTimeoutError(duration)
+			return ErrSpinnerTimeout
 		case <-ticker.C:
 			functionDone, err := function()
 			if err != nil {

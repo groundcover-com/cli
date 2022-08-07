@@ -75,7 +75,7 @@ var UninstallCmd = &cobra.Command{
 			clusterName, namespace, release.Version(),
 		)
 		if !utils.YesNoPrompt(promptMessage, false) {
-			sentry.CaptureMessage("aborted uninstall")
+			sentry.CaptureMessage("uninstall execution aborted")
 			return nil
 		}
 
@@ -85,17 +85,17 @@ var UninstallCmd = &cobra.Command{
 		if err = deleteReleaseLeftovers(cmd.Context(), kubeClient, release); err != nil {
 			return err
 		}
-		sentry.CaptureMessage("successfully uninstall")
+		sentry.CaptureMessage("uninstall executed successfully")
 
 		if !utils.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false) {
-			sentry.CaptureMessage("aborted pvcs delete")
+			sentry.CaptureMessage("delete pvcs execution aborted")
 			return nil
 		}
 
 		if err = deletePvcs(cmd.Context(), kubeClient, release); err != nil {
 			return err
 		}
-		sentry.CaptureMessage("successfully pvcs delete")
+		sentry.CaptureMessage("delete pvcs executed successfully")
 
 		return nil
 	},

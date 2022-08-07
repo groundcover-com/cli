@@ -111,7 +111,8 @@ var DeployCmd = &cobra.Command{
 			adequateNodesReports, inadequateNodesReports := nodeRequirements.GenerateNodeReports(nodesSummeries)
 			expectedAlligatorsCount = len(adequateNodesReports)
 
-			copy(sentryKubeContext.NodeReportSamples, adequateNodesReports)
+			sentryKubeContext.SetNodeReportsSamples(adequateNodesReports)
+			sentryKubeContext.SetOnCurrentScope()
 
 			if len(inadequateNodesReports) > 0 {
 				sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
@@ -153,7 +154,7 @@ var DeployCmd = &cobra.Command{
 		}
 
 		if !utils.YesNoPrompt(promptMessage, false) {
-			sentry.CaptureMessage("aborted deploy")
+			sentry.CaptureMessage("deploy execution aborted")
 			return nil
 		}
 
@@ -177,7 +178,7 @@ var DeployCmd = &cobra.Command{
 
 		utils.TryOpenBrowser(fmt.Sprintf("%s/clusterId=%s", GROUNDCOVER_URL, clusterName))
 
-		sentry.CaptureMessage("successfully deploy")
+		sentry.CaptureMessage("deploy executed successfully")
 		return nil
 	},
 }

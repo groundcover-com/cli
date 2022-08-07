@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -19,7 +20,7 @@ import (
 
 const (
 	SPINNER_TYPE                = 8 // .oO@*
-	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 5
+	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 0
 	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
 )
 
@@ -87,7 +88,7 @@ var StatusCmd = &cobra.Command{
 			return err
 		}
 
-		sentry.CaptureMessage("successfully status")
+		sentry.CaptureMessage("status executed successfully")
 		return nil
 	},
 }
@@ -121,15 +122,15 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 		return true, nil
 	}
 
-	err = spinner.Poll(areAlligatorsRunningFunc, ALLIGATORS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT)
-	switch err.(type) {
-	case nil:
+	if err = spinner.Poll(areAlligatorsRunningFunc, ALLIGATORS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT); err == nil {
 		return nil
-	case utils.SpinnerTimeoutError:
+	}
+
+	if errors.Is(err, utils.ErrSpinnerTimeout) {
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
 		logrus.Warnf("timed out waiting for all the nodes to be monitored (%d/%d)", runningAlligators, expectedAlligatorsCount)
 		return nil
-	default:
-		return err
 	}
+
+	return err
 }

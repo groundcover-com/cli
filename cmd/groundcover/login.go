@@ -31,16 +31,16 @@ var LoginCmd = &cobra.Command{
 			return err
 		}
 
-		if err = isAuthValid(); err != nil {
+		if err = setAndValidateApiKey(); err != nil {
 			return err
 		}
 
-		sentry.CaptureMessage("successfully login")
+		sentry.CaptureMessage("login executed successfully")
 		return nil
 	},
 }
 
-func isAuthValid() error {
+func setAndValidateApiKey() error {
 	var err error
 
 	var customClaims *auth.CustomClaims

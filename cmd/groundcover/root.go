@@ -123,7 +123,7 @@ func checkAuthForCmd(cmd *cobra.Command) error {
 	case LoginCmd, VersionCmd:
 		return nil
 	default:
-		return isAuthValid()
+		return setAndValidateApiKey()
 	}
 }
 

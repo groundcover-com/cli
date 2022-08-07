@@ -84,6 +84,25 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 	suite.Equal(expect, event.Contexts)
 }
 
+func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesSuccess() {
+	//prepare
+	namespace := uuid.New().String()
+	kubeconfig := uuid.New().String()
+	kubecontext := uuid.New().String()
+
+	nodesCount := sentry_utils.MAX_NODE_REPORT_SAMPLES + 2
+
+	nodeReports := make([]*k8s.NodeReport, nodesCount)
+	sentryContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext, namespace)
+
+	//act
+	sentryContext.SetNodeReportsSamples(nodeReports)
+
+	// assert
+	expect := nodeReports[:sentry_utils.MAX_NODE_REPORT_SAMPLES]
+	suite.Equal(expect, sentryContext.NodeReportSamples)
+}
+
 func (suite *SentryContextTestSuite) TestHelmContexJsonOmitEmpty() {
 	//prepare
 	sentryContext := &sentry_utils.HelmContext{}
