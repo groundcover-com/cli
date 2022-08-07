@@ -11,6 +11,12 @@ type SpinnerTimeoutError struct {
 	error
 }
 
+func NewSpinnerTimeoutError(duration time.Duration) SpinnerTimeoutError {
+	return SpinnerTimeoutError{
+		fmt.Errorf("spinner timeout after %s", duration.String()),
+	}
+}
+
 type Spinner struct {
 	*_spinner.Spinner
 }
@@ -34,9 +40,7 @@ func (spinner *Spinner) Poll(function func() (bool, error), interval, duration t
 	for {
 		select {
 		case <-timeout:
-			return SpinnerTimeoutError{
-				fmt.Errorf("spinner timeout after %s", duration.String()),
-			}
+			return NewSpinnerTimeoutError(duration)
 		case <-ticker.C:
 			functionDone, err := function()
 			switch {
