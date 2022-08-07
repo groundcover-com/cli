@@ -122,16 +122,12 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	}
 
 	err = spinner.Poll(areAlligatorsRunningFunc, ALLIGATORS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT)
-
 	switch err.(type) {
 	case nil:
 		return nil
 	case utils.SpinnerTimeoutError:
-		if runningAlligators == 0 {
-			return fmt.Errorf("none of nodes are monitored yet (%d/%d)", runningAlligators, expectedAlligatorsCount)
-		}
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
-		logrus.Warnf("not all nodes are monitored yet (%d/%d)", runningAlligators, expectedAlligatorsCount)
+		logrus.Warnf("timed out waiting for all the nodes to be monitored (%d/%d)", runningAlligators, expectedAlligatorsCount)
 		return nil
 	default:
 		return err

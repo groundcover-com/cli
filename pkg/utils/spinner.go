@@ -43,10 +43,10 @@ func (spinner *Spinner) Poll(function func() (bool, error), interval, duration t
 			return NewSpinnerTimeoutError(duration)
 		case <-ticker.C:
 			functionDone, err := function()
-			switch {
-			case err != nil:
+			if err != nil {
 				return err
-			case functionDone:
+			}
+			if functionDone {
 				return nil
 			}
 		}
