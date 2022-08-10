@@ -18,6 +18,9 @@ We use the following categories for changes:
 
 ### Added
 
+- `auth print-api-key` command to print groundcover api-key
+- `auth login` command to authenticate your accout in groundcover
+
 ### Changed
 
 ### Fixed
