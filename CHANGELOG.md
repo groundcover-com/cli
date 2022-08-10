@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- Auth0 device code confirmation polling interval and timeout
+
 ### Removed
 
 ### Deprecated

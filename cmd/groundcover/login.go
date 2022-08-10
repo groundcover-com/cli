@@ -1,17 +1,10 @@
 package cmd
 
 import (
-	"context"
-	"time"
-
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"groundcover.com/pkg/auth"
 	sentry_utils "groundcover.com/pkg/sentry"
-)
-
-var (
-	authTimeout = time.Second * 30
 )
 
 func init() {
@@ -24,10 +17,7 @@ var LoginCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		ctx, cancel := context.WithTimeout(cmd.Context(), authTimeout)
-		defer cancel()
-
-		if err = auth.Login(ctx); err != nil {
+		if err = auth.Login(); err != nil {
 			return err
 		}
 
