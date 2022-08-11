@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- Hints on authentication plugins errors [#sc-4138]
+
 ### Changed
 
 ### Fixed
