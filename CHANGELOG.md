@@ -22,7 +22,7 @@ We use the following categories for changes:
 
 ### Fixed
 
-- Auth0 device code confirmation polling interval and timeout
+- Auth0 device code confirmation polling interval and timeout [#sc-4170]
 
 ### Removed
 
