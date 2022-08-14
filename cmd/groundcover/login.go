@@ -9,6 +9,7 @@ import (
 
 func init() {
 	RootCmd.AddCommand(LoginCmd)
+	authCmd.AddCommand(LoginCmd)
 }
 
 var LoginCmd = &cobra.Command{

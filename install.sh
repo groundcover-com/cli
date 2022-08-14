@@ -184,7 +184,7 @@ cleanup() {
 printWhatNow() {
   printf "\n%s\
 what now?\n\
-* run ${GREEN}groundcover login${NO_COLOR}\n\
+* run ${GREEN}groundcover auth login${NO_COLOR}\n\
 * then ${GREEN}groundcover deploy${NO_COLOR}\n\
 * ${REV_BG}let the magic begin.${NO_COLOR}\n\n\
 run ${BLUE}groundcover help${NO_COLOR}, or dive deeper with ${BLUE}${UNDERLINE}https://docs.groundcover.com/docs${NO_COLOR}.\n"
