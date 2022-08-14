@@ -77,7 +77,7 @@ func (kubeClient *Client) loadClient() error {
 	}
 
 	if kubeClient.Interface, err = kubernetes.NewForConfig(restConfig); err != nil {
-		return wrapHintIfAuthError(err)
+		return kubeClient.printHintIfAuthError(err)
 	}
 
 	return nil
