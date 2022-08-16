@@ -2,15 +2,18 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/utils"
+	helm_driver "helm.sh/helm/v3/pkg/storage/driver"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -61,6 +64,11 @@ var UninstallCmd = &cobra.Command{
 
 		var release *helm.Release
 		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
+			if errors.Is(err, helm_driver.ErrReleaseNotFound) {
+				logrus.Warn(fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?", releaseName, namespace))
+				return nil
+			}
+
 			return err
 		}
 
