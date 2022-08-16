@@ -18,9 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- `auth print-api-key` command to print groundcover api-key [#sc-4121]
-- `auth login` command to authenticate your accout in groundcover [#sc-4121]
-
 ### Changed
 
 ### Fixed
@@ -30,6 +27,13 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.2.4] 2022-08-16
+
+### Added
+
+- `auth print-api-key` command to print groundcover api-key [#sc-4121]
+- `auth login` command to authenticate your accout in groundcover [#sc-4121]
 
 ## [0.2.3] 2022-08-07
 
