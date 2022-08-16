@@ -18,19 +18,24 @@ We use the following categories for changes:
 
 ### Added
 
-- Hints on authentication plugins errors [#sc-4138]
-- `auth print-api-key` command to print groundcover api-key [#sc-4121]
-- `auth login` command to authenticate your accout in groundcover [#sc-4121]
-
 ### Changed
 
 ### Fixed
+
+- Auth0 device code confirmation polling interval and timeout [#sc-4170]
 
 ### Removed
 
 ### Deprecated
 
 ### Security
+
+## [0.2.4] 2022-08-16
+
+### Added
+
+- `auth print-api-key` command to print groundcover api-key [#sc-4121]
+- `auth login` command to authenticate your accout in groundcover [#sc-4121]
 
 ## [0.2.3] 2022-08-07
 

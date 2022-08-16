@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	jwt_modern_claims "github.com/golang-jwt/jwt/v4"
-	"github.com/sirupsen/logrus"
 	"groundcover.com/pkg/utils"
 )
 
@@ -32,7 +30,9 @@ const (
 	GROUNDCOVER_AUTH_PATH                  = ".groundcover"
 	GROUNDCOVER_AUTH_FILE                  = "auth.json"
 	GROUNDCOVER_API_KEY_FILE               = "api_key.json"
-	AUTH0_MIN_INTERVAL                     = time.Second * 5
+	SPINNER_TYPE                           = 26 // ....
+	TOKEN_POLLING_TIMEOUT                  = time.Minute * 1
+	TOKEN_POLLING_INTERVAL                 = time.Second * 5
 )
 
 type CustomClaims struct {
@@ -45,8 +45,9 @@ type CustomClaims struct {
 	jwt_modern_claims.RegisteredClaims
 }
 type Auth0Error struct {
-	Error     string `json:"error"`
-	ErrorDesc string `json:"error_description"`
+	error
+	Type        string `json:"error"`
+	Description string `json:"error_description"`
 }
 
 type Auth0Token struct {
@@ -255,12 +256,14 @@ func getToken(deviceCode, clientID string) (*Auth0Token, error) {
 
 func handleAuth0Error(body []byte) error {
 	var auth0Error *Auth0Error
-	err := json.Unmarshal(body, &auth0Error)
-	if err != nil {
+
+	if err := json.Unmarshal(body, &auth0Error); err != nil {
 		return fmt.Errorf("failed to decode Auth0 error response: %s", err.Error())
 	}
 
-	return fmt.Errorf("%s: %s", auth0Error.Error, auth0Error.ErrorDesc)
+	auth0Error.error = fmt.Errorf("%s: %s", auth0Error.Type, auth0Error.Description)
+
+	return auth0Error
 }
 
 func getDeviceCodeFlow() (*DeviceCodeFlow, error) {
@@ -312,7 +315,7 @@ func SaveAuthFile(fname string, apiKey interface{}) error {
 	return nil
 }
 
-func Login(ctx context.Context) error {
+func Login() error {
 	var err error
 	var token *Auth0Token
 	var deviceCodeFlow *DeviceCodeFlow
@@ -324,7 +327,7 @@ func Login(ctx context.Context) error {
 
 	utils.TryOpenBrowser(deviceCodeFlow.VerificationURIComplete)
 
-	if token, err = pollToken(deviceCodeFlow, ctx); err != nil {
+	if token, err = pollToken(deviceCodeFlow); err != nil {
 		return err
 	}
 
@@ -336,22 +339,36 @@ func Login(ctx context.Context) error {
 	return nil
 }
 
-func pollToken(deviceCodeFlow *DeviceCodeFlow, ctx context.Context) (*Auth0Token, error) {
-	ticker := time.NewTicker(AUTH0_MIN_INTERVAL)
+func pollToken(deviceCodeFlow *DeviceCodeFlow) (*Auth0Token, error) {
+	var err error
+	var token *Auth0Token
 
-	for {
-		select {
-		case <-ticker.C:
-			token, err := getToken(deviceCodeFlow.DeviceCode, AUTH0_APP_CLIENT_ID)
-			if err != nil {
-				logrus.Debugf("Failed to poll token: %s", err.Error())
-				continue
-			}
-			return token, nil
-		case <-ctx.Done():
-			return nil, errors.New("timed out while waiting for login")
+	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting for device confirmation")
+
+	fetchTokenFunc := func() (bool, error) {
+		if token, err = getToken(deviceCodeFlow.DeviceCode, AUTH0_APP_CLIENT_ID); err == nil {
+			return true, nil
 		}
+
+		var auth0Err *Auth0Error
+		if errors.As(err, &auth0Err) {
+			if auth0Err.Type == "authorization_pending" {
+				return false, nil
+			}
+		}
+
+		return false, err
 	}
+
+	if err = spinner.Poll(fetchTokenFunc, TOKEN_POLLING_INTERVAL, TOKEN_POLLING_TIMEOUT); err == nil {
+		return token, nil
+	}
+
+	if errors.Is(err, utils.ErrSpinnerTimeout) {
+		return nil, fmt.Errorf("timed out waiting for device confirmation")
+	}
+
+	return nil, err
 }
 
 func refreshTokenSet(refreshToken string) (*Auth0Token, error) {

@@ -42,16 +42,15 @@ func WaitUntilClusterConnectedToSaas(token *auth.Auth0Token, clusterToPoll strin
 		return false, nil
 	}
 
-	err = spinner.Poll(isClusterExistInSassFunc, CLUSTER_POLLING_INTERVAL, CLUSTER_POLLING_TIMEOUT)
-
-	switch err.(type) {
-	case nil:
+	if err = spinner.Poll(isClusterExistInSassFunc, CLUSTER_POLLING_INTERVAL, CLUSTER_POLLING_TIMEOUT); err == nil {
 		return nil
-	case utils.SpinnerTimeoutError:
-		return fmt.Errorf("groundcover is yet connected to cloud platform")
-	default:
-		return err
 	}
+
+	if errors.Is(err, utils.ErrSpinnerTimeout) {
+		return fmt.Errorf("groundcover is yet connected to cloud platform")
+	}
+
+	return err
 }
 
 func getClusters(token *auth.Auth0Token) ([]string, error) {
