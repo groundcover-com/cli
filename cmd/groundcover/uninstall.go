@@ -65,7 +65,7 @@ var UninstallCmd = &cobra.Command{
 		var release *helm.Release
 		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 			if errors.Is(err, helm_driver.ErrReleaseNotFound) {
-				logrus.Warn("no active groundcover deployment found")
+				logrus.Warn(fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?", releaseName, namespace))
 				return nil
 			}
 
