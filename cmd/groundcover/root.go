@@ -14,6 +14,7 @@ import (
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/utils"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/utils/strings/slices"
 )
 
 const (
@@ -54,6 +55,12 @@ func init() {
 	viper.BindPFlag(HELM_RELEASE_FLAG, RootCmd.PersistentFlags().Lookup(HELM_RELEASE_FLAG))
 }
 
+var skipAuthCommandNames = []string{
+	"help",
+	LoginCmd.Name(),
+	VersionCmd.Name(),
+}
+
 var RootCmd = &cobra.Command{
 	Use:   "groundcover",
 	Short: "groundcover cli",
@@ -72,7 +79,7 @@ groundcover, more data at: https://groundcover.com/docs`,
 		sentry_utils.SetTransactionOnCurrentScope(cmd.Name())
 
 		if err = checkAuthForCmd(cmd); err != nil {
-			return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
+			return err
 		}
 
 		if !viper.GetBool(SKIP_SELFUPDATE_FLAG) {
@@ -119,12 +126,15 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 }
 
 func checkAuthForCmd(cmd *cobra.Command) error {
-	switch cmd {
-	case LoginCmd, VersionCmd:
+	if slices.Contains(skipAuthCommandNames, cmd.Name()) {
 		return nil
-	default:
-		return setAndValidateApiKey()
 	}
+
+	if err := setAndValidateApiKey(); err != nil {
+		return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
+	}
+
+	return nil
 }
 
 func Execute() error {
