@@ -1,15 +1,17 @@
 package sentry
 
 import (
+	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
 	"groundcover.com/pkg/k8s"
 	"k8s.io/apimachinery/pkg/version"
 )
 
 const (
-	MAX_NODE_REPORT_SAMPLES = 10
-	HELM_CONTEXT_NAME       = "helm"
-	KUBE_CONTEXT_NAME       = "kubernetes"
+	MAX_NODE_REPORT_SAMPLES  = 10
+	HELM_CONTEXT_NAME        = "helm"
+	KUBE_CONTEXT_NAME        = "kubernetes"
+	SELF_UPDATE_CONTEXT_NAME = "self-update"
 )
 
 type SentryContext interface {
@@ -63,4 +65,20 @@ func NewHelmContext(releaseName, chartName, repoUrl string) *HelmContext {
 
 func (context HelmContext) SetOnCurrentScope() {
 	sentry.CurrentHub().Scope().SetContext(HELM_CONTEXT_NAME, &context)
+}
+
+type SelfUpdateContext struct {
+	CurrentVersion semver.Version `json:",omitempty"`
+	LatestVersion  semver.Version `json:",omitempty"`
+}
+
+func NewSelfUpdateContext(currentVersion, latestVersion semver.Version) *SelfUpdateContext {
+	return &SelfUpdateContext{
+		CurrentVersion: currentVersion,
+		LatestVersion:  latestVersion,
+	}
+}
+
+func (context SelfUpdateContext) SetOnCurrentScope() {
+	sentry.CurrentHub().Scope().SetContext(SELF_UPDATE_CONTEXT_NAME, &context)
 }

@@ -82,6 +82,7 @@ groundcover, more data at: https://groundcover.com/docs`,
 					return err
 				}
 				fmt.Println("Self update was successfully")
+				sentry.CaptureMessage("self-update executed successfully")
 				os.Exit(0)
 			}
 		}
@@ -115,6 +116,13 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 
 	promptFormat := "Your version %s is out of date! The latest version is %s.\nDo you want to update?"
 	shouldUpdate := utils.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
+
+	if shouldUpdate {
+		sentry_utils.SetTransactionOnCurrentScope("self-update")
+		sentryContext := sentry_utils.NewSelfUpdateContext(currentVersion, selfUpdater.Version)
+		sentryContext.SetOnCurrentScope()
+	}
+
 	return shouldUpdate, selfUpdater
 }
 

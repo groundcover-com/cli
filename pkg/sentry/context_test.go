@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
@@ -147,6 +148,31 @@ func (suite *SentryContextTestSuite) TestHelmContextSetOnCurrentScopeSuccess() {
 
 	event := suite.Transport.lastEvent
 	sentry.CurrentHub().Scope().RemoveContext(sentry_utils.HELM_CONTEXT_NAME)
+
+	suite.Equal(expect, event.Contexts)
+}
+
+func (suite *SentryContextTestSuite) TestSelfUpdateContextSetOnCurrentScopeSuccess() {
+	//prepare
+	currentVersion := semver.MustParse("0.1.0")
+	lastestVersion := semver.MustParse("1.0.0")
+
+	sentryContext := sentry_utils.NewSelfUpdateContext(currentVersion, lastestVersion)
+
+	//act
+	sentryContext.SetOnCurrentScope()
+	sentry.CaptureMessage("self update context")
+
+	// assert
+	expect := map[string]interface{}{
+		"self-update": &sentry_utils.SelfUpdateContext{
+			CurrentVersion: currentVersion,
+			LatestVersion:  lastestVersion,
+		},
+	}
+
+	event := suite.Transport.lastEvent
+	sentry.CurrentHub().Scope().RemoveContext(sentry_utils.SELF_UPDATE_CONTEXT_NAME)
 
 	suite.Equal(expect, event.Contexts)
 }
