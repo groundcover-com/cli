@@ -22,13 +22,23 @@ We use the following categories for changes:
 
 ### Fixed
 
-- Auth0 device code confirmation polling interval and timeout [#sc-4170]
-
 ### Removed
 
 ### Deprecated
 
 ### Security
+
+## [0.2.5] 2022-08-17
+
+### Added
+
+- capture self-update metrics [#sc-4261]
+
+### Fixed
+
+- add help cmd to skip auth [#sc-4255]
+- ignore unknown command error in metrics [#sc-4256]
+- Auth0 device code confirmation polling interval and timeout [#sc-4170]
 
 ## [0.2.4] 2022-08-16
 
