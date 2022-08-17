@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
@@ -96,10 +97,6 @@ groundcover, more data at: https://groundcover.com/docs`,
 
 		return nil
 	},
-	// this mutes usage printing on command errors
-	SilenceUsage: true,
-	// this mutes error printing on command errors
-	SilenceErrors: true,
 }
 
 func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdater) {
@@ -146,5 +143,15 @@ func checkAuthForCmd(cmd *cobra.Command) error {
 }
 
 func Execute() error {
-	return RootCmd.Execute()
+	err := RootCmd.Execute()
+
+	if err == nil {
+		return nil
+	}
+
+	if strings.HasPrefix(err.Error(), "unknown command") {
+		return nil
+	}
+
+	return err
 }
