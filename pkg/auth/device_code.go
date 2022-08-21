@@ -39,11 +39,7 @@ func (deviceCode *DeviceCode) Fetch() error {
 		return err
 	}
 
-	if err = json.Unmarshal(body, &deviceCode); err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal(body, &deviceCode)
 }
 
 func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {

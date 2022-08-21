@@ -69,12 +69,7 @@ func (client *Client) Get(endpoint string) ([]byte, error) {
 		return nil, NewResponseError(response)
 	}
 
-	var body []byte
-	if body, err = ioutil.ReadAll(response.Body); err != nil {
-		return nil, err
-	}
-
-	return body, nil
+	return ioutil.ReadAll(response.Body)
 }
 
 func (client *Client) Post(endpoint, contentType string, payload io.Reader) ([]byte, error) {
@@ -95,10 +90,5 @@ func (client *Client) Post(endpoint, contentType string, payload io.Reader) ([]b
 		return nil, NewResponseError(response)
 	}
 
-	var body []byte
-	if body, err = ioutil.ReadAll(response.Body); err != nil {
-		return nil, err
-	}
-
-	return body, nil
+	return ioutil.ReadAll(response.Body)
 }

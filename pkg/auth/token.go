@@ -45,10 +45,12 @@ func (auth0Token *Auth0Token) Load() error {
 	}
 
 	if err = auth0Token.loadClaims(); err != nil {
-		return err
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			err = auth0Token.RefreshAndSave()
+		}
 	}
 
-	return nil
+	return err
 }
 
 func (auth0Token *Auth0Token) Save() error {
@@ -59,9 +61,7 @@ func (auth0Token *Auth0Token) Save() error {
 		return err
 	}
 
-	utils.PresistentStorage.Write(TOKEN_STORAGE_KEY, data)
-
-	return nil
+	return utils.PresistentStorage.Write(TOKEN_STORAGE_KEY, data)
 }
 
 func (auth0Token *Auth0Token) BearerToken() (string, error) {
@@ -92,11 +92,7 @@ func (auth0Token *Auth0Token) Fetch(data url.Values) error {
 		return err
 	}
 
-	if err = auth0Token.loadClaims(); err != nil {
-		return err
-	}
-
-	return nil
+	return auth0Token.loadClaims()
 }
 
 func (auth0Token *Auth0Token) RefreshAndSave() error {
@@ -120,15 +116,7 @@ func (auth0Token *Auth0Token) RefreshAndSave() error {
 		return err
 	}
 
-	if err = auth0Token.Claims.Valid(); err != nil {
-		return err
-	}
-
-	if err = auth0Token.Save(); err != nil {
-		return err
-	}
-
-	return nil
+	return auth0Token.Save()
 }
 
 func (auth0Token *Auth0Token) loadClaims() error {

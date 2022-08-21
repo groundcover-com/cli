@@ -23,11 +23,7 @@ func (apiKey *ApiKey) Load() error {
 		return err
 	}
 
-	if err = json.Unmarshal(data, &apiKey); err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal(data, &apiKey)
 }
 
 func (apiKey *ApiKey) Save() error {
@@ -38,9 +34,7 @@ func (apiKey *ApiKey) Save() error {
 		return err
 	}
 
-	utils.PresistentStorage.Write(API_KEY_STORAGE_KEY, data)
-
-	return nil
+	return utils.PresistentStorage.Write(API_KEY_STORAGE_KEY, data)
 }
 
 func (client *Client) ApiKey() (*ApiKey, error) {
