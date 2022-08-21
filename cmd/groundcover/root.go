@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/selfupdate"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/utils"
@@ -154,4 +155,21 @@ func Execute() error {
 	}
 
 	return err
+}
+
+func validateAuth0Token() error {
+	var err error
+
+	var auth0Token auth.Auth0Token
+	if err = auth0Token.Load(); err != nil {
+		return err
+	}
+
+	if err = auth0Token.RefreshAndSave(); err != nil {
+		return err
+	}
+
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.Claims.Email})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.Claims.Org)
+	return nil
 }

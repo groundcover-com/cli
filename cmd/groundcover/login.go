@@ -38,9 +38,8 @@ var LoginCmd = &cobra.Command{
 			return err
 		}
 
-		if err = validateAuth0Token(); err != nil {
-			return err
-		}
+		sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.Claims.Email})
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.Claims.Org)
 
 		apiClient := api.NewClient(&auth0Token)
 
@@ -57,21 +56,4 @@ var LoginCmd = &cobra.Command{
 		sentry.CaptureMessage("login executed successfully")
 		return nil
 	},
-}
-
-func validateAuth0Token() error {
-	var err error
-
-	var auth0Token auth.Auth0Token
-	if err = auth0Token.Load(); err != nil {
-		return err
-	}
-
-	if err = auth0Token.RefreshAndSave(); err != nil {
-		return err
-	}
-
-	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.Claims.Email})
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.Claims.Org)
-	return nil
 }
