@@ -9,6 +9,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/selfupdate"
@@ -19,15 +20,14 @@ import (
 )
 
 const (
-	GITHUB_REPO            = "cli"
-	GITHUB_OWNER           = "groundcover-com"
-	NAMESPACE_FLAG         = "namespace"
-	KUBECONFIG_FLAG        = "kubeconfig"
-	KUBECONTEXT_FLAG       = "kube-context"
-	HELM_RELEASE_FLAG      = "release-name"
-	CLUSTER_NAME_FLAG      = "cluster-name"
-	SKIP_SELFUPDATE_FLAG   = "skip-selfupdate"
-	USER_CUSTOM_CLAIMS_KEY = "user_custom_claims"
+	GITHUB_REPO          = "cli"
+	GITHUB_OWNER         = "groundcover-com"
+	NAMESPACE_FLAG       = "namespace"
+	KUBECONFIG_FLAG      = "kubeconfig"
+	KUBECONTEXT_FLAG     = "kube-context"
+	HELM_RELEASE_FLAG    = "release-name"
+	CLUSTER_NAME_FLAG    = "cluster-name"
+	SKIP_SELFUPDATE_FLAG = "skip-selfupdate"
 )
 
 func init() {
@@ -135,8 +135,8 @@ func checkAuthForCmd(cmd *cobra.Command) error {
 		return nil
 	}
 
-	if err := setAndValidateApiKey(); err != nil {
-		return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
+	if err := validateAuth0Token(); err != nil {
+		return errors.Wrap(err, "failed to authenticate. Please retry `groundcover login`")
 	}
 
 	return nil
