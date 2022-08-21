@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
@@ -42,12 +41,12 @@ var DeployCmd = &cobra.Command{
 
 		var auth0Token auth.Auth0Token
 		if err = auth0Token.Load(); err != nil {
-			return errors.Wrap(err, "failed to load auth0 token")
+			return err
 		}
 
 		var apiKey api.ApiKey
 		if err = apiKey.Load(); err != nil {
-			return errors.Wrap(err, "failed to load api-key")
+			return err
 		}
 
 		sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext, namespace)

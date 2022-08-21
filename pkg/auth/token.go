@@ -13,12 +13,12 @@ import (
 
 const (
 	TOKEN_ENDPOINT    = "token"
-	TOKEN_STORAGE_KEY = "token.json"
+	TOKEN_STORAGE_KEY = "auth.json"
 	JWKS_ENDPOINT     = "/.well-known/jwks.json"
 )
 
 type Auth0Token struct {
-	Claims       Claims
+	Claims       Claims `json:"-"`
 	ExpiresIn    int64  `json:"expires_in"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
@@ -41,6 +41,10 @@ func (auth0Token *Auth0Token) Load() error {
 	}
 
 	if err = json.Unmarshal(data, &auth0Token); err != nil {
+		return err
+	}
+
+	if err = auth0Token.loadClaims(); err != nil {
 		return err
 	}
 
@@ -116,6 +120,10 @@ func (auth0Token *Auth0Token) RefreshAndSave() error {
 		return err
 	}
 
+	if err = auth0Token.Claims.Valid(); err != nil {
+		return err
+	}
+
 	if err = auth0Token.Save(); err != nil {
 		return err
 	}
@@ -140,5 +148,5 @@ func (auth0Token *Auth0Token) loadClaims() error {
 		return err
 	}
 
-	return auth0Token.Claims.Valid()
+	return nil
 }

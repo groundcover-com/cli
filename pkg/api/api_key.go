@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	API_KEY_STORAGE_KEY       = "api-key.json"
+	API_KEY_STORAGE_KEY       = "api_key.json"
 	GENERATE_API_KEY_ENDPOINT = "system/generate-api-key"
 )
 
