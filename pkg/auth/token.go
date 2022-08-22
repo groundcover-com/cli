@@ -44,13 +44,7 @@ func (auth0Token *Auth0Token) Load() error {
 		return err
 	}
 
-	if err = auth0Token.loadClaims(); err != nil {
-		if errors.Is(err, jwt.ErrTokenExpired) {
-			err = auth0Token.RefreshAndSave()
-		}
-	}
-
-	return err
+	return auth0Token.loadClaims()
 }
 
 func (auth0Token *Auth0Token) Save() error {
