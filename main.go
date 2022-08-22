@@ -5,7 +5,7 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/sirupsen/logrus"
-	cmd "groundcover.com/cmd/groundcover"
+	"groundcover.com/cmd"
 	sentry_utils "groundcover.com/pkg/sentry"
 )
 
