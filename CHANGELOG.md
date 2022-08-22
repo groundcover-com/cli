@@ -20,17 +20,23 @@ We use the following categories for changes:
 
 ### Changed
 
-- split authentication functionality to api and auth clients [#sc-4313]
-
 ### Fixed
-
-- validate or refresh auth0 token per api request [#sc-4313]
 
 ### Removed
 
 ### Deprecated
 
 ### Security
+
+## [0.2.6] 2022-08-22
+
+### Changed
+
+- split authentication functionality to api and auth clients [#sc-4313]
+
+### Fixed
+
+- validate or refresh auth0 token per api request [#sc-4313]
 
 ## [0.2.5] 2022-08-17
 
