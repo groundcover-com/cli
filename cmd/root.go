@@ -9,6 +9,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -165,11 +166,13 @@ func validateAuth0Token() error {
 	var err error
 
 	var auth0Token auth.Auth0Token
-	if err = auth0Token.Load(); err != nil {
-		return err
+	err = auth0Token.Load()
+
+	if errors.Is(err, jwt.ErrTokenExpired) {
+		err = auth0Token.RefreshAndSave()
 	}
 
-	if err = auth0Token.RefreshAndSave(); err != nil {
+	if err != nil {
 		return err
 	}
 
