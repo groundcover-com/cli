@@ -17,8 +17,8 @@ const (
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "%s is unsupported node provider"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "%s is unsupported kernel - minimal: %s"
 	OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT = "%s is unsupported os - only %s supported"
-	CPU_REPORT_MESSAGE_FORMAT              = "insufficient cpu - acutal: %d / minimal: %d"
-	MEMORY_REPORT_MESSAGE_FORMAT           = "insufficient memory - acutal: %dG / minimal: %dG"
+	CPU_REPORT_MESSAGE_FORMAT              = "insufficient cpu - acutal: %dm / minimal: %dm"
+	MEMORY_REPORT_MESSAGE_FORMAT           = "insufficient memory - acutal: %dMi / minimal: %dMi"
 	ARCHITECTURE_REPORT_MESSAGE_FORMAT     = "%s is unsupported architecture - only %s supported"
 )
 

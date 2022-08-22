@@ -36,8 +36,8 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 				},
 				Status: v1.NodeStatus{
 					Allocatable: v1.ResourceList{
-						v1.ResourceCPU:    resource.MustParse("2"),
-						v1.ResourceMemory: resource.MustParse("4G"),
+						v1.ResourceCPU:    *resource.NewScaledQuantity(2000, resource.Milli),
+						v1.ResourceMemory: *resource.NewScaledQuantity(4000, resource.Mega),
 					},
 					NodeInfo: v1.NodeSystemInfo{
 						Architecture:    "amd64",
@@ -56,8 +56,8 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 				},
 				Status: v1.NodeStatus{
 					Allocatable: v1.ResourceList{
-						v1.ResourceCPU:    resource.MustParse("0"),
-						v1.ResourceMemory: resource.MustParse("1G"),
+						v1.ResourceCPU:    *resource.NewScaledQuantity(500, resource.Milli),
+						v1.ResourceMemory: *resource.NewScaledQuantity(1000, resource.Mega),
 					},
 					NodeInfo: v1.NodeSystemInfo{
 						Architecture:    "arm64",
@@ -94,8 +94,8 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 
 	expected := []k8s.NodeSummary{
 		{
-			CPU:             2,
-			Memory:          4,
+			CPU:             resource.NewScaledQuantity(2000, resource.Milli),
+			Memory:          resource.NewScaledQuantity(4000, resource.Mega),
 			Name:            "adequate",
 			Architecture:    "amd64",
 			OperatingSystem: "linux",
@@ -104,8 +104,8 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 			Provider:        "aws://eu-west-3/i-53df4efedd",
 		},
 		{
-			CPU:             0,
-			Memory:          1,
+			CPU:             resource.NewScaledQuantity(500, resource.Milli),
+			Memory:          resource.NewScaledQuantity(1000, resource.Mega),
 			Name:            "inadequate",
 			Architecture:    "arm64",
 			OperatingSystem: "windows",
@@ -145,8 +145,8 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportsSuccess() {
 		IsAdequate:  false,
 		NodeSummary: &nodesSummeries[1],
 		Errors: []error{
-			k8s.NewNodeRequirementError(fmt.Errorf("insufficient cpu - acutal: 0 / minimal: 1")),
-			k8s.NewNodeRequirementError(fmt.Errorf("insufficient memory - acutal: 1G / minimal: 2G")),
+			k8s.NewNodeRequirementError(fmt.Errorf("insufficient cpu - acutal: 500m / minimal: 750m")),
+			k8s.NewNodeRequirementError(fmt.Errorf("insufficient memory - acutal: 1000Mi / minimal: 1250Mi")),
 			k8s.NewNodeRequirementError(fmt.Errorf("aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider")),
 			k8s.NewNodeRequirementError(fmt.Errorf("4.13.0 is unsupported kernel - minimal: 4.14.0")),
 			k8s.NewNodeRequirementError(fmt.Errorf("arm64 is unsupported architecture - only amd64 supported")),
