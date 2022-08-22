@@ -91,6 +91,8 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
+		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
+
 		sentryHelmContext.ChartVersion = chart.Version().String()
 		sentryHelmContext.SetOnCurrentScope()
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
@@ -110,6 +112,10 @@ var DeployCmd = &cobra.Command{
 			nodeRequirements := k8s.NewNodeMinimumRequirements()
 			adequateNodesReports, inadequateNodesReports := nodeRequirements.GenerateNodeReports(nodesSummeries)
 			expectedAlligatorsCount = len(adequateNodesReports)
+
+			if err = helm.TuneResourcesValues(&chartValues, adequateNodesReports); err != nil {
+				return err
+			}
 
 			sentryKubeContext.SetNodeReportsSamples(adequateNodesReports)
 			sentryKubeContext.SetOnCurrentScope()
@@ -158,7 +164,6 @@ var DeployCmd = &cobra.Command{
 			return nil
 		}
 
-		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
 		if err = helmClient.Upgrade(cmd.Context(), releaseName, chart, chartValues); err != nil {
 			return err
 		}
