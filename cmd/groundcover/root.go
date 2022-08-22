@@ -10,6 +10,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/auth"
@@ -64,8 +65,10 @@ var skipAuthCommandNames = []string{
 }
 
 var RootCmd = &cobra.Command{
-	Use:   "groundcover",
-	Short: "groundcover cli",
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	Use:           "groundcover",
+	Short:         "groundcover cli",
 	Long: `
                                    _                         
     __ _ _ __ ___  _   _ _ __   __| | ___ _____   _____ _ __ 
@@ -151,6 +154,7 @@ func Execute() error {
 	}
 
 	if strings.HasPrefix(err.Error(), "unknown command") {
+		logrus.Error(err)
 		return nil
 	}
 
