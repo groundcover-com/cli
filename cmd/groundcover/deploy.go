@@ -39,13 +39,13 @@ var DeployCmd = &cobra.Command{
 		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 		releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
-		var apiKey *auth.ApiKey
-		if apiKey, err = auth.LoadApiKey(); err != nil {
-			return fmt.Errorf("failed to load api key. error: %s", err.Error())
+		var auth0Token auth.Auth0Token
+		if err = auth0Token.Load(); err != nil {
+			return err
 		}
 
-		var token *auth.Auth0Token
-		if token, err = auth.MustLoadDefaultCredentials(); err != nil {
+		var apiKey api.ApiKey
+		if err = apiKey.Load(); err != nil {
 			return err
 		}
 
@@ -172,7 +172,9 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		if err = api.WaitUntilClusterConnectedToSaas(token, clusterName); err != nil {
+		apiClient := api.NewClient(&auth0Token)
+
+		if err = apiClient.PollIsClusterExist(clusterName); err != nil {
 			return err
 		}
 

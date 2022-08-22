@@ -4,37 +4,35 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"time"
 
-	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/utils"
 )
 
 const (
-	API_KEY_GENERATE_URL     = "https://app.groundcover.com/api/cluster/list"
-	CLUSTER_POLLING_INTERVAL = time.Second * 10
-	CLUSTER_POLLING_TIMEOUT  = time.Minute * 5
-	SPINNER_TYPE             = 27 // ▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▏▎▍▌▋▊▉█▇▆▅▄▃▂▁
+	CLUSTER_LIST_ENDPOINT        = "cluster/list"
+	CLUSTER_POLLING_INTERVAL     = time.Second * 10
+	CLUSTER_POLLING_TIMEOUT      = time.Minute * 5
+	CLUSTER_POLLING_SPINNER_TYPE = 26 // ....
 )
 
-type ListResponse struct {
+type ClusterList struct {
 	ClusterIds []string `json:"clusterIds"`
 }
 
-func WaitUntilClusterConnectedToSaas(token *auth.Auth0Token, clusterToPoll string) error {
+func (client *Client) PollIsClusterExist(clusterName string) error {
 	var err error
-	var clusterNames []string
 
-	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until groundcover is connected to cloud platform ")
+	spinner := utils.NewSpinner(CLUSTER_POLLING_SPINNER_TYPE, "Waiting until groundcover is connected to cloud platform ")
 
 	isClusterExistInSassFunc := func() (bool, error) {
-		if clusterNames, err = getClusters(token); err != nil {
+		var clusterList *ClusterList
+		if clusterList, err = client.ClusterList(); err != nil {
 			return false, err
 		}
-		for _, clusterName := range clusterNames {
-			if clusterToPoll == clusterName {
+
+		for _, _clusterName := range clusterList.ClusterIds {
+			if _clusterName == clusterName {
 				spinner.FinalMSG = "groundcover is connected to cloud platform\n"
 				return true, nil
 			}
@@ -53,33 +51,18 @@ func WaitUntilClusterConnectedToSaas(token *auth.Auth0Token, clusterToPoll strin
 	return err
 }
 
-func getClusters(token *auth.Auth0Token) ([]string, error) {
-	req, err := http.NewRequest("GET", API_KEY_GENERATE_URL, nil)
-	if err != nil {
+func (client *Client) ClusterList() (*ClusterList, error) {
+	var err error
+
+	var body []byte
+	if body, err = client.Get(CLUSTER_LIST_ENDPOINT); err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token.Token))
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
+	var clusterList *ClusterList
+	if err = json.Unmarshal(body, &clusterList); err != nil {
 		return nil, err
 	}
 
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("unable to get clusters")
-	}
-
-	var clustersResponse *ListResponse
-	err = json.Unmarshal(body, &clustersResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return clustersResponse.ClusterIds, nil
+	return clusterList, nil
 }

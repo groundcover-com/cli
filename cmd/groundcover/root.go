@@ -9,8 +9,11 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/selfupdate"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/utils"
@@ -19,15 +22,14 @@ import (
 )
 
 const (
-	GITHUB_REPO            = "cli"
-	GITHUB_OWNER           = "groundcover-com"
-	NAMESPACE_FLAG         = "namespace"
-	KUBECONFIG_FLAG        = "kubeconfig"
-	KUBECONTEXT_FLAG       = "kube-context"
-	HELM_RELEASE_FLAG      = "release-name"
-	CLUSTER_NAME_FLAG      = "cluster-name"
-	SKIP_SELFUPDATE_FLAG   = "skip-selfupdate"
-	USER_CUSTOM_CLAIMS_KEY = "user_custom_claims"
+	GITHUB_REPO          = "cli"
+	GITHUB_OWNER         = "groundcover-com"
+	NAMESPACE_FLAG       = "namespace"
+	KUBECONFIG_FLAG      = "kubeconfig"
+	KUBECONTEXT_FLAG     = "kube-context"
+	HELM_RELEASE_FLAG    = "release-name"
+	CLUSTER_NAME_FLAG    = "cluster-name"
+	SKIP_SELFUPDATE_FLAG = "skip-selfupdate"
 )
 
 func init() {
@@ -135,8 +137,8 @@ func checkAuthForCmd(cmd *cobra.Command) error {
 		return nil
 	}
 
-	if err := setAndValidateApiKey(); err != nil {
-		return fmt.Errorf("failed to authenticate. Please retry `groundcover login`")
+	if err := validateAuth0Token(); err != nil {
+		return errors.Wrap(err, "failed to authenticate. Please retry `groundcover login`")
 	}
 
 	return nil
@@ -154,4 +156,23 @@ func Execute() error {
 	}
 
 	return err
+}
+
+func validateAuth0Token() error {
+	var err error
+
+	var auth0Token auth.Auth0Token
+	err = auth0Token.Load()
+
+	if errors.Is(err, jwt.ErrTokenExpired) {
+		err = auth0Token.RefreshAndSave()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.Claims.Email})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.Claims.Org)
+	return nil
 }
