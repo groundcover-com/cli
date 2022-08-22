@@ -91,7 +91,7 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
+		chartValues := defaultChartValues(chart.AppVersion(), clusterName, apiKey.ApiKey)
 
 		sentryHelmContext.ChartVersion = chart.Version().String()
 		sentryHelmContext.SetOnCurrentScope()
@@ -205,9 +205,10 @@ func getClusterName(kubeClient *k8s.Client) (string, error) {
 	return clusterName, nil
 }
 
-func defaultChartValues(clusterName, apikey string) map[string]interface{} {
+func defaultChartValues(appVersion, clusterName, apikey string) map[string]interface{} {
 	chartValues := make(map[string]interface{})
 	chartValues["clusterId"] = clusterName
+	chartValues["origin"] = map[string]interface{}{"tag": appVersion}
 	chartValues["global"] = map[string]interface{}{"groundcover_token": apikey}
 
 	return chartValues

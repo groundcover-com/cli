@@ -1,18 +1,20 @@
 ---
 k8sWatcher:
   resources:
-    limits:
-      memory: 100Mi
     requests:
       cpu: 50m
+      memory: 100Mi
+    limits:
+      cpu: 100m
       memory: 100Mi
 
 portal:
   resources:
-    limits:
+    requests:
       cpu: 50m
       memory: 64Mi
-    requests:
+    limits:
+      cpu: 100m
       memory: 64Mi
 
 loki:
@@ -21,6 +23,7 @@ loki:
       cpu: 50m
       memory: 750Mi
     limits:
+      cpu: 100m
       memory: 750Mi
 
 grafana:
@@ -29,6 +32,7 @@ grafana:
       cpu: 50m
       memory: 64Mi
     limits:
+      cpu: 100m
       memory: 64Mi
 
 timescaledb-single:
@@ -61,9 +65,9 @@ promscale:
 
 vmagent-backend:
   resources:
-    limits:
-      cpu: 150m
-      memory: 128Mi
     requests:
       cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
       memory: 128Mi
