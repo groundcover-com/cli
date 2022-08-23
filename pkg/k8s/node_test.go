@@ -145,8 +145,8 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportsSuccess() {
 		IsAdequate:  false,
 		NodeSummary: &nodesSummeries[1],
 		Errors: []error{
-			k8s.NewNodeRequirementError(fmt.Errorf("insufficient cpu - acutal: 500m / minimal: 750m")),
-			k8s.NewNodeRequirementError(fmt.Errorf("insufficient memory - acutal: 1000Mi / minimal: 1250Mi")),
+			k8s.NewNodeRequirementError(fmt.Errorf("insufficient cpu - acutal: 500m / minimal: 2000m")),
+			k8s.NewNodeRequirementError(fmt.Errorf("insufficient memory - acutal: 1000Mi / minimal: 2048Mi")),
 			k8s.NewNodeRequirementError(fmt.Errorf("aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider")),
 			k8s.NewNodeRequirementError(fmt.Errorf("4.13.0 is unsupported kernel - minimal: 4.14.0")),
 			k8s.NewNodeRequirementError(fmt.Errorf("arm64 is unsupported architecture - only amd64 supported")),

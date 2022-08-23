@@ -19,8 +19,8 @@ const (
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "%s is unsupported node provider"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "%s is unsupported kernel - minimal: %s"
 	OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT = "%s is unsupported os - only %s supported"
-	CPU_REPORT_MESSAGE_FORMAT              = "insufficient cpu - acutal: %dm / minimal: %dm"
-	MEMORY_REPORT_MESSAGE_FORMAT           = "insufficient memory - acutal: %dMi / minimal: %dMi"
+	CPU_REPORT_MESSAGE_FORMAT              = "insufficient cpu - acutal: %dm / minimal: %s"
+	MEMORY_REPORT_MESSAGE_FORMAT           = "insufficient memory - acutal: %dMi / minimal: %s"
 	ARCHITECTURE_REPORT_MESSAGE_FORMAT     = "%s is unsupported architecture - only %s supported"
 )
 
@@ -159,7 +159,7 @@ func (nodeRequirements *NodeMinimumRequirements) GetReport(node NodeSummary) *No
 
 func (nodeRequirements *NodeMinimumRequirements) isCpuSufficient(cpus *resource.Quantity) error {
 	if nodeRequirements.CPUAmount.Cmp(*cpus) > 0 {
-		return NewNodeRequirementError(fmt.Errorf(CPU_REPORT_MESSAGE_FORMAT, cpus.ScaledValue(resource.Milli), nodeRequirements.CPUAmount.ScaledValue(resource.Milli)))
+		return NewNodeRequirementError(fmt.Errorf(CPU_REPORT_MESSAGE_FORMAT, cpus.ScaledValue(resource.Milli), NODE_MINIUM_REQUIREMENTS_CPU))
 	}
 
 	return nil
@@ -167,7 +167,7 @@ func (nodeRequirements *NodeMinimumRequirements) isCpuSufficient(cpus *resource.
 
 func (nodeRequirements *NodeMinimumRequirements) isMemorySufficient(memory *resource.Quantity) error {
 	if nodeRequirements.MemoryAmount.Cmp(*memory) > 0 {
-		return NewNodeRequirementError(fmt.Errorf(MEMORY_REPORT_MESSAGE_FORMAT, memory.ScaledValue(resource.Mega), nodeRequirements.MemoryAmount.ScaledValue(resource.Mega)))
+		return NewNodeRequirementError(fmt.Errorf(MEMORY_REPORT_MESSAGE_FORMAT, memory.ScaledValue(resource.Mega), NODE_MINIUM_REQUIREMENTS_MEMORY))
 	}
 
 	return nil
