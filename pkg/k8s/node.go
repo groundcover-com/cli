@@ -14,6 +14,8 @@ import (
 )
 
 const (
+	NODE_MINIUM_REQUIREMENTS_CPU           = "2000m"
+	NODE_MINIUM_REQUIREMENTS_MEMORY        = "2048Mi"
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "%s is unsupported node provider"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "%s is unsupported kernel - minimal: %s"
 	OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT = "%s is unsupported os - only %s supported"
@@ -91,13 +93,16 @@ type NodeReport struct {
 }
 
 func NewNodeMinimumRequirements() *NodeMinimumRequirements {
+	cpuAmount := resource.MustParse(NODE_MINIUM_REQUIREMENTS_CPU)
+	memoryAmount := resource.MustParse(NODE_MINIUM_REQUIREMENTS_MEMORY)
+
 	return &NodeMinimumRequirements{
+		CPUAmount:               &cpuAmount,
+		MemoryAmount:            &memoryAmount,
 		AllowedOperatingSystems: []string{"linux"},
 		AllowedArchitectures:    []string{"amd64"},
 		BlockedProviders:        []string{"fargate"},
 		KernelVersion:           semver.Version{Major: 4, Minor: 14},
-		CPUAmount:               resource.NewScaledQuantity(750, resource.Milli),
-		MemoryAmount:            resource.NewScaledQuantity(1250, resource.Mega),
 	}
 }
 

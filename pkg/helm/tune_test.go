@@ -23,16 +23,15 @@ func TestHelmTuneTestSuite(t *testing.T) {
 	suite.Run(t, &HelmTuneTestSuite{})
 }
 
-func (suite *HelmTuneTestSuite) TestTuneResourcesValuesSuccess() {
+func (suite *HelmTuneTestSuite) TestTuneResourcesValuesLowSuccess() {
 	//prepare
 	var err error
-
 	cpuChartValues := make(map[string]interface{})
 	memoryChartValues := make(map[string]interface{})
 
-	lowerThenThresholdCpu := resource.MustParse("750m")
-	higherThenThresholdCpu := resource.MustParse("1250m")
-	lowerThenThresholdMemory := resource.MustParse("1500Mi")
+	lowerThenThresholdCpu := resource.MustParse("2000m")
+	higherThenThresholdCpu := resource.MustParse("6000m")
+	lowerThenThresholdMemory := resource.MustParse("4000Mi")
 	higherThenThresholdMemory := resource.MustParse("3000Mi")
 
 	lowerCpuNodeReports := []*k8s.NodeReport{
@@ -105,12 +104,93 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesSuccess() {
 	suite.Equal(expected, memoryChartValues)
 }
 
-func (suite *HelmTuneTestSuite) TestTuneResourcesValuesEmpty() {
+func (suite *HelmTuneTestSuite) TestTuneResourcesValuesMediumSuccess() {
+	//prepare
+	var err error
+	cpuChartValues := make(map[string]interface{})
+	memoryChartValues := make(map[string]interface{})
+
+	lowerThenThresholdCpu := resource.MustParse("8000m")
+	higherThenThresholdCpu := resource.MustParse("6000m")
+	lowerThenThresholdMemory := resource.MustParse("18000Mi")
+	higherThenThresholdMemory := resource.MustParse("3000Mi")
+
+	lowerCpuNodeReports := []*k8s.NodeReport{
+		{
+			NodeSummary: &k8s.NodeSummary{
+				CPU:    &lowerThenThresholdCpu,
+				Memory: &higherThenThresholdMemory,
+			},
+		},
+		{
+			NodeSummary: &k8s.NodeSummary{
+				CPU:    &lowerThenThresholdCpu,
+				Memory: &higherThenThresholdMemory,
+			},
+		},
+		{
+			NodeSummary: &k8s.NodeSummary{
+				CPU:    &lowerThenThresholdCpu,
+				Memory: &higherThenThresholdMemory,
+			},
+		},
+	}
+
+	lowerMemoryNodeReports := []*k8s.NodeReport{
+		{
+			NodeSummary: &k8s.NodeSummary{
+				CPU:    &higherThenThresholdCpu,
+				Memory: &lowerThenThresholdMemory,
+			},
+		},
+		{
+			NodeSummary: &k8s.NodeSummary{
+				CPU:    &higherThenThresholdCpu,
+				Memory: &lowerThenThresholdMemory,
+			},
+		},
+		{
+			NodeSummary: &k8s.NodeSummary{
+				CPU:    &higherThenThresholdCpu,
+				Memory: &lowerThenThresholdMemory,
+			},
+		},
+	}
+
+	//act
+	err = helm.TuneResourcesValues(&cpuChartValues, lowerCpuNodeReports)
+	suite.NoError(err)
+
+	err = helm.TuneResourcesValues(&memoryChartValues, lowerMemoryNodeReports)
+	suite.NoError(err)
+
+	// assert
+
+	expected := make(map[string]interface{})
+
+	var data []byte
+	data, err = os.ReadFile(helm.AGENT_MEDIUM_RESOURCES_PATH)
+	suite.NoError(err)
+
+	err = yaml.Unmarshal(data, &expected)
+	suite.NoError(err)
+
+	data, err = os.ReadFile(helm.BACKEND_MEDIUM_RESOURCES_PATH)
+	suite.NoError(err)
+
+	err = yaml.Unmarshal(data, &expected)
+	suite.NoError(err)
+
+	suite.Equal(expected, cpuChartValues)
+	suite.Equal(expected, memoryChartValues)
+}
+
+func (suite *HelmTuneTestSuite) TestTuneResourcesValuesHighSuccess() {
 	//prepare
 	var err error
 
-	cpu := resource.MustParse("1250m")
-	memory := resource.MustParse("3000Mi")
+	cpu := resource.MustParse("12000m")
+	memory := resource.MustParse("36000Mi")
 	chartValues := make(map[string]interface{})
 
 	nodeReports := []*k8s.NodeReport{

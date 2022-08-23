@@ -9,12 +9,21 @@ import (
 )
 
 const (
-	AGENT_CPU_THRESHOLD            = "1000m"
-	AGENT_MEMORY_THRESHOLD         = "2700Mi"
-	BACKEND_TOTAL_CPU_THRESHOLD    = "3000m"
-	BACKEND_TOTAL_MEMORY_THRESHOLD = "9000Mi"
-	AGENT_LOW_RESOURCES_PATH       = "presets/agent/low-resources.yaml"
-	BACKEND_LOW_RESOURCES_PATH     = "presets/backend/low-resources.yaml"
+	MAX_USAGE_RATIO = 15.0
+
+	AGENT_MEDIUM_CPU_THRESHOLD    = "1000m"
+	AGENT_HIGH_CPU_THRESHOLD      = "1500m"
+	AGENT_MEDIUM_MEMORY_THRESHOLD = "2500Mi"
+	AGENT_HIGH_MEMORY_THRESHOLD   = "3000Mi"
+	AGENT_LOW_RESOURCES_PATH      = "presets/agent/medium-resources.yaml"
+	AGENT_MEDIUM_RESOURCES_PATH   = "presets/agent/medium-resources.yaml"
+
+	BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD    = "3000m"
+	BACKEND_HIGH_TOTAL_CPU_THRESHOLD      = "4000m"
+	BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD = "6000Mi"
+	BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD   = "9000Mi"
+	BACKEND_LOW_RESOURCES_PATH            = "presets/backend/medium-resources.yaml"
+	BACKEND_MEDIUM_RESOURCES_PATH         = "presets/backend/medium-resources.yaml"
 )
 
 //go:embed presets/*
@@ -32,30 +41,80 @@ func TuneResourcesValues(chartValues *map[string]interface{}, nodeReports []*k8s
 
 	allocatableResources := calcAllocatableResources(nodeReports)
 
-	agentCpuThreshold := resource.MustParse(AGENT_CPU_THRESHOLD)
-	agentMemoryThreshold := resource.MustParse(AGENT_MEMORY_THRESHOLD)
-	if allocatableResources.MinCpu.Cmp(agentCpuThreshold) < 0 || allocatableResources.MinMemory.Cmp(agentMemoryThreshold) < 0 {
-		var data []byte
-		if data, err = presets.ReadFile(AGENT_LOW_RESOURCES_PATH); err != nil {
-			return err
-		}
-
-		if err = yaml.Unmarshal(data, chartValues); err != nil {
-			return err
-		}
+	if err = tuneAgentResourcesValues(chartValues, allocatableResources); err != nil {
+		return err
 	}
 
-	backendTotalCpuThreshold := resource.MustParse(BACKEND_TOTAL_CPU_THRESHOLD)
-	backendTotalMemoryThreshold := resource.MustParse(BACKEND_TOTAL_MEMORY_THRESHOLD)
-	if allocatableResources.TotalCpu.Cmp(backendTotalCpuThreshold) < 0 || allocatableResources.TotalMemory.Cmp(backendTotalMemoryThreshold) < 0 {
-		var data []byte
-		if data, err = presets.ReadFile(BACKEND_LOW_RESOURCES_PATH); err != nil {
-			return err
-		}
+	if err = tuneBackendResourcesValues(chartValues, allocatableResources); err != nil {
+		return err
+	}
 
-		if err = yaml.Unmarshal(data, chartValues); err != nil {
-			return err
-		}
+	return nil
+}
+
+func tuneAgentResourcesValues(chartValues *map[string]interface{}, allocatableResources *AllocatableResources) error {
+	var err error
+
+	mediumCpuThreshold := resource.MustParse(AGENT_MEDIUM_CPU_THRESHOLD)
+	highCpuThreshold := resource.MustParse(AGENT_HIGH_CPU_THRESHOLD)
+
+	mediumMemoryThreshold := resource.MustParse(AGENT_MEDIUM_MEMORY_THRESHOLD)
+	highMemoryThreshold := resource.MustParse(AGENT_HIGH_MEMORY_THRESHOLD)
+
+	maxCpuUsage := allocatableResources.MinCpu.AsApproximateFloat64() * MAX_USAGE_RATIO / 100
+	maxMemoryUsage := allocatableResources.MinMemory.AsApproximateFloat64() * MAX_USAGE_RATIO / 100
+
+	var presetPath string
+	switch {
+	case maxCpuUsage >= highCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= highMemoryThreshold.AsApproximateFloat64():
+		return nil
+	case maxCpuUsage >= mediumCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= mediumMemoryThreshold.AsApproximateFloat64():
+		presetPath = AGENT_MEDIUM_RESOURCES_PATH
+	default:
+		presetPath = AGENT_LOW_RESOURCES_PATH
+	}
+
+	var data []byte
+	if data, err = presets.ReadFile(presetPath); err != nil {
+		return err
+	}
+
+	if err = yaml.Unmarshal(data, chartValues); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func tuneBackendResourcesValues(chartValues *map[string]interface{}, allocatableResources *AllocatableResources) error {
+	var err error
+
+	mediumCpuThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD)
+	highCpuThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_CPU_THRESHOLD)
+
+	mediumMemoryThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD)
+	highMemoryThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD)
+
+	maxCpuUsage := allocatableResources.TotalCpu.AsApproximateFloat64() * MAX_USAGE_RATIO / 100
+	maxMemoryUsage := allocatableResources.TotalMemory.AsApproximateFloat64() * MAX_USAGE_RATIO / 100
+
+	var presetPath string
+	switch {
+	case maxCpuUsage >= highCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= highMemoryThreshold.AsApproximateFloat64():
+		return nil
+	case maxCpuUsage >= mediumCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= mediumMemoryThreshold.AsApproximateFloat64():
+		presetPath = BACKEND_MEDIUM_RESOURCES_PATH
+	default:
+		presetPath = BACKEND_LOW_RESOURCES_PATH
+	}
+
+	var data []byte
+	if data, err = presets.ReadFile(presetPath); err != nil {
+		return err
+	}
+
+	if err = yaml.Unmarshal(data, chartValues); err != nil {
+		return err
 	}
 
 	return nil
