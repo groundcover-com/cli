@@ -27,10 +27,10 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesSuccess() {
 	//prepare
 	var err error
 
-	minCpuChartValues := make(map[string]interface{})
-	minMemoryChartValues := make(map[string]interface{})
+	cpuChartValues := make(map[string]interface{})
+	memoryChartValues := make(map[string]interface{})
 
-	minCpuNodeReports := []*k8s.NodeReport{
+	cpuNodeReports := []*k8s.NodeReport{
 		{
 			NodeSummary: &k8s.NodeSummary{
 				CPU:    resource.NewScaledQuantity(500, resource.Milli),
@@ -45,7 +45,7 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesSuccess() {
 		},
 	}
 
-	minMemoryNodeReports := []*k8s.NodeReport{
+	memoryNodeReports := []*k8s.NodeReport{
 		{
 			NodeSummary: &k8s.NodeSummary{
 				CPU:    resource.NewScaledQuantity(1250, resource.Milli),
@@ -61,10 +61,10 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesSuccess() {
 	}
 
 	//act
-	err = helm.TuneResourcesValues(&minCpuChartValues, minCpuNodeReports)
+	err = helm.TuneResourcesValues(&cpuChartValues, cpuNodeReports)
 	suite.NoError(err)
 
-	err = helm.TuneResourcesValues(&minMemoryChartValues, minMemoryNodeReports)
+	err = helm.TuneResourcesValues(&memoryChartValues, memoryNodeReports)
 	suite.NoError(err)
 
 	// assert
@@ -84,18 +84,18 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesSuccess() {
 	err = yaml.Unmarshal(data, &expected)
 	suite.NoError(err)
 
-	suite.Equal(expected, minCpuChartValues)
-	suite.Equal(expected, minMemoryChartValues)
+	suite.Equal(expected, cpuChartValues)
+	suite.Equal(expected, memoryChartValues)
 }
 
 func (suite *HelmTuneTestSuite) TestTuneResourcesValuesEmpty() {
 	//prepare
 	var err error
 
-	minCpuChartValues := make(map[string]interface{})
-	minMemoryChartValues := make(map[string]interface{})
+	cpuChartValues := make(map[string]interface{})
+	memoryChartValues := make(map[string]interface{})
 
-	minCpuNodeReports := []*k8s.NodeReport{
+	cpuNodeReports := []*k8s.NodeReport{
 		{
 			NodeSummary: &k8s.NodeSummary{
 				CPU:    resource.NewScaledQuantity(1250, resource.Milli),
@@ -110,7 +110,7 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesEmpty() {
 		},
 	}
 
-	minMemoryNodeReports := []*k8s.NodeReport{
+	memoryNodeReports := []*k8s.NodeReport{
 		{
 			NodeSummary: &k8s.NodeSummary{
 				CPU:    resource.NewScaledQuantity(1250, resource.Milli),
@@ -126,16 +126,16 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesEmpty() {
 	}
 
 	//act
-	err = helm.TuneResourcesValues(&minCpuChartValues, minCpuNodeReports)
+	err = helm.TuneResourcesValues(&cpuChartValues, cpuNodeReports)
 	suite.NoError(err)
 
-	err = helm.TuneResourcesValues(&minMemoryChartValues, minMemoryNodeReports)
+	err = helm.TuneResourcesValues(&memoryChartValues, memoryNodeReports)
 	suite.NoError(err)
 
 	// assert
 
 	expected := make(map[string]interface{})
 
-	suite.Equal(expected, minCpuChartValues)
-	suite.Equal(expected, minMemoryChartValues)
+	suite.Equal(expected, cpuChartValues)
+	suite.Equal(expected, memoryChartValues)
 }
