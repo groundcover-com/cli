@@ -10,9 +10,9 @@ import (
 
 const (
 	AGENT_CPU_THRESHOLD            = "1000m"
-	AGENT_MEMORY_THRESHOLD         = "1500Mi"
-	BACKEND_TOTAL_CPU_THRESHOLD    = "1200m"
-	BACKEND_TOTAL_MEMORY_THRESHOLD = "7000Mi"
+	AGENT_MEMORY_THRESHOLD         = "2700Mi"
+	BACKEND_TOTAL_CPU_THRESHOLD    = "3000m"
+	BACKEND_TOTAL_MEMORY_THRESHOLD = "9000Mi"
 	AGENT_LOW_RESOURCES_PATH       = "presets/agent/low-resources.yaml"
 	BACKEND_LOW_RESOURCES_PATH     = "presets/backend/low-resources.yaml"
 )
