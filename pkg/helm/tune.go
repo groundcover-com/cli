@@ -36,23 +36,24 @@ type AllocatableResources struct {
 	TotalMemory *resource.Quantity
 }
 
-func TuneResourcesValues(chartValues *map[string]interface{}, nodeReports []*k8s.NodeReport) error {
+func TuneResourcesValues(chartValues *map[string]interface{}, nodeReports []*k8s.NodeReport) ([]string, error) {
 	var err error
 
+	presetPaths := make([]string, 2)
 	allocatableResources := calcAllocatableResources(nodeReports)
 
-	if err = tuneAgentResourcesValues(chartValues, allocatableResources); err != nil {
-		return err
+	if presetPaths[0], err = tuneAgentResourcesValues(chartValues, allocatableResources); err != nil {
+		return nil, err
 	}
 
-	if err = tuneBackendResourcesValues(chartValues, allocatableResources); err != nil {
-		return err
+	if presetPaths[1], err = tuneBackendResourcesValues(chartValues, allocatableResources); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return presetPaths, nil
 }
 
-func tuneAgentResourcesValues(chartValues *map[string]interface{}, allocatableResources *AllocatableResources) error {
+func tuneAgentResourcesValues(chartValues *map[string]interface{}, allocatableResources *AllocatableResources) (string, error) {
 	var err error
 
 	mediumCpuThreshold := resource.MustParse(AGENT_MEDIUM_CPU_THRESHOLD)
@@ -67,7 +68,7 @@ func tuneAgentResourcesValues(chartValues *map[string]interface{}, allocatableRe
 	var presetPath string
 	switch {
 	case maxCpuUsage >= highCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= highMemoryThreshold.AsApproximateFloat64():
-		return nil
+		return "", nil
 	case maxCpuUsage >= mediumCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= mediumMemoryThreshold.AsApproximateFloat64():
 		presetPath = AGENT_MEDIUM_RESOURCES_PATH
 	default:
@@ -76,17 +77,17 @@ func tuneAgentResourcesValues(chartValues *map[string]interface{}, allocatableRe
 
 	var data []byte
 	if data, err = presets.ReadFile(presetPath); err != nil {
-		return err
+		return "", err
 	}
 
 	if err = yaml.Unmarshal(data, chartValues); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return presetPath, nil
 }
 
-func tuneBackendResourcesValues(chartValues *map[string]interface{}, allocatableResources *AllocatableResources) error {
+func tuneBackendResourcesValues(chartValues *map[string]interface{}, allocatableResources *AllocatableResources) (string, error) {
 	var err error
 
 	mediumCpuThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD)
@@ -101,7 +102,7 @@ func tuneBackendResourcesValues(chartValues *map[string]interface{}, allocatable
 	var presetPath string
 	switch {
 	case maxCpuUsage >= highCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= highMemoryThreshold.AsApproximateFloat64():
-		return nil
+		return "", nil
 	case maxCpuUsage >= mediumCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= mediumMemoryThreshold.AsApproximateFloat64():
 		presetPath = BACKEND_MEDIUM_RESOURCES_PATH
 	default:
@@ -110,14 +111,14 @@ func tuneBackendResourcesValues(chartValues *map[string]interface{}, allocatable
 
 	var data []byte
 	if data, err = presets.ReadFile(presetPath); err != nil {
-		return err
+		return "", err
 	}
 
 	if err = yaml.Unmarshal(data, chartValues); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return presetPath, nil
 }
 
 func calcAllocatableResources(nodeReports []*k8s.NodeReport) *AllocatableResources {

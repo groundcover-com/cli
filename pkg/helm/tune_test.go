@@ -77,15 +77,18 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesLowSuccess() {
 	}
 
 	//act
-	err = helm.TuneResourcesValues(&cpuChartValues, lowerCpuNodeReports)
+	var cpuPresetPaths []string
+	cpuPresetPaths, err = helm.TuneResourcesValues(&cpuChartValues, lowerCpuNodeReports)
 	suite.NoError(err)
 
-	err = helm.TuneResourcesValues(&memoryChartValues, lowerMemoryNodeReports)
+	var memoryPresetPaths []string
+	memoryPresetPaths, err = helm.TuneResourcesValues(&memoryChartValues, lowerMemoryNodeReports)
 	suite.NoError(err)
 
 	// assert
 
 	expected := make(map[string]interface{})
+	expectedPresetPaths := []string{helm.AGENT_LOW_RESOURCES_PATH, helm.BACKEND_LOW_RESOURCES_PATH}
 
 	var data []byte
 	data, err = os.ReadFile(helm.AGENT_LOW_RESOURCES_PATH)
@@ -101,7 +104,9 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesLowSuccess() {
 	suite.NoError(err)
 
 	suite.Equal(expected, cpuChartValues)
+	suite.Equal(expectedPresetPaths, cpuPresetPaths)
 	suite.Equal(expected, memoryChartValues)
+	suite.Equal(expectedPresetPaths, memoryPresetPaths)
 }
 
 func (suite *HelmTuneTestSuite) TestTuneResourcesValuesMediumSuccess() {
@@ -158,15 +163,18 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesMediumSuccess() {
 	}
 
 	//act
-	err = helm.TuneResourcesValues(&cpuChartValues, lowerCpuNodeReports)
+	var cpuPresetPaths []string
+	cpuPresetPaths, err = helm.TuneResourcesValues(&cpuChartValues, lowerCpuNodeReports)
 	suite.NoError(err)
 
-	err = helm.TuneResourcesValues(&memoryChartValues, lowerMemoryNodeReports)
+	var memoryPresetPaths []string
+	memoryPresetPaths, err = helm.TuneResourcesValues(&memoryChartValues, lowerMemoryNodeReports)
 	suite.NoError(err)
 
 	// assert
 
 	expected := make(map[string]interface{})
+	expectedPresetPaths := []string{helm.AGENT_LOW_RESOURCES_PATH, helm.BACKEND_LOW_RESOURCES_PATH}
 
 	var data []byte
 	data, err = os.ReadFile(helm.AGENT_MEDIUM_RESOURCES_PATH)
@@ -182,7 +190,9 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesMediumSuccess() {
 	suite.NoError(err)
 
 	suite.Equal(expected, cpuChartValues)
+	suite.Equal(expectedPresetPaths, cpuPresetPaths)
 	suite.Equal(expected, memoryChartValues)
+	suite.Equal(expectedPresetPaths, memoryPresetPaths)
 }
 
 func (suite *HelmTuneTestSuite) TestTuneResourcesValuesHighSuccess() {
@@ -216,12 +226,15 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesHighSuccess() {
 
 	//act
 
-	err = helm.TuneResourcesValues(&chartValues, nodeReports)
+	var presetPaths []string
+	presetPaths, err = helm.TuneResourcesValues(&chartValues, nodeReports)
 	suite.NoError(err)
 
 	// assert
 
 	expected := make(map[string]interface{})
+	expectedPresetPaths := []string{"", ""}
 
 	suite.Equal(expected, chartValues)
+	suite.Equal(expectedPresetPaths, presetPaths)
 }

@@ -113,9 +113,10 @@ var DeployCmd = &cobra.Command{
 			adequateNodesReports, inadequateNodesReports := nodeRequirements.GenerateNodeReports(nodesSummeries)
 			expectedAlligatorsCount = len(adequateNodesReports)
 
-			if err = helm.TuneResourcesValues(&chartValues, adequateNodesReports); err != nil {
+			if sentryHelmContext.ResourcesPresets, err = helm.TuneResourcesValues(&chartValues, adequateNodesReports); err != nil {
 				return err
 			}
+			sentryHelmContext.SetOnCurrentScope()
 
 			sentryKubeContext.SetNodeReportsSamples(adequateNodesReports)
 			sentryKubeContext.SetOnCurrentScope()
