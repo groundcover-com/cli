@@ -44,6 +44,15 @@ timescaledb-single:
       cpu: 300m
       memory: 1024Mi
 
+victoria-metrics-agent:
+  resources: 
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
 victoria-metrics-single:
   server:
     resources:            
