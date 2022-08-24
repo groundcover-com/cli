@@ -18,8 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- set resources based on allocation [#sc-4312]
-
 ### Changed
 
 ### Fixed
@@ -29,6 +27,12 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.2.7] 2022-08-24
+
+### Added
+
+- set resources based on allocation [#sc-4312]
 
 ## [0.2.6] 2022-08-22
 
