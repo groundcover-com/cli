@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	MAX_USAGE_RATIO = 15.0
+	MAX_USAGE_RATIO = 15.0 / 100
 
 	AGENT_MEDIUM_CPU_THRESHOLD    = "1000m"
 	AGENT_HIGH_CPU_THRESHOLD      = "1500m"
@@ -27,7 +27,7 @@ const (
 )
 
 //go:embed presets/*
-var presets embed.FS
+var presetsFS embed.FS
 
 type AllocatableResources struct {
 	MinCpu      *resource.Quantity
@@ -57,13 +57,12 @@ func tuneAgentResourcesValues(chartValues *map[string]interface{}, allocatableRe
 	var err error
 
 	mediumCpuThreshold := resource.MustParse(AGENT_MEDIUM_CPU_THRESHOLD)
-	highCpuThreshold := resource.MustParse(AGENT_HIGH_CPU_THRESHOLD)
-
 	mediumMemoryThreshold := resource.MustParse(AGENT_MEDIUM_MEMORY_THRESHOLD)
+	highCpuThreshold := resource.MustParse(AGENT_HIGH_CPU_THRESHOLD)
 	highMemoryThreshold := resource.MustParse(AGENT_HIGH_MEMORY_THRESHOLD)
 
-	maxCpuUsage := allocatableResources.MinCpu.AsApproximateFloat64() * MAX_USAGE_RATIO / 100
-	maxMemoryUsage := allocatableResources.MinMemory.AsApproximateFloat64() * MAX_USAGE_RATIO / 100
+	maxCpuUsage := allocatableResources.MinCpu.AsApproximateFloat64() * MAX_USAGE_RATIO
+	maxMemoryUsage := allocatableResources.MinMemory.AsApproximateFloat64() * MAX_USAGE_RATIO
 
 	var presetPath string
 	switch {
@@ -75,12 +74,7 @@ func tuneAgentResourcesValues(chartValues *map[string]interface{}, allocatableRe
 		presetPath = AGENT_LOW_RESOURCES_PATH
 	}
 
-	var data []byte
-	if data, err = presets.ReadFile(presetPath); err != nil {
-		return "", err
-	}
-
-	if err = yaml.Unmarshal(data, chartValues); err != nil {
+	if err = loadPresetToChartValues(presetPath, chartValues); err != nil {
 		return "", err
 	}
 
@@ -91,13 +85,12 @@ func tuneBackendResourcesValues(chartValues *map[string]interface{}, allocatable
 	var err error
 
 	mediumCpuThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD)
-	highCpuThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_CPU_THRESHOLD)
-
 	mediumMemoryThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD)
+	highCpuThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_CPU_THRESHOLD)
 	highMemoryThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD)
 
-	maxCpuUsage := allocatableResources.TotalCpu.AsApproximateFloat64() * MAX_USAGE_RATIO / 100
-	maxMemoryUsage := allocatableResources.TotalMemory.AsApproximateFloat64() * MAX_USAGE_RATIO / 100
+	maxCpuUsage := allocatableResources.TotalCpu.AsApproximateFloat64() * MAX_USAGE_RATIO
+	maxMemoryUsage := allocatableResources.TotalMemory.AsApproximateFloat64() * MAX_USAGE_RATIO
 
 	var presetPath string
 	switch {
@@ -109,16 +102,26 @@ func tuneBackendResourcesValues(chartValues *map[string]interface{}, allocatable
 		presetPath = BACKEND_LOW_RESOURCES_PATH
 	}
 
-	var data []byte
-	if data, err = presets.ReadFile(presetPath); err != nil {
-		return "", err
-	}
-
-	if err = yaml.Unmarshal(data, chartValues); err != nil {
+	if err = loadPresetToChartValues(presetPath, chartValues); err != nil {
 		return "", err
 	}
 
 	return presetPath, nil
+}
+
+func loadPresetToChartValues(presetPath string, chartValues *map[string]interface{}) error {
+	var err error
+
+	var data []byte
+	if data, err = presetsFS.ReadFile(presetPath); err != nil {
+		return err
+	}
+
+	if err = yaml.Unmarshal(data, chartValues); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func calcAllocatableResources(nodeReports []*k8s.NodeReport) *AllocatableResources {
