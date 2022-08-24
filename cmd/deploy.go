@@ -96,11 +96,6 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
-		if err = helm.LoadChartValuesOverrides(&chartValues, viper.GetStringSlice(VALUES_FLAG)); err != nil {
-			return err
-		}
-
 		sentryHelmContext.ChartVersion = chart.Version().String()
 		sentryHelmContext.SetOnCurrentScope()
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
@@ -124,10 +119,14 @@ var DeployCmd = &cobra.Command{
 			sentryKubeContext.SetOnCurrentScope()
 		}
 
+		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
 		if sentryHelmContext.ResourcesPresets, err = helm.TuneResourcesValues(&chartValues, adequateNodesReports); err != nil {
 			return err
 		}
-		sentryKubeContext.SetOnCurrentScope()
+		if sentryHelmContext.ValuesOverride, err = helm.LoadChartValuesOverrides(&chartValues, viper.GetStringSlice(VALUES_FLAG)); err != nil {
+			return err
+		}
+		sentryHelmContext.SetOnCurrentScope()
 
 		var isUpgrade bool
 		if isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {

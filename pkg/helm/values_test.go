@@ -25,7 +25,7 @@ func TestHelmValuesTestSuite(t *testing.T) {
 	suite.Run(t, &HelmValuesTestSuite{})
 }
 
-func (suite *HelmValuesTestSuite) TestLoadChartValuesOverrideSuccess() {
+func (suite *HelmValuesTestSuite) TestMultiPathsLoadChartValuesOverrideSuccess() {
 	//prepare
 	urlData, err := yaml.Marshal(map[string]interface{}{"url": uuid.New().String()})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +49,7 @@ func (suite *HelmValuesTestSuite) TestLoadChartValuesOverrideSuccess() {
 
 	//act
 
-	err = helm.LoadChartValuesOverrides(&chartValues, overridePaths)
+	valuesOverride, err := helm.LoadChartValuesOverrides(&chartValues, overridePaths)
 	suite.NoError(err)
 
 	// assert
@@ -59,4 +59,60 @@ func (suite *HelmValuesTestSuite) TestLoadChartValuesOverrideSuccess() {
 	yaml.Unmarshal(fileData, &expected)
 
 	suite.Equal(expected, chartValues)
+	suite.Equal(expected, valuesOverride)
+}
+
+func (suite *HelmValuesTestSuite) TestUrlLoadChartValuesOverrideSuccess() {
+	//prepare
+	urlData, err := yaml.Marshal(map[string]interface{}{"url": uuid.New().String()})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.RequestURI == "/values.yaml" {
+			_, err = w.Write(urlData)
+		}
+	}))
+	defer server.Close()
+
+	chartValues := make(map[string]interface{})
+	overridePaths := []string{fmt.Sprintf("%s/values.yaml", server.URL)}
+
+	//act
+
+	valuesOverride, err := helm.LoadChartValuesOverrides(&chartValues, overridePaths)
+	suite.NoError(err)
+
+	// assert
+
+	expected := make(map[string]interface{})
+	yaml.Unmarshal(urlData, &expected)
+
+	suite.Equal(expected, chartValues)
+	suite.Equal(expected, valuesOverride)
+}
+
+func (suite *HelmValuesTestSuite) TestFileLoadChartValuesOverrideSuccess() {
+	//prepare
+	fileData, err := yaml.Marshal(map[string]interface{}{"file": uuid.New().String()})
+	valuesFile, err := os.CreateTemp("", "values")
+	suite.NoError(err)
+	defer valuesFile.Close()
+	defer os.Remove(valuesFile.Name())
+
+	_, err = valuesFile.Write(fileData)
+	suite.NoError(err)
+
+	chartValues := make(map[string]interface{})
+	overridePaths := []string{valuesFile.Name()}
+
+	//act
+
+	valuesOverride, err := helm.LoadChartValuesOverrides(&chartValues, overridePaths)
+	suite.NoError(err)
+
+	// assert
+
+	expected := make(map[string]interface{})
+	yaml.Unmarshal(fileData, &expected)
+
+	suite.Equal(expected, chartValues)
+	suite.Equal(expected, valuesOverride)
 }
