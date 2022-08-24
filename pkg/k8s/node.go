@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	NODE_MINIUM_REQUIREMENTS_CPU           = "2000m"
-	NODE_MINIUM_REQUIREMENTS_MEMORY        = "2048Mi"
+	NODE_MINIUM_REQUIREMENTS_CPU           = "1750m"
+	NODE_MINIUM_REQUIREMENTS_MEMORY        = "1750Mi"
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "%s is unsupported node provider"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "%s is unsupported kernel - minimal: %s"
 	OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT = "%s is unsupported os - only %s supported"

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
@@ -103,16 +104,23 @@ var DeployCmd = &cobra.Command{
 		sentryKubeContext.SetNodeReportsSamples(adequateNodesReports)
 		sentryHelmContext.SetOnCurrentScope()
 
-		if sentryHelmContext.ResourcesPresets, err = helm.TuneResourcesValues(&chartValues, adequateNodesReports); err != nil {
-			return err
+		if len(adequateNodesReports) < 1 {
+			for _, inadequateNodesReport := range inadequateNodesReports {
+				logrus.Warnf("%s: %s", inadequateNodesReport.Name, inadequateNodesReport.Errors)
+			}
+			return fmt.Errorf("no compatible nodes found: 0/%d", nodesCount)
 		}
-		sentryKubeContext.SetOnCurrentScope()
 
 		if len(inadequateNodesReports) > 0 {
 			sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
 			sentryKubeContext.InadequateNodeReports = inadequateNodesReports
 			sentryKubeContext.SetOnCurrentScope()
 		}
+
+		if sentryHelmContext.ResourcesPresets, err = helm.TuneResourcesValues(&chartValues, adequateNodesReports); err != nil {
+			return err
+		}
+		sentryKubeContext.SetOnCurrentScope()
 
 		var isUpgrade bool
 		if isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
