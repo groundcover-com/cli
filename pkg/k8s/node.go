@@ -14,11 +14,13 @@ import (
 )
 
 const (
+	NODE_MINIUM_REQUIREMENTS_CPU           = "1750m"
+	NODE_MINIUM_REQUIREMENTS_MEMORY        = "1750Mi"
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "%s is unsupported node provider"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "%s is unsupported kernel - minimal: %s"
 	OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT = "%s is unsupported os - only %s supported"
-	CPU_REPORT_MESSAGE_FORMAT              = "insufficient cpu - acutal: %d / minimal: %d"
-	MEMORY_REPORT_MESSAGE_FORMAT           = "insufficient memory - acutal: %dG / minimal: %dG"
+	CPU_REPORT_MESSAGE_FORMAT              = "insufficient cpu - acutal: %dm / minimal: %s"
+	MEMORY_REPORT_MESSAGE_FORMAT           = "insufficient memory - acutal: %dMi / minimal: %s"
 	ARCHITECTURE_REPORT_MESSAGE_FORMAT     = "%s is unsupported architecture - only %s supported"
 )
 
@@ -27,14 +29,14 @@ var (
 )
 
 type NodeSummary struct {
-	CPU             int64  `json:",omitempty"`
-	Memory          int64  `json:",omitempty"`
-	Name            string `json:"-"`
-	Kernel          string `json:",omitempty"`
-	Provider        string `json:",omitempty"`
-	OSImage         string `json:",omitempty"`
-	Architecture    string `json:",omitempty"`
-	OperatingSystem string `json:",omitempty"`
+	CPU             *resource.Quantity `json:",omitempty"`
+	Memory          *resource.Quantity `json:",omitempty"`
+	Name            string             `json:"-"`
+	Kernel          string             `json:",omitempty"`
+	Provider        string             `json:",omitempty"`
+	OSImage         string             `json:",omitempty"`
+	Architecture    string             `json:",omitempty"`
+	OperatingSystem string             `json:",omitempty"`
 }
 
 func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]NodeSummary, error) {
@@ -54,8 +56,8 @@ func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]NodeSummary,
 			Architecture:    node.Status.NodeInfo.Architecture,
 			Kernel:          node.Status.NodeInfo.KernelVersion,
 			OperatingSystem: node.Status.NodeInfo.OperatingSystem,
-			CPU:             node.Status.Allocatable.Cpu().Value(),
-			Memory:          node.Status.Allocatable.Memory().ScaledValue(resource.Giga),
+			CPU:             node.Status.Allocatable.Cpu(),
+			Memory:          node.Status.Allocatable.Memory(),
 		}
 		nodeSummeries = append(nodeSummeries, *nodeSummary)
 	}
@@ -76,8 +78,8 @@ func (err NodeRequirementError) MarshalJSON() ([]byte, error) {
 }
 
 type NodeMinimumRequirements struct {
-	CPUAmount               int64
-	MemoryAmount            int64
+	CPUAmount               *resource.Quantity
+	MemoryAmount            *resource.Quantity
 	KernelVersion           semver.Version
 	BlockedProviders        []string
 	AllowedArchitectures    []string
@@ -91,9 +93,12 @@ type NodeReport struct {
 }
 
 func NewNodeMinimumRequirements() *NodeMinimumRequirements {
+	cpuAmount := resource.MustParse(NODE_MINIUM_REQUIREMENTS_CPU)
+	memoryAmount := resource.MustParse(NODE_MINIUM_REQUIREMENTS_MEMORY)
+
 	return &NodeMinimumRequirements{
-		CPUAmount:               1,
-		MemoryAmount:            2,
+		CPUAmount:               &cpuAmount,
+		MemoryAmount:            &memoryAmount,
 		AllowedOperatingSystems: []string{"linux"},
 		AllowedArchitectures:    []string{"amd64"},
 		BlockedProviders:        []string{"fargate"},
@@ -152,17 +157,17 @@ func (nodeRequirements *NodeMinimumRequirements) GetReport(node NodeSummary) *No
 	}
 }
 
-func (nodeRequirements *NodeMinimumRequirements) isCpuSufficient(cpus int64) error {
-	if nodeRequirements.CPUAmount > cpus {
-		return NewNodeRequirementError(fmt.Errorf(CPU_REPORT_MESSAGE_FORMAT, cpus, nodeRequirements.CPUAmount))
+func (nodeRequirements *NodeMinimumRequirements) isCpuSufficient(cpus *resource.Quantity) error {
+	if nodeRequirements.CPUAmount.Cmp(*cpus) > 0 {
+		return NewNodeRequirementError(fmt.Errorf(CPU_REPORT_MESSAGE_FORMAT, cpus.ScaledValue(resource.Milli), NODE_MINIUM_REQUIREMENTS_CPU))
 	}
 
 	return nil
 }
 
-func (nodeRequirements *NodeMinimumRequirements) isMemorySufficient(memory int64) error {
-	if nodeRequirements.MemoryAmount > memory {
-		return NewNodeRequirementError(fmt.Errorf(MEMORY_REPORT_MESSAGE_FORMAT, memory, nodeRequirements.MemoryAmount))
+func (nodeRequirements *NodeMinimumRequirements) isMemorySufficient(memory *resource.Quantity) error {
+	if nodeRequirements.MemoryAmount.Cmp(*memory) > 0 {
+		return NewNodeRequirementError(fmt.Errorf(MEMORY_REPORT_MESSAGE_FORMAT, memory.ScaledValue(resource.Mega), NODE_MINIUM_REQUIREMENTS_MEMORY))
 	}
 
 	return nil

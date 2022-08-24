@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
@@ -91,9 +92,35 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
+		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
+
 		sentryHelmContext.ChartVersion = chart.Version().String()
 		sentryHelmContext.SetOnCurrentScope()
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
+
+		nodeRequirements := k8s.NewNodeMinimumRequirements()
+		adequateNodesReports, inadequateNodesReports := nodeRequirements.GenerateNodeReports(nodesSummeries)
+
+		sentryKubeContext.SetNodeReportsSamples(adequateNodesReports)
+		sentryHelmContext.SetOnCurrentScope()
+
+		if len(adequateNodesReports) < 1 {
+			for _, inadequateNodesReport := range inadequateNodesReports {
+				logrus.Warnf("%s: %s", inadequateNodesReport.Name, inadequateNodesReport.Errors)
+			}
+			return fmt.Errorf("no compatible nodes found: 0/%d", nodesCount)
+		}
+
+		if len(inadequateNodesReports) > 0 {
+			sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
+			sentryKubeContext.InadequateNodeReports = inadequateNodesReports
+			sentryKubeContext.SetOnCurrentScope()
+		}
+
+		if sentryHelmContext.ResourcesPresets, err = helm.TuneResourcesValues(&chartValues, adequateNodesReports); err != nil {
+			return err
+		}
+		sentryKubeContext.SetOnCurrentScope()
 
 		var isUpgrade bool
 		if isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
@@ -107,18 +134,8 @@ var DeployCmd = &cobra.Command{
 		var expectedAlligatorsCount int
 		switch {
 		case !isUpgrade:
-			nodeRequirements := k8s.NewNodeMinimumRequirements()
-			adequateNodesReports, inadequateNodesReports := nodeRequirements.GenerateNodeReports(nodesSummeries)
+
 			expectedAlligatorsCount = len(adequateNodesReports)
-
-			sentryKubeContext.SetNodeReportsSamples(adequateNodesReports)
-			sentryKubeContext.SetOnCurrentScope()
-
-			if len(inadequateNodesReports) > 0 {
-				sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
-				sentryKubeContext.InadequateNodeReports = inadequateNodesReports
-				sentryKubeContext.SetOnCurrentScope()
-			}
 
 			promptMessage = fmt.Sprintf(
 				"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s).\nDo you want to deploy?",
@@ -158,7 +175,6 @@ var DeployCmd = &cobra.Command{
 			return nil
 		}
 
-		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
 		if err = helmClient.Upgrade(cmd.Context(), releaseName, chart, chartValues); err != nil {
 			return err
 		}

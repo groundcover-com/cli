@@ -1,0 +1,34 @@
+---
+agent:
+  alligator:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 250Mi
+      limits:
+        cpu: 200m
+        memory: 250Mi
+  tracy:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 750Mi
+      limits:
+        cpu: 250m
+        memory: 750Mi
+  promtail:
+    resources:
+      requests:
+        cpu: 40m
+        memory: 100Mi
+      limits:
+        cpu: 80m
+        memory: 100Mi
+  flb:
+    resources:
+      requests:
+        cpu: 20m
+        memory: 32Mi
+      limits:
+        cpu: 40m
+        memory: 32Mi
