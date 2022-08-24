@@ -194,7 +194,7 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		utils.TryOpenBrowser(fmt.Sprintf("%s/clusterId=%s", GROUNDCOVER_URL, clusterName))
+		utils.TryOpenBrowser(fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
 
 		sentry.CaptureMessage("deploy executed successfully")
 		return nil
