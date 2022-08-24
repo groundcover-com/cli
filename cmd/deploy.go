@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	VALUES_FLAG                   = "values"
 	CHART_NAME                    = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
 	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
@@ -27,6 +28,9 @@ const (
 
 func init() {
 	RootCmd.AddCommand(DeployCmd)
+
+	DeployCmd.PersistentFlags().StringSliceP(VALUES_FLAG, "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
+	viper.BindPFlag(VALUES_FLAG, DeployCmd.PersistentFlags().Lookup(VALUES_FLAG))
 }
 
 var DeployCmd = &cobra.Command{
@@ -93,6 +97,9 @@ var DeployCmd = &cobra.Command{
 		}
 
 		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
+		if err = helm.LoadChartValuesOverrides(&chartValues, viper.GetStringSlice(VALUES_FLAG)); err != nil {
+			return err
+		}
 
 		sentryHelmContext.ChartVersion = chart.Version().String()
 		sentryHelmContext.SetOnCurrentScope()
