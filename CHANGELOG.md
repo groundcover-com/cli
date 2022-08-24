@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- set resources based on allocation [#sc-4312]
+
 ### Changed
 
 ### Fixed
