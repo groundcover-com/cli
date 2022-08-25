@@ -47,6 +47,7 @@ func (suite *HelmValuesTestSuite) SetupSuite() {
 	if suite.file, err = os.CreateTemp("", "values"); err != nil {
 		suite.T().Fatal(err)
 	}
+	defer suite.file.Close()
 
 	if _, err = suite.file.Write(fileData); err != nil {
 		suite.T().Fatal(err)
@@ -57,7 +58,6 @@ func (suite *HelmValuesTestSuite) SetupSuite() {
 
 func (suite *HelmValuesTestSuite) TearDownSuite() {
 	suite.server.Close()
-	suite.file.Close()
 	os.Remove(suite.file.Name())
 }
 
