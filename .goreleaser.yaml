@@ -15,7 +15,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - '-X groundcover.com/cmd/groundcover.BinaryVersion={{ .Version }}'
+      - '-X groundcover.com/cmd.BinaryVersion={{ .Version }}'
 archives:
   -
     format: tar.gz
