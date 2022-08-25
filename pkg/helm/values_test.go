@@ -72,6 +72,8 @@ func (suite *HelmValuesTestSuite) TestOrderChartValuesOverrideSuccess() {
 
 	file, err := os.CreateTemp("", "values")
 	suite.NoError(err)
+	defer file.Close()
+	defer os.Remove(file.Name())
 
 	_, err = file.Write(fileData)
 	suite.NoError(err)
