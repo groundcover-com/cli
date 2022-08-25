@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v3"
 	"groundcover.com/pkg/helm"
@@ -15,37 +14,70 @@ import (
 
 type HelmValuesTestSuite struct {
 	suite.Suite
+	ValuesUrl   string
+	ValuesFile  string
+	OverrideUrl string
+	file        *os.File
+	server      *httptest.Server
 }
 
-func (suite *HelmValuesTestSuite) SetupSuite() {}
+func (suite *HelmValuesTestSuite) SetupSuite() {
+	var err error
 
-func (suite *HelmValuesTestSuite) TearDownSuite() {}
+	var urlData []byte
+	if urlData, err = yaml.Marshal(map[string]interface{}{"url": "value"}); err != nil {
+		suite.T().Fatal(err)
+	}
+
+	suite.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.RequestURI == "/values.yaml" {
+			_, err = w.Write(urlData)
+			suite.NoError(err)
+		}
+	}))
+
+	suite.ValuesUrl = fmt.Sprintf("%s/values.yaml", suite.server.URL)
+	suite.OverrideUrl = fmt.Sprintf("%s/override.yaml", suite.server.URL)
+
+	var fileData []byte
+	if fileData, err = yaml.Marshal(map[string]interface{}{"file": "value"}); err != nil {
+		suite.T().Fatal(err)
+	}
+
+	if suite.file, err = os.CreateTemp("", "values"); err != nil {
+		suite.T().Fatal(err)
+	}
+
+	if _, err = suite.file.Write(fileData); err != nil {
+		suite.T().Fatal(err)
+	}
+
+	suite.ValuesFile = suite.file.Name()
+}
+
+func (suite *HelmValuesTestSuite) TearDownSuite() {
+	suite.server.Close()
+	suite.file.Close()
+	os.Remove(suite.file.Name())
+}
 
 func TestHelmValuesTestSuite(t *testing.T) {
 	suite.Run(t, &HelmValuesTestSuite{})
 }
 
-func (suite *HelmValuesTestSuite) TestMultiPathsLoadChartValuesOverrideSuccess() {
+func (suite *HelmValuesTestSuite) TestOrderChartValuesOverrideSuccess() {
 	//prepare
-	urlData, err := yaml.Marshal(map[string]interface{}{"url": uuid.New().String()})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.RequestURI == "/values.yaml" {
-			_, err = w.Write(urlData)
-		}
-	}))
-	defer server.Close()
-
-	fileData, err := yaml.Marshal(map[string]interface{}{"file": uuid.New().String()})
-	valuesFile, err := os.CreateTemp("", "values")
+	fileData, err := yaml.Marshal(map[string]interface{}{"file": "override"})
 	suite.NoError(err)
-	defer valuesFile.Close()
-	defer os.Remove(valuesFile.Name())
 
-	_, err = valuesFile.Write(fileData)
+	file, err := os.CreateTemp("", "values")
+	suite.NoError(err)
+
+	_, err = file.Write(fileData)
 	suite.NoError(err)
 
 	chartValues := make(map[string]interface{})
-	overridePaths := []string{fmt.Sprintf("%s/values.yaml", server.URL), valuesFile.Name()}
+	overridePaths := []string{suite.ValuesFile, file.Name()}
 
 	//act
 
@@ -54,26 +86,19 @@ func (suite *HelmValuesTestSuite) TestMultiPathsLoadChartValuesOverrideSuccess()
 
 	// assert
 
-	expected := make(map[string]interface{})
-	yaml.Unmarshal(urlData, &expected)
-	yaml.Unmarshal(fileData, &expected)
+	expected := map[string]interface{}{
+		"file": "override",
+	}
 
 	suite.Equal(expected, chartValues)
 	suite.Equal(expected, valuesOverride)
 }
 
-func (suite *HelmValuesTestSuite) TestUrlLoadChartValuesOverrideSuccess() {
+func (suite *HelmValuesTestSuite) TestMultiPathsChartValuesOverrideSuccess() {
 	//prepare
-	urlData, err := yaml.Marshal(map[string]interface{}{"url": uuid.New().String()})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.RequestURI == "/values.yaml" {
-			_, err = w.Write(urlData)
-		}
-	}))
-	defer server.Close()
 
 	chartValues := make(map[string]interface{})
-	overridePaths := []string{fmt.Sprintf("%s/values.yaml", server.URL)}
+	overridePaths := []string{suite.ValuesUrl, suite.ValuesFile}
 
 	//act
 
@@ -82,26 +107,19 @@ func (suite *HelmValuesTestSuite) TestUrlLoadChartValuesOverrideSuccess() {
 
 	// assert
 
-	expected := make(map[string]interface{})
-	yaml.Unmarshal(urlData, &expected)
+	expected := map[string]interface{}{
+		"file": "value",
+		"url":  "value",
+	}
 
 	suite.Equal(expected, chartValues)
 	suite.Equal(expected, valuesOverride)
 }
 
-func (suite *HelmValuesTestSuite) TestFileLoadChartValuesOverrideSuccess() {
+func (suite *HelmValuesTestSuite) TestUrlChartValuesOverrideSuccess() {
 	//prepare
-	fileData, err := yaml.Marshal(map[string]interface{}{"file": uuid.New().String()})
-	valuesFile, err := os.CreateTemp("", "values")
-	suite.NoError(err)
-	defer valuesFile.Close()
-	defer os.Remove(valuesFile.Name())
-
-	_, err = valuesFile.Write(fileData)
-	suite.NoError(err)
-
 	chartValues := make(map[string]interface{})
-	overridePaths := []string{valuesFile.Name()}
+	overridePaths := []string{suite.ValuesUrl}
 
 	//act
 
@@ -110,8 +128,30 @@ func (suite *HelmValuesTestSuite) TestFileLoadChartValuesOverrideSuccess() {
 
 	// assert
 
-	expected := make(map[string]interface{})
-	yaml.Unmarshal(fileData, &expected)
+	expected := map[string]interface{}{
+		"url": "value",
+	}
+
+	suite.Equal(expected, chartValues)
+	suite.Equal(expected, valuesOverride)
+}
+
+func (suite *HelmValuesTestSuite) TestFileChartValuesOverrideSuccess() {
+	//prepare
+
+	chartValues := make(map[string]interface{})
+	overridePaths := []string{suite.ValuesFile}
+
+	//act
+
+	valuesOverride, err := helm.LoadChartValuesOverrides(&chartValues, overridePaths)
+	suite.NoError(err)
+
+	// assert
+
+	expected := map[string]interface{}{
+		"file": "value",
+	}
 
 	suite.Equal(expected, chartValues)
 	suite.Equal(expected, valuesOverride)
