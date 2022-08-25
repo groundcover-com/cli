@@ -28,11 +28,15 @@ We use the following categories for changes:
 
 ### Security
 
-## [0.2.7] 2022-08-24
+## [0.2.8] 2022-08-25
 
 ### Added
 
 - set resources based on allocation [#sc-4312]
+
+### Fixed
+
+- set version on cmd.BinaryVersion [#sc-4400]
 
 ## [0.2.6] 2022-08-22
 
