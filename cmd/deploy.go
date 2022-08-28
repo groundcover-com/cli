@@ -120,12 +120,22 @@ var DeployCmd = &cobra.Command{
 		}
 
 		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
-		if sentryHelmContext.ResourcesPresets, err = helm.TuneResourcesValues(&chartValues, adequateNodesReports); err != nil {
+		userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
+
+		var resourcesTunerPresetPaths []string
+		if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(adequateNodesReports); err != nil {
 			return err
 		}
-		if sentryHelmContext.ValuesOverride, err = helm.LoadChartValuesOverrides(&chartValues, viper.GetStringSlice(VALUES_FLAG)); err != nil {
+
+		sentryHelmContext.ResourcesPresets = resourcesTunerPresetPaths
+		sentryHelmContext.SetOnCurrentScope()
+
+		var valuesOverride map[string]interface{}
+		if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, append(resourcesTunerPresetPaths, userValuesOverridePaths...)); err != nil {
 			return err
 		}
+
+		sentryHelmContext.ValuesOverride = valuesOverride
 		sentryHelmContext.SetOnCurrentScope()
 
 		var isUpgrade bool

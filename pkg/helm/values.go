@@ -6,16 +6,21 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-func LoadChartValuesOverrides(chartValues *map[string]interface{}, paths []string) (map[string]interface{}, error) {
+func SetChartValuesOverrides(chartValues *map[string]interface{}, paths []string) (map[string]interface{}, error) {
 	var err error
 
 	valuesOverride := make(map[string]interface{})
 
 	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+
 		var data []byte
 		if data, err = readValuesOverride(path); err != nil {
 			return nil, err
@@ -35,6 +40,10 @@ func LoadChartValuesOverrides(chartValues *map[string]interface{}, paths []strin
 
 func readValuesOverride(path string) ([]byte, error) {
 	var err error
+
+	if strings.HasPrefix(path, "presets") {
+		return presetsFS.ReadFile(path)
+	}
 
 	overrideUrl, err := url.ParseRequestURI(path)
 	if err == nil && overrideUrl.IsAbs() {

@@ -83,7 +83,7 @@ func (suite *HelmValuesTestSuite) TestOrderChartValuesOverrideSuccess() {
 
 	//act
 
-	valuesOverride, err := helm.LoadChartValuesOverrides(&chartValues, overridePaths)
+	valuesOverride, err := helm.SetChartValuesOverrides(&chartValues, overridePaths)
 	suite.NoError(err)
 
 	// assert
@@ -104,7 +104,7 @@ func (suite *HelmValuesTestSuite) TestMultiPathsChartValuesOverrideSuccess() {
 
 	//act
 
-	valuesOverride, err := helm.LoadChartValuesOverrides(&chartValues, overridePaths)
+	valuesOverride, err := helm.SetChartValuesOverrides(&chartValues, overridePaths)
 	suite.NoError(err)
 
 	// assert
@@ -125,7 +125,7 @@ func (suite *HelmValuesTestSuite) TestUrlChartValuesOverrideSuccess() {
 
 	//act
 
-	valuesOverride, err := helm.LoadChartValuesOverrides(&chartValues, overridePaths)
+	valuesOverride, err := helm.SetChartValuesOverrides(&chartValues, overridePaths)
 	suite.NoError(err)
 
 	// assert
@@ -146,7 +146,7 @@ func (suite *HelmValuesTestSuite) TestFileChartValuesOverrideSuccess() {
 
 	//act
 
-	valuesOverride, err := helm.LoadChartValuesOverrides(&chartValues, overridePaths)
+	valuesOverride, err := helm.SetChartValuesOverrides(&chartValues, overridePaths)
 	suite.NoError(err)
 
 	// assert
