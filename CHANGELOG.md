@@ -19,6 +19,7 @@ We use the following categories for changes:
 ### Added
 
 - add values override flag to `deploy` command [#sc-4395]
+- add git integration flags to `deploy` command [#sc-4412]
 
 ### Changed
 
