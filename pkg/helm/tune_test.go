@@ -78,11 +78,17 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesLowSuccess() {
 
 	//act
 	var cpuPresetPaths []string
-	cpuPresetPaths, err = helm.TuneResourcesValues(&cpuChartValues, lowerCpuNodeReports)
+	cpuPresetPaths, err = helm.GetResourcesTunerPresetPaths(lowerCpuNodeReports)
+	suite.NoError(err)
+
+	_, err = helm.SetChartValuesOverrides(&cpuChartValues, cpuPresetPaths)
 	suite.NoError(err)
 
 	var memoryPresetPaths []string
-	memoryPresetPaths, err = helm.TuneResourcesValues(&memoryChartValues, lowerMemoryNodeReports)
+	memoryPresetPaths, err = helm.GetResourcesTunerPresetPaths(lowerMemoryNodeReports)
+	suite.NoError(err)
+
+	_, err = helm.SetChartValuesOverrides(&memoryChartValues, memoryPresetPaths)
 	suite.NoError(err)
 
 	// assert
@@ -164,11 +170,17 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesMediumSuccess() {
 
 	//act
 	var cpuPresetPaths []string
-	cpuPresetPaths, err = helm.TuneResourcesValues(&cpuChartValues, lowerCpuNodeReports)
+	cpuPresetPaths, err = helm.GetResourcesTunerPresetPaths(lowerCpuNodeReports)
+	suite.NoError(err)
+
+	_, err = helm.SetChartValuesOverrides(&cpuChartValues, cpuPresetPaths)
 	suite.NoError(err)
 
 	var memoryPresetPaths []string
-	memoryPresetPaths, err = helm.TuneResourcesValues(&memoryChartValues, lowerMemoryNodeReports)
+	memoryPresetPaths, err = helm.GetResourcesTunerPresetPaths(lowerMemoryNodeReports)
+	suite.NoError(err)
+
+	_, err = helm.SetChartValuesOverrides(&memoryChartValues, memoryPresetPaths)
 	suite.NoError(err)
 
 	// assert
@@ -227,8 +239,10 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesHighSuccess() {
 	//act
 
 	var presetPaths []string
-	presetPaths, err = helm.TuneResourcesValues(&chartValues, nodeReports)
+	presetPaths, err = helm.GetResourcesTunerPresetPaths(nodeReports)
 	suite.NoError(err)
+
+	_, err = helm.SetChartValuesOverrides(&chartValues, presetPaths)
 
 	// assert
 

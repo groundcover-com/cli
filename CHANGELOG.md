@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- add values override flag to `deploy` command [#sc-4395]
+
 ### Changed
 
 ### Fixed

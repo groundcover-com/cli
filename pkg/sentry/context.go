@@ -47,13 +47,14 @@ func (context KubeContext) SetOnCurrentScope() {
 }
 
 type HelmContext struct {
-	Upgrade              bool     `json:",omitempty"`
-	RepoUrl              string   `json:",omitempty"`
-	ChartName            string   `json:",omitempty"`
-	ReleaseName          string   `json:",omitempty"`
-	ChartVersion         string   `json:",omitempty"`
-	PreviousChartVersion string   `json:",omitempty"`
-	ResourcesPresets     []string `json:",omitempty"`
+	Upgrade              bool                   `json:",omitempty"`
+	RepoUrl              string                 `json:",omitempty"`
+	ChartName            string                 `json:",omitempty"`
+	ReleaseName          string                 `json:",omitempty"`
+	ChartVersion         string                 `json:",omitempty"`
+	PreviousChartVersion string                 `json:",omitempty"`
+	ResourcesPresets     []string               `json:",omitempty"`
+	ValuesOverride       map[string]interface{} `json:",omitempty"`
 }
 
 func NewHelmContext(releaseName, chartName, repoUrl string) *HelmContext {

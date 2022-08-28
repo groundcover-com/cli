@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	VALUES_FLAG                   = "values"
 	CHART_NAME                    = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
 	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
@@ -27,6 +28,9 @@ const (
 
 func init() {
 	RootCmd.AddCommand(DeployCmd)
+
+	DeployCmd.PersistentFlags().StringSliceP(VALUES_FLAG, "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
+	viper.BindPFlag(VALUES_FLAG, DeployCmd.PersistentFlags().Lookup(VALUES_FLAG))
 }
 
 var DeployCmd = &cobra.Command{
@@ -92,8 +96,6 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
-		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
-
 		sentryHelmContext.ChartVersion = chart.Version().String()
 		sentryHelmContext.SetOnCurrentScope()
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
@@ -117,10 +119,24 @@ var DeployCmd = &cobra.Command{
 			sentryKubeContext.SetOnCurrentScope()
 		}
 
-		if sentryHelmContext.ResourcesPresets, err = helm.TuneResourcesValues(&chartValues, adequateNodesReports); err != nil {
+		chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
+		userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
+
+		var resourcesTunerPresetPaths []string
+		if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(adequateNodesReports); err != nil {
 			return err
 		}
-		sentryKubeContext.SetOnCurrentScope()
+
+		sentryHelmContext.ResourcesPresets = resourcesTunerPresetPaths
+		sentryHelmContext.SetOnCurrentScope()
+
+		var valuesOverride map[string]interface{}
+		if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, append(resourcesTunerPresetPaths, userValuesOverridePaths...)); err != nil {
+			return err
+		}
+
+		sentryHelmContext.ValuesOverride = valuesOverride
+		sentryHelmContext.SetOnCurrentScope()
 
 		var isUpgrade bool
 		if isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {

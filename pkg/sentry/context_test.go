@@ -125,11 +125,13 @@ func (suite *SentryContextTestSuite) TestHelmContextSetOnCurrentScopeSuccess() {
 	chartName := uuid.New().String()
 	releaseName := uuid.New().String()
 	resourcesPresets := []string{uuid.New().String()}
+	valuesOverride := map[string]interface{}{"override": uuid.New().String()}
 
 	sentryContext := sentry_utils.NewHelmContext(releaseName, chartName, repoUrl)
 	sentryContext.Upgrade = true
 	sentryContext.ChartVersion = chartVersion
 	sentryContext.PreviousChartVersion = previousChartVersion
+	sentryContext.ValuesOverride = valuesOverride
 	sentryContext.ResourcesPresets = resourcesPresets
 
 	//act
@@ -144,6 +146,7 @@ func (suite *SentryContextTestSuite) TestHelmContextSetOnCurrentScopeSuccess() {
 			ChartName:            chartName,
 			ReleaseName:          releaseName,
 			ChartVersion:         chartVersion,
+			ValuesOverride:       valuesOverride,
 			ResourcesPresets:     resourcesPresets,
 			PreviousChartVersion: previousChartVersion,
 		},

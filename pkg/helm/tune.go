@@ -5,7 +5,6 @@ import (
 
 	"groundcover.com/pkg/k8s"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -36,26 +35,24 @@ type AllocatableResources struct {
 	TotalMemory *resource.Quantity
 }
 
-func TuneResourcesValues(chartValues *map[string]interface{}, nodeReports []*k8s.NodeReport) ([]string, error) {
+func GetResourcesTunerPresetPaths(nodeReports []*k8s.NodeReport) ([]string, error) {
 	var err error
 
 	presetPaths := make([]string, 2)
 	allocatableResources := calcAllocatableResources(nodeReports)
 
-	if presetPaths[0], err = tuneAgentResourcesValues(chartValues, allocatableResources); err != nil {
+	if presetPaths[0], err = tuneAgentResourcesValues(allocatableResources); err != nil {
 		return nil, err
 	}
 
-	if presetPaths[1], err = tuneBackendResourcesValues(chartValues, allocatableResources); err != nil {
+	if presetPaths[1], err = tuneBackendResourcesValues(allocatableResources); err != nil {
 		return nil, err
 	}
 
 	return presetPaths, nil
 }
 
-func tuneAgentResourcesValues(chartValues *map[string]interface{}, allocatableResources *AllocatableResources) (string, error) {
-	var err error
-
+func tuneAgentResourcesValues(allocatableResources *AllocatableResources) (string, error) {
 	mediumCpuThreshold := resource.MustParse(AGENT_MEDIUM_CPU_THRESHOLD)
 	mediumMemoryThreshold := resource.MustParse(AGENT_MEDIUM_MEMORY_THRESHOLD)
 	highCpuThreshold := resource.MustParse(AGENT_HIGH_CPU_THRESHOLD)
@@ -74,16 +71,10 @@ func tuneAgentResourcesValues(chartValues *map[string]interface{}, allocatableRe
 		presetPath = AGENT_LOW_RESOURCES_PATH
 	}
 
-	if err = loadPresetToChartValues(presetPath, chartValues); err != nil {
-		return "", err
-	}
-
 	return presetPath, nil
 }
 
-func tuneBackendResourcesValues(chartValues *map[string]interface{}, allocatableResources *AllocatableResources) (string, error) {
-	var err error
-
+func tuneBackendResourcesValues(allocatableResources *AllocatableResources) (string, error) {
 	mediumCpuThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD)
 	mediumMemoryThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD)
 	highCpuThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_CPU_THRESHOLD)
@@ -102,26 +93,7 @@ func tuneBackendResourcesValues(chartValues *map[string]interface{}, allocatable
 		presetPath = BACKEND_LOW_RESOURCES_PATH
 	}
 
-	if err = loadPresetToChartValues(presetPath, chartValues); err != nil {
-		return "", err
-	}
-
 	return presetPath, nil
-}
-
-func loadPresetToChartValues(presetPath string, chartValues *map[string]interface{}) error {
-	var err error
-
-	var data []byte
-	if data, err = presetsFS.ReadFile(presetPath); err != nil {
-		return err
-	}
-
-	if err = yaml.Unmarshal(data, chartValues); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func calcAllocatableResources(nodeReports []*k8s.NodeReport) *AllocatableResources {
