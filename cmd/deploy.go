@@ -235,6 +235,7 @@ func getClusterName(kubeClient *k8s.Client) (string, error) {
 func defaultChartValues(clusterName, apikey string) map[string]interface{} {
 	chartValues := make(map[string]interface{})
 	chartValues["clusterId"] = clusterName
+	chartValues["origin"] = map[string]interface{}{"tag": ""}
 	chartValues["global"] = map[string]interface{}{"groundcover_token": apikey}
 
 	return chartValues

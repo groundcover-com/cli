@@ -66,7 +66,7 @@ func (helmClient *Client) Upgrade(ctx context.Context, name string, chart *Chart
 
 	client := action.NewUpgrade(helmClient.cfg)
 	client.Wait = false
-	client.ReuseValues = false
+	client.ReuseValues = true
 	client.Namespace = helmClient.settings.Namespace()
 
 	_, err = client.RunWithContext(ctx, name, chart.Chart, values)
