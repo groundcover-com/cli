@@ -18,10 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- add values override flag to `deploy` command [#sc-4395]
-- support reuse values on upgrade [#sc-4420]
-- add git integration flags to `deploy` command [#sc-4412]
-
 ### Changed
 
 ### Fixed
@@ -31,6 +27,14 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.2.9] 2022-08-30
+
+### Added
+
+- add values override flag to `deploy` command [#sc-4395]
+- support reuse values on upgrade [#sc-4420]
+- add git integration flags to `deploy` command [#sc-4412]
 
 ## [0.2.8] 2022-08-25
 
