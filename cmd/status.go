@@ -98,7 +98,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	var podList *v1.PodList
 	var runningAlligators int
 
-	version := helmRelease.Version().String()
+	version := helmRelease.Chart.AppVersion()
 	podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
 	listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
 	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until all nodes are monitored ")
