@@ -19,6 +19,7 @@ We use the following categories for changes:
 ### Added
 
 - add values override flag to `deploy` command [#sc-4395]
+- support reuse values on upgrade [#sc-4420]
 
 ### Changed
 
