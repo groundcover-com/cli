@@ -22,6 +22,8 @@ const (
 	CHART_NAME                    = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
 	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
+	COMMIT_HASH_KEY_NAME_FLAG     = "git-commit-hash-key-name"
+	REPOSITORY_URL_KEY_NAME_FLAG  = "git-repository-url-key-name"
 	GROUNDCOVER_URL               = "https://app.groundcover.com"
 	HELM_REPO_URL                 = "https://helm.groundcover.com"
 )
@@ -31,6 +33,12 @@ func init() {
 
 	DeployCmd.PersistentFlags().StringSliceP(VALUES_FLAG, "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
 	viper.BindPFlag(VALUES_FLAG, DeployCmd.PersistentFlags().Lookup(VALUES_FLAG))
+
+	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
+	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
+
+	DeployCmd.PersistentFlags().String(REPOSITORY_URL_KEY_NAME_FLAG, "", "the annotation key name that contains the app git repository url")
+	viper.BindPFlag(REPOSITORY_URL_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(REPOSITORY_URL_KEY_NAME_FLAG))
 }
 
 var DeployCmd = &cobra.Command{
@@ -237,6 +245,8 @@ func defaultChartValues(clusterName, apikey string) map[string]interface{} {
 	chartValues["clusterId"] = clusterName
 	chartValues["origin"] = map[string]interface{}{"tag": ""}
 	chartValues["global"] = map[string]interface{}{"groundcover_token": apikey}
+	chartValues["commitHashKeyName"] = viper.GetString(COMMIT_HASH_KEY_NAME_FLAG)
+	chartValues["repositoryUrlKeyName"] = viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG)
 
 	return chartValues
 }

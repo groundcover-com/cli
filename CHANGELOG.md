@@ -20,6 +20,7 @@ We use the following categories for changes:
 
 - add values override flag to `deploy` command [#sc-4395]
 - support reuse values on upgrade [#sc-4420]
+- add git integration flags to `deploy` command [#sc-4412]
 
 ### Changed
 
