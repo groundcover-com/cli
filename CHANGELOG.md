@@ -20,8 +20,6 @@ We use the following categories for changes:
 
 ### Changed
 
-- api ListCluster endpoint new schema [#sc-4510]
-
 ### Fixed
 
 ### Removed
@@ -29,6 +27,12 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.2.10] 2022-08-31
+
+### Changed
+
+- api ListCluster endpoint new schema [#sc-4510]
 
 ## [0.2.9] 2022-08-30
 
