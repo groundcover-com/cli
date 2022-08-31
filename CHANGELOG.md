@@ -20,6 +20,8 @@ We use the following categories for changes:
 
 ### Changed
 
+- api ListCluster endpoint new schema [#sc-4510]
+
 ### Fixed
 
 ### Removed

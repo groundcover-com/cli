@@ -16,22 +16,18 @@ const (
 	CLUSTER_POLLING_SPINNER_TYPE = 26 // ....
 )
 
-type ClusterList struct {
-	ClusterIds []string `json:"clusterIds"`
-}
-
 func (client *Client) PollIsClusterExist(clusterName string) error {
 	var err error
 
 	spinner := utils.NewSpinner(CLUSTER_POLLING_SPINNER_TYPE, "Waiting until groundcover is connected to cloud platform ")
 
 	isClusterExistInSassFunc := func() (bool, error) {
-		var clusterList *ClusterList
+		var clusterList map[string]interface{}
 		if clusterList, err = client.ClusterList(); err != nil {
 			return false, err
 		}
 
-		for _, _clusterName := range clusterList.ClusterIds {
+		for _clusterName := range clusterList {
 			if _clusterName == clusterName {
 				spinner.FinalMSG = "groundcover is connected to cloud platform\n"
 				return true, nil
@@ -51,7 +47,7 @@ func (client *Client) PollIsClusterExist(clusterName string) error {
 	return err
 }
 
-func (client *Client) ClusterList() (*ClusterList, error) {
+func (client *Client) ClusterList() (map[string]interface{}, error) {
 	var err error
 
 	var body []byte
@@ -59,7 +55,7 @@ func (client *Client) ClusterList() (*ClusterList, error) {
 		return nil, err
 	}
 
-	var clusterList *ClusterList
+	var clusterList map[string]interface{}
 	if err = json.Unmarshal(body, &clusterList); err != nil {
 		return nil, err
 	}
