@@ -11,7 +11,7 @@ const (
 	MAX_NODE_REPORT_SAMPLES  = 10
 	HELM_CONTEXT_NAME        = "helm"
 	KUBE_CONTEXT_NAME        = "kubernetes"
-	SELF_UPDATE_CONTEXT_NAME = "self-update"
+	SELF_UPDATE_CONTEXT_NAME = "cli-update"
 )
 
 type SentryContext interface {
