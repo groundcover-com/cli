@@ -12,6 +12,11 @@ import (
 func main() {
 	var err error
 
+	logrus.SetFormatter(&logrus.TextFormatter{
+		PadLevelText:     true,
+		DisableTimestamp: true,
+	})
+
 	environment := "prod"
 	release := fmt.Sprintf("cli@%s", cmd.BinaryVersion)
 
