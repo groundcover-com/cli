@@ -24,7 +24,7 @@ func init() {
 
 var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
-	Short: "Uninstall groundcover",
+	Short: "Uninstall groundcover on current cluster",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 

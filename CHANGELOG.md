@@ -20,6 +20,8 @@ We use the following categories for changes:
 
 ### Changed
 
+- renamed deploy command to install [#sc-4570]
+
 ### Fixed
 
 ### Removed

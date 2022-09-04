@@ -29,21 +29,21 @@ const (
 )
 
 func init() {
-	RootCmd.AddCommand(DeployCmd)
+	RootCmd.AddCommand(InstallCmd)
 
-	DeployCmd.PersistentFlags().StringSliceP(VALUES_FLAG, "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
-	viper.BindPFlag(VALUES_FLAG, DeployCmd.PersistentFlags().Lookup(VALUES_FLAG))
+	InstallCmd.PersistentFlags().StringSliceP(VALUES_FLAG, "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
+	viper.BindPFlag(VALUES_FLAG, InstallCmd.PersistentFlags().Lookup(VALUES_FLAG))
 
-	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
-	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
+	InstallCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
+	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, InstallCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
 
-	DeployCmd.PersistentFlags().String(REPOSITORY_URL_KEY_NAME_FLAG, "", "the annotation key name that contains the app git repository url")
-	viper.BindPFlag(REPOSITORY_URL_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(REPOSITORY_URL_KEY_NAME_FLAG))
+	InstallCmd.PersistentFlags().String(REPOSITORY_URL_KEY_NAME_FLAG, "", "the annotation key name that contains the app git repository url")
+	viper.BindPFlag(REPOSITORY_URL_KEY_NAME_FLAG, InstallCmd.PersistentFlags().Lookup(REPOSITORY_URL_KEY_NAME_FLAG))
 }
 
-var DeployCmd = &cobra.Command{
-	Use:   "deploy",
-	Short: "deploy groundcover",
+var InstallCmd = &cobra.Command{
+	Use:   "install",
+	Short: "Install groundcover on current cluster",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
@@ -162,7 +162,7 @@ var DeployCmd = &cobra.Command{
 			expectedAlligatorsCount = len(adequateNodesReports)
 
 			promptMessage = fmt.Sprintf(
-				"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s).\nDo you want to deploy?",
+				"Installing groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s).\nDo you want to install?",
 				clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
 			)
 		case isUpgrade:
@@ -195,7 +195,7 @@ var DeployCmd = &cobra.Command{
 		}
 
 		if !utils.YesNoPrompt(promptMessage, false) {
-			sentry.CaptureMessage("deploy execution aborted")
+			sentry.CaptureMessage("install execution aborted")
 			return nil
 		}
 
@@ -220,7 +220,7 @@ var DeployCmd = &cobra.Command{
 
 		utils.TryOpenBrowser(fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
 
-		sentry.CaptureMessage("deploy executed successfully")
+		sentry.CaptureMessage("install executed successfully")
 		return nil
 	},
 }
