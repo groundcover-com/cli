@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/blang/semver/v4"
 	authv1 "k8s.io/api/authorization/v1"
+	"k8s.io/apimachinery/pkg/version"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -15,11 +17,13 @@ var (
 )
 
 type ClusterRequirements struct {
-	Actions []*authv1.ResourceAttributes
+	Actions       []*authv1.ResourceAttributes
+	ServerVersion semver.Version
 }
 
 func NewClusterRequirements() *ClusterRequirements {
 	return &ClusterRequirements{
+		ServerVersion: semver.Version{Major: 1, Minor: 12},
 		Actions: []*authv1.ResourceAttributes{
 			{
 				Verb:     "*",
@@ -78,11 +82,32 @@ func NewClusterRequirements() *ClusterRequirements {
 }
 
 func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, namespace string) []error {
+	if err := clusterRequirements.validateServerVersion(client); err != nil {
+		return []error{err}
+	}
+
 	if authErrors := clusterRequirements.validateAuthorization(ctx, client, namespace); len(authErrors) > 0 {
 		return authErrors
 	}
 
 	return []error{}
+}
+
+func (clusterRequirements ClusterRequirements) validateServerVersion(client *Client) error {
+	var err error
+
+	var versionInfo *version.Info
+	if versionInfo, err = client.Discovery().ServerVersion(); err != nil {
+		return err
+	}
+
+	serverVersion := semver.MustParse(fmt.Sprintf("%s.%s.0", versionInfo.Major, versionInfo.Minor))
+
+	if clusterRequirements.ServerVersion.GTE(serverVersion) {
+		return fmt.Errorf("%s is unsupported cluster version - minimal: %s", serverVersion, clusterRequirements.ServerVersion)
+	}
+
+	return nil
 }
 
 func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context.Context, client *Client, namespace string) []error {
