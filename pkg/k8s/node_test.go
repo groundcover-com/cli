@@ -134,12 +134,12 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 
 	incompatibleExpected := &k8s.NodeReport{
 		NodeSummary:            &nodesSummeries[1],
-		KernelVersionAllowed:   false,
-		CpuSufficient:          false,
-		MemorySufficient:       false,
-		ProviderAllowed:        false,
-		ArchitectureAllowed:    false,
-		OperatingSystemAllowed: false,
+		KernelVersionAllowed:   k8s.NodeRequirement{IsCompatible: false, Message: "4.13.0 is unsupported kernel - minimal: 4.14.0"},
+		CpuSufficient:          k8s.NodeRequirement{IsCompatible: false, Message: "insufficient cpu - acutal: 500m / minimal: 1750m"},
+		MemorySufficient:       k8s.NodeRequirement{IsCompatible: false, Message: "insufficient memory - acutal: 1000Mi / minimal: 1750Mi"},
+		ProviderAllowed:        k8s.NodeRequirement{IsCompatible: false, Message: "aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider"},
+		ArchitectureAllowed:    k8s.NodeRequirement{IsCompatible: false, Message: "arm64 is unsupported architecture - only amd64 supported"},
+		OperatingSystemAllowed: k8s.NodeRequirement{IsCompatible: false, Message: "windows is unsupported os - only linux supported"},
 		IsCompatible:           false,
 	}
 

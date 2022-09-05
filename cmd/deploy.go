@@ -14,8 +14,6 @@ import (
 	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/utils"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -82,6 +80,23 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	sentryKubeContext.Cluster = clusterName
 	sentryKubeContext.SetOnCurrentScope()
 
+	sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
+	sentryHelmContext.SetOnCurrentScope()
+
+	var helmClient *helm.Client
+	if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
+		return err
+	}
+
+	shouldRedeploy, err := checkIfRedeployWanted(helmClient, releaseName, sentryHelmContext, clusterName, namespace)
+	if err != nil {
+		return err
+	}
+
+	if !shouldRedeploy {
+		return nil
+	}
+
 	var nodesSummeries []k8s.NodeSummary
 	if nodesSummeries, err = kubeClient.GetNodesSummeries(cmd.Context()); err != nil {
 		return err
@@ -93,30 +108,17 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
-	sentryHelmContext.SetOnCurrentScope()
-
-	var helmClient *helm.Client
-	if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
-		return err
-	}
-
 	expectedAlligatorsCount, err := helmInstallation(cmd.Context(), helmClient, sentryHelmContext, clusterName, apiKey, compatible, releaseName, namespace, nodesCount, kubeClient)
 	if err != nil {
 		return err
 	}
 
-	var release *helm.Release
-	if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
-		return err
-	}
-
-	if err = waitForAlligators(cmd.Context(), kubeClient, release, expectedAlligatorsCount); err != nil {
+	_, err = watchAlligators(helmClient, releaseName, cmd, kubeClient, expectedAlligatorsCount)
+	if err != nil {
 		return err
 	}
 
 	apiClient := api.NewClient(&auth0Token)
-
 	if err = apiClient.PollIsClusterExist(clusterName); err != nil {
 		return err
 	}
@@ -124,6 +126,64 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	utils.TryOpenBrowser(fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
 	sentry.CaptureMessage("deploy executed successfully")
 	return nil
+}
+
+func watchAlligators(helmClient *helm.Client, releaseName string, cmd *cobra.Command, kubeClient *k8s.Client, expectedAlligatorsCount int) (bool, error) {
+	release, err := helmClient.GetCurrentRelease(releaseName)
+	if err != nil {
+		return false, err
+	}
+
+	err = waitForAlligators(cmd.Context(), kubeClient, release, expectedAlligatorsCount)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func checkIfRedeployWanted(helmClient *helm.Client, releaseName string, sentryHelmContext *sentry_utils.HelmContext, clusterName string, namespace string) (bool, error) {
+	installed, _ := checkIfGroundcoverAlreadyInstalled(helmClient, releaseName)
+	if !installed {
+		return true, nil
+	}
+
+	release, err := helmClient.GetCurrentRelease(releaseName)
+	if err != nil {
+		return false, err
+	}
+
+	sentryHelmContext.PreviousChartVersion = release.Version().String()
+	sentryHelmContext.SetOnCurrentScope()
+
+	chart, err := helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL)
+	if err != nil {
+		return false, err
+	}
+
+	var promptMessage string
+	if chart.Version().GT(release.Version()) {
+		promptMessage = fmt.Sprintf(
+			"Current groundcover installation in your cluster is out of date! (cluster: %s, namespace: %s, version: %s), The latest version is %s.\nDo you want to upgrade?",
+			clusterName, namespace, release.Version(), chart.Version(),
+		)
+	} else {
+		promptMessage = fmt.Sprintf(
+			"Current groundcover installation in your cluster is latest (cluster: %s, namespace: %s, version: %s) .\nDo you want to redeploy?",
+			clusterName, namespace, chart.Version(),
+		)
+	}
+
+	if !utils.YesNoPrompt(promptMessage, false) {
+		sentry.CaptureMessage("deploy execution aborted")
+		return false, fmt.Errorf("deploy execution aborted")
+	}
+
+	return true, nil
+}
+
+func checkIfGroundcoverAlreadyInstalled(helmClient *helm.Client, releaseName string) (bool, error) {
+	return helmClient.IsReleaseInstalled(releaseName)
 }
 
 func helmInstallation(ctx context.Context,
@@ -173,43 +233,11 @@ func helmInstallation(ctx context.Context,
 	sentryHelmContext.Upgrade = isUpgrade
 	sentryHelmContext.SetOnCurrentScope()
 
-	var promptMessage string
-	var expectedAlligatorsCount int
-	switch {
-	case !isUpgrade:
-		expectedAlligatorsCount = len(compatible)
-		promptMessage = fmt.Sprintf(
-			"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s).\nDo you want to deploy?",
-			clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
-		)
-	case isUpgrade:
-		var release *helm.Release
-		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
-			return 0, err
-		}
-
-		sentryHelmContext.PreviousChartVersion = release.Version().String()
-		sentryHelmContext.SetOnCurrentScope()
-
-		var podList *v1.PodList
-		listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
-		if podList, err = kubeClient.CoreV1().Pods(release.Namespace).List(ctx, listOptions); err != nil {
-			return 0, err
-		}
-		expectedAlligatorsCount = len(podList.Items)
-
-		if chart.Version().GT(release.Version()) {
-			promptMessage = fmt.Sprintf(
-				"Current groundcover installation in your cluster is out of date! (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s), The latest version is %s.\nDo you want to upgrade?",
-				clusterName, namespace, expectedAlligatorsCount, nodesCount, release.Version(), chart.Version(),
-			)
-		} else {
-			promptMessage = fmt.Sprintf(
-				"Current groundcover installation in your cluster is latest version (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s) .\nDo you want to redeploy?",
-				clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
-			)
-		}
-	}
+	expectedAlligatorsCount := len(compatible)
+	promptMessage := fmt.Sprintf(
+		"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s).\nDo you want to deploy?",
+		clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
+	)
 
 	if !utils.YesNoPrompt(promptMessage, false) {
 		sentry.CaptureMessage("deploy execution aborted")
@@ -219,6 +247,7 @@ func helmInstallation(ctx context.Context,
 	if err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
 		return 0, err
 	}
+
 	return expectedAlligatorsCount, nil
 }
 
@@ -321,7 +350,7 @@ func isNodePropertySupported(nodes []*k8s.NodeReport, propertyName string) int {
 	for _, node := range nodes {
 		obj := reflect.ValueOf(node)
 		fieldValue := reflect.Indirect(obj).FieldByName(propertyName)
-		if fieldValue.Bool() {
+		if fieldValue.FieldByName("IsCompatible").Bool() {
 			allowedCount++
 		}
 	}

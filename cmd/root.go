@@ -119,7 +119,7 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 		return false, nil
 	}
 
-	if !selfUpdater.IsLatestNewer(currentVersion) {
+	if !selfUpdater.IsLatestNewer(currentVersion) || selfUpdater.IsDevVersion(currentVersion) {
 		return false, nil
 	}
 

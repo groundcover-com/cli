@@ -26,11 +26,9 @@ var VersionCmd = &cobra.Command{
 }
 
 func GetVersion() (semver.Version, error) {
-	fmt.Printf("BinaryVersion: %v\n", BinaryVersion)
 	return semver.ParseTolerant(BinaryVersion)
 }
 
 func IsDevVersion() bool {
-	_, err := semver.Parse(BinaryVersion)
-	return err != nil
+	return BinaryVersion == "0.0.0-dev"
 }
