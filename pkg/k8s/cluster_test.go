@@ -51,6 +51,6 @@ func (suite *KubeClusterTestSuite) TestClusterAuthErrors() {
 	// assert
 
 	suite.Len(errSlice, 2)
-	suite.Errorf(errSlice[0], "permission error on pods")
-	suite.ErrorContains(errSlice[1], "api error on services")
+	suite.EqualError(errSlice[0], "permission error on resource: pods")
+	suite.ErrorContains(errSlice[1], "api error on resource: services")
 }

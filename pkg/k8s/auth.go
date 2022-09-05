@@ -32,11 +32,11 @@ func (kubeClient *Client) isActionPermitted(ctx context.Context, action *authv1.
 
 	var accessReview *authv1.SelfSubjectAccessReview
 	if accessReview, err = kubeClient.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, &selfCheck, metav1.CreateOptions{}); err != nil {
-		return errors.Wrapf(err, "api error on %s", action.Resource)
+		return errors.Wrapf(err, "api error on resource: %s", action.Resource)
 	}
 
 	if accessReview.Status.Denied || !accessReview.Status.Allowed {
-		return fmt.Errorf("permission error on %s", action.Resource)
+		return fmt.Errorf("permission error on resource: %s", action.Resource)
 	}
 
 	return nil

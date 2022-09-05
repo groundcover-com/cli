@@ -19,64 +19,61 @@ type ClusterRequirements struct {
 }
 
 func NewClusterRequirements() *ClusterRequirements {
-
-	actions := []*authv1.ResourceAttributes{
-		{
-			Verb:     "*",
-			Resource: "clusterroles",
-		},
-		{
-			Verb:     "*",
-			Resource: "configmaps",
-		},
-		{
-			Verb:     "*",
-			Resource: "daemonsets",
-		},
-		{
-			Verb:     "*",
-			Resource: "deployments",
-		},
-		{
-			Verb:     "*",
-			Resource: "ingresses",
-		},
-		{
-			Verb:     "*",
-			Resource: "namespaces",
-		},
-		{
-			Verb:     "*",
-			Resource: "nodes",
-		},
-		{
-			Verb:     "*",
-			Resource: "pods",
-		},
-		{
-			Verb:     "*",
-			Resource: "secrets",
-		},
-		{
-			Verb:     "*",
-			Resource: "services",
-		},
-		{
-			Verb:     "*",
-			Resource: "statefulsets",
-		},
-		{
-			Verb:     "*",
-			Resource: "persistentvolumeclaims",
-		},
-		{
-			Verb:     "*",
-			Resource: "persistentvolumes",
-		},
-	}
-
 	return &ClusterRequirements{
-		Actions: actions,
+		Actions: []*authv1.ResourceAttributes{
+			{
+				Verb:     "*",
+				Resource: "clusterroles",
+			},
+			{
+				Verb:     "*",
+				Resource: "configmaps",
+			},
+			{
+				Verb:     "*",
+				Resource: "daemonsets",
+			},
+			{
+				Verb:     "*",
+				Resource: "deployments",
+			},
+			{
+				Verb:     "*",
+				Resource: "ingresses",
+			},
+			{
+				Verb:     "*",
+				Resource: "namespaces",
+			},
+			{
+				Verb:     "*",
+				Resource: "nodes",
+			},
+			{
+				Verb:     "*",
+				Resource: "pods",
+			},
+			{
+				Verb:     "*",
+				Resource: "secrets",
+			},
+			{
+				Verb:     "*",
+				Resource: "services",
+			},
+			{
+				Verb:     "*",
+				Resource: "statefulsets",
+			},
+			{
+				Verb:     "*",
+				Resource: "persistentvolumeclaims",
+			},
+			{
+				Verb:     "*",
+				Resource: "persistentvolumes",
+			},
+		},
 	}
 }
 
