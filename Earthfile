@@ -18,7 +18,7 @@ pkg-base:
 build-cli:
     FROM +pkg-base
     COPY --dir cmd main.go .
-    RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X 'groundcover.com/cmd.BinaryVersion=0.0.0-dev'" -o /bin/groundcover ./main.go
+    RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/groundcover ./main.go
     SAVE ARTIFACT /bin/groundcover AS LOCAL ./artifacts/groundcover
 
 build-cli-image:
