@@ -76,7 +76,7 @@ func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 	}
 
 	if errors.Is(err, utils.ErrSpinnerTimeout) {
-		return fmt.Errorf("timed out waiting for device confirmation")
+		return fmt.Errorf("timed out while waiting for your login in browser")
 	}
 
 	return err
