@@ -19,7 +19,6 @@ type KubeClusterTestSuite struct {
 }
 
 func (suite *KubeClusterTestSuite) SetupSuite() {
-
 	client := fake.NewSimpleClientset()
 	client.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
 		Major: "1",

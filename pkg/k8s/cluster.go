@@ -101,7 +101,10 @@ func (clusterRequirements ClusterRequirements) validateServerVersion(client *Cli
 		return err
 	}
 
-	serverVersion := semver.MustParse(fmt.Sprintf("%s.%s.0", versionInfo.Major, versionInfo.Minor))
+	var serverVersion semver.Version
+	if serverVersion, err = semver.ParseTolerant(fmt.Sprintf("%s.%s", versionInfo.Major, versionInfo.Minor)); err != nil {
+		return fmt.Errorf("unknown server version: %s", versionInfo)
+	}
 
 	if clusterRequirements.ServerVersion.GTE(serverVersion) {
 		return fmt.Errorf("%s is unsupported cluster version - minimal: %s", serverVersion, clusterRequirements.ServerVersion)
