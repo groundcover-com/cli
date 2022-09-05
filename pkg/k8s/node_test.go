@@ -29,7 +29,7 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 		Items: []v1.Node{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "adequate",
+					Name: "compatible",
 				},
 				Spec: v1.NodeSpec{
 					ProviderID: "aws://eu-west-3/i-53df4efedd",
@@ -49,7 +49,7 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "inadequate",
+					Name: "incompatible",
 				},
 				Spec: v1.NodeSpec{
 					ProviderID: "aws://eu-west-3/fargate-i-53df4efedd",
@@ -82,21 +82,20 @@ func TestKubeNodeTestSuite(t *testing.T) {
 }
 
 func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
-	//prepare
+	// prepare
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	//act
+	// act
 	nodesSummeries, err := suite.KubeClient.GetNodesSummeries(ctx)
 	suite.NoError(err)
 
 	// assert
-
 	expected := []k8s.NodeSummary{
 		{
 			CPU:             resource.NewScaledQuantity(2000, resource.Milli),
 			Memory:          resource.NewScaledQuantity(4000, resource.Mega),
-			Name:            "adequate",
+			Name:            "compatible",
 			Architecture:    "amd64",
 			OperatingSystem: "linux",
 			Kernel:          "4.14.0",
@@ -106,7 +105,7 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 		{
 			CPU:             resource.NewScaledQuantity(500, resource.Milli),
 			Memory:          resource.NewScaledQuantity(1000, resource.Mega),
-			Name:            "inadequate",
+			Name:            "incompatible",
 			Architecture:    "arm64",
 			OperatingSystem: "windows",
 			Kernel:          "4.13.0",
@@ -118,43 +117,33 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 	suite.Equal(expected, nodesSummeries)
 }
 
-func (suite *KubeNodeTestSuite) TestGenerateNodeReportsSuccess() {
-	//prepare
+func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
+	// prepare
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
 	nodesSummeries, err := suite.KubeClient.GetNodesSummeries(ctx)
 	suite.NoError(err)
 
-	nodeRequirements := k8s.NewNodeMinimumRequirements()
-
-	//act
-	adequateNodesReports, inadequateNodesReports := nodeRequirements.GenerateNodeReports(nodesSummeries)
+	// act
+	compatibleNodesReports, incompatibleNodesReports := k8s.NodeRequirements.GenerateNodeReports(nodesSummeries)
 
 	// assert
-	adequateExpected := make([]*k8s.NodeReport, 1)
-	adequateExpected[0] = &k8s.NodeReport{
-		IsAdequate:  true,
-		NodeSummary: &nodesSummeries[0],
+	suite.Len(compatibleNodesReports, 1)
+	suite.Len(incompatibleNodesReports, 1)
+
+	incompatibleExpected := &k8s.NodeReport{
+		NodeSummary:            &nodesSummeries[1],
+		KernelVersionAllowed:   k8s.NodeRequirement{IsCompatible: false, Message: "4.13.0 is unsupported kernel - minimal: 4.14.0"},
+		CpuSufficient:          k8s.NodeRequirement{IsCompatible: false, Message: "insufficient cpu - acutal: 500m / minimal: 1750m"},
+		MemorySufficient:       k8s.NodeRequirement{IsCompatible: false, Message: "insufficient memory - acutal: 1000Mi / minimal: 1750Mi"},
+		ProviderAllowed:        k8s.NodeRequirement{IsCompatible: false, Message: "aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider"},
+		ArchitectureAllowed:    k8s.NodeRequirement{IsCompatible: false, Message: "arm64 is unsupported architecture - only amd64 supported"},
+		OperatingSystemAllowed: k8s.NodeRequirement{IsCompatible: false, Message: "windows is unsupported os - only linux supported"},
+		IsCompatible:           false,
 	}
 
-	suite.Equal(adequateExpected, adequateNodesReports)
-
-	inadequateExpected := make([]*k8s.NodeReport, 1)
-	inadequateExpected[0] = &k8s.NodeReport{
-		IsAdequate:  false,
-		NodeSummary: &nodesSummeries[1],
-		Errors: []error{
-			k8s.NewNodeRequirementError(fmt.Errorf("insufficient cpu - acutal: 500m / minimal: 1750m")),
-			k8s.NewNodeRequirementError(fmt.Errorf("insufficient memory - acutal: 1000Mi / minimal: 1750Mi")),
-			k8s.NewNodeRequirementError(fmt.Errorf("aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider")),
-			k8s.NewNodeRequirementError(fmt.Errorf("4.13.0 is unsupported kernel - minimal: 4.14.0")),
-			k8s.NewNodeRequirementError(fmt.Errorf("arm64 is unsupported architecture - only amd64 supported")),
-			k8s.NewNodeRequirementError(fmt.Errorf("windows is unsupported os - only linux supported")),
-		},
-	}
-
-	suite.Equal(inadequateExpected, inadequateNodesReports)
+	suite.Equal(incompatibleExpected, incompatibleNodesReports[0])
 }
 
 func (suite *KubeNodeTestSuite) TestNodeRequirementErrorMarshalJSONSuccess() {

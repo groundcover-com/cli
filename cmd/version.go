@@ -9,7 +9,7 @@ import (
 
 var (
 	// this is a placeholder value which will be overriden by the build process
-	BinaryVersion = "unknown"
+	BinaryVersion = "0.0.0-dev"
 )
 
 func init() {
@@ -30,6 +30,5 @@ func GetVersion() (semver.Version, error) {
 }
 
 func IsDevVersion() bool {
-	_, err := semver.Parse(BinaryVersion)
-	return err != nil
+	return BinaryVersion == "0.0.0-dev"
 }

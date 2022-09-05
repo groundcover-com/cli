@@ -75,7 +75,7 @@ var StatusCmd = &cobra.Command{
 		}
 
 		if chart.Version().GT(release.Version()) {
-			fmt.Printf("Current groundcover %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
+			fmt.Printf("Current groundcover installation in your cluster version: %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
 		}
 
 		var nodeList *v1.NodeList
