@@ -1,9 +1,13 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	authv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -18,6 +22,25 @@ const (
   * Update your kubeconfig by following https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html
 `
 )
+
+func (kubeClient *Client) isActionPermitted(ctx context.Context, action *authv1.ResourceAttributes) error {
+	var err error
+
+	selfCheck := authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{ResourceAttributes: action},
+	}
+
+	var accessReview *authv1.SelfSubjectAccessReview
+	if accessReview, err = kubeClient.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, &selfCheck, metav1.CreateOptions{}); err != nil {
+		return errors.Wrapf(err, "api error on %s", action.Resource)
+	}
+
+	if accessReview.Status.Denied || !accessReview.Status.Allowed {
+		return fmt.Errorf("permission error on %s", action.Resource)
+	}
+
+	return nil
+}
 
 func (kubeClient *Client) printHintIfAuthError(err error) error {
 	switch err.Error() {

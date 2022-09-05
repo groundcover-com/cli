@@ -70,6 +70,14 @@ var DeployCmd = &cobra.Command{
 			return err
 		}
 
+		clusterRequirements := k8s.NewClusterRequirements()
+		if clusterErrors := clusterRequirements.Validate(cmd.Context(), kubeClient, namespace); len(clusterErrors) > 0 {
+			for _, err := range clusterErrors {
+				logrus.Error(err)
+			}
+			return fmt.Errorf("cluster requirements not met")
+		}
+
 		if sentryKubeContext.ServerVersion, err = kubeClient.Discovery().ServerVersion(); err != nil {
 			return err
 		}
