@@ -72,6 +72,10 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if err = validateCluster(cmd.Context(), kubeClient, namespace, sentryKubeContext); err != nil {
+		return err
+	}
+
 	var clusterName string
 	if clusterName, err = getClusterName(kubeClient); err != nil {
 		return err
@@ -140,6 +144,32 @@ func watchAlligators(helmClient *helm.Client, releaseName string, cmd *cobra.Com
 	}
 
 	return true, nil
+}
+
+func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryKubeContext *sentry_utils.KubeContext) error {
+	var err error
+
+	fmt.Println("Validating cluster is compatible with groundcover installation:")
+	clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, kubeClient, namespace)
+
+	sentryKubeContext.ClusterReport = clusterReport
+	sentryKubeContext.SetOnCurrentScope()
+
+	if !clusterReport.ServerVersionAllowed.IsCompatible {
+		return fmt.Errorf(clusterReport.ServerVersionAllowed.Message)
+	}
+	fmt.Println(clusterReport.ServerVersionAllowed.Message)
+
+	if sentryKubeContext.ServerVersion, err = kubeClient.Discovery().ServerVersion(); err != nil {
+		return err
+	}
+
+	if !clusterReport.UserAuthorized.IsCompatible {
+		return fmt.Errorf(clusterReport.UserAuthorized.Message)
+	}
+	fmt.Println(clusterReport.UserAuthorized.Message)
+
+	return nil
 }
 
 func checkIfRedeployWanted(helmClient *helm.Client, releaseName string, sentryHelmContext *sentry_utils.HelmContext, clusterName string, namespace string) (bool, error) {

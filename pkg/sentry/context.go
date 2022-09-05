@@ -21,14 +21,15 @@ type SentryContext interface {
 }
 
 type KubeContext struct {
-	NodesCount              int               `json:",omitempty"`
-	Cluster                 string            `json:",omitempty"`
-	Namespace               string            `json:",omitempty"`
-	Kubeconfig              string            `json:",omitempty"`
-	Kubecontext             string            `json:",omitempty"`
-	ServerVersion           *version.Info     `json:",omitempty"`
-	IncompatibleNodeReports []*k8s.NodeReport `json:",omitempty"`
-	NodeReportSamples       []*k8s.NodeReport `json:",omitempty"`
+	NodesCount              int                `json:",omitempty"`
+	Cluster                 string             `json:",omitempty"`
+	Namespace               string             `json:",omitempty"`
+	Kubeconfig              string             `json:",omitempty"`
+	Kubecontext             string             `json:",omitempty"`
+	ServerVersion           *version.Info      `json:",omitempty"`
+	ClusterReport           *k8s.ClusterReport `json:",omitempty"`
+	IncompatibleNodeReports []*k8s.NodeReport  `json:",omitempty"`
+	NodeReportSamples       []*k8s.NodeReport  `json:",omitempty"`
 }
 
 func NewKubeContext(kubeconfig, kubecontext, namespace string) *KubeContext {

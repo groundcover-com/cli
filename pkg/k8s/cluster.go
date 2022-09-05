@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	authv1 "k8s.io/api/authorization/v1"
@@ -14,16 +15,10 @@ import (
 var (
 	GKE_CLUSTER_REGEX = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
 	EKS_CLUSTER_REGEX = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
-)
 
-type ClusterRequirements struct {
-	Actions       []*authv1.ResourceAttributes
-	ServerVersion semver.Version
-}
-
-func NewClusterRequirements() *ClusterRequirements {
-	return &ClusterRequirements{
-		ServerVersion: semver.Version{Major: 1, Minor: 12},
+	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 12}
+	DefaultClusterRequirements  = &ClusterRequirements{
+		ServerVersion: MinimumServerVersionSupport,
 		Actions: []*authv1.ResourceAttributes{
 			{
 				Verb:     "*",
@@ -79,52 +74,96 @@ func NewClusterRequirements() *ClusterRequirements {
 			},
 		},
 	}
+)
+
+type ClusterRequirements struct {
+	Actions       []*authv1.ResourceAttributes
+	ServerVersion semver.Version
 }
 
-func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, namespace string) []error {
-	if err := clusterRequirements.validateServerVersion(client); err != nil {
-		return []error{err}
-	}
-
-	if authErrors := clusterRequirements.validateAuthorization(ctx, client, namespace); len(authErrors) > 0 {
-		return authErrors
-	}
-
-	return []error{}
+type ClusterRequirement struct {
+	IsCompatible bool
+	Message      string
 }
 
-func (clusterRequirements ClusterRequirements) validateServerVersion(client *Client) error {
+type ClusterReport struct {
+	IsCompatible         bool
+	UserAuthorized       ClusterRequirement
+	ServerVersionAllowed ClusterRequirement
+}
+
+func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, namespace string) *ClusterReport {
+
+	clusterReport := &ClusterReport{
+		ServerVersionAllowed: clusterRequirements.validateServerVersion(client),
+		UserAuthorized:       clusterRequirements.validateAuthorization(ctx, client, namespace),
+	}
+
+	return clusterReport
+}
+
+func (clusterRequirements ClusterRequirements) validateServerVersion(client *Client) ClusterRequirement {
 	var err error
 
 	var versionInfo *version.Info
 	if versionInfo, err = client.Discovery().ServerVersion(); err != nil {
-		return err
+		return ClusterRequirement{
+			IsCompatible: false,
+			Message:      err.Error(),
+		}
 	}
 
 	var serverVersion semver.Version
 	if serverVersion, err = semver.ParseTolerant(fmt.Sprintf("%s.%s", versionInfo.Major, versionInfo.Minor)); err != nil {
-		return fmt.Errorf("unknown server version: %s", versionInfo)
-	}
-
-	if clusterRequirements.ServerVersion.GTE(serverVersion) {
-		return fmt.Errorf("%s is unsupported cluster version - minimal: %s", serverVersion, clusterRequirements.ServerVersion)
-	}
-
-	return nil
-}
-
-func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context.Context, client *Client, namespace string) []error {
-	var err error
-	var errSlice []error
-
-	for _, action := range clusterRequirements.Actions {
-		action.Namespace = namespace
-		if err = client.isActionPermitted(ctx, action); err != nil {
-			errSlice = append(errSlice, err)
+		return ClusterRequirement{
+			IsCompatible: false,
+			Message:      fmt.Sprintf("unknown server version: %s", versionInfo),
 		}
 	}
 
-	return errSlice
+	if serverVersion.LT(clusterRequirements.ServerVersion) {
+		return ClusterRequirement{
+			IsCompatible: false,
+			Message:      fmt.Sprintf("%s is unsupported cluster version - minimal: %s", serverVersion, clusterRequirements.ServerVersion),
+		}
+	}
+
+	return ClusterRequirement{
+		IsCompatible: true,
+		Message:      fmt.Sprintf("Server version >= %s", clusterRequirements.ServerVersion),
+	}
+}
+
+func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context.Context, client *Client, namespace string) ClusterRequirement {
+	var err error
+	var permitted bool
+	var deniedResources []string
+
+	for _, action := range clusterRequirements.Actions {
+		action.Namespace = namespace
+		if permitted, err = client.isActionPermitted(ctx, action); err != nil {
+			return ClusterRequirement{
+				IsCompatible: false,
+				Message:      err.Error(),
+			}
+		}
+
+		if !permitted {
+			deniedResources = append(deniedResources, action.Resource)
+		}
+	}
+
+	if len(deniedResources) > 0 {
+		return ClusterRequirement{
+			IsCompatible: false,
+			Message:      fmt.Sprintf("denied permissions on resources: %s", strings.Join(deniedResources, ", ")),
+		}
+	}
+
+	return ClusterRequirement{
+		IsCompatible: true,
+		Message:      "User authorized",
+	}
 }
 
 func (kubeClient *Client) GetClusterName() (string, error) {

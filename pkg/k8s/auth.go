@@ -23,23 +23,22 @@ const (
 `
 )
 
-func (kubeClient *Client) isActionPermitted(ctx context.Context, action *authv1.ResourceAttributes) error {
+func (kubeClient *Client) isActionPermitted(ctx context.Context, action *authv1.ResourceAttributes) (bool, error) {
 	var err error
 
-	selfCheck := authv1.SelfSubjectAccessReview{
+	accessReview := &authv1.SelfSubjectAccessReview{
 		Spec: authv1.SelfSubjectAccessReviewSpec{ResourceAttributes: action},
 	}
 
-	var accessReview *authv1.SelfSubjectAccessReview
-	if accessReview, err = kubeClient.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, &selfCheck, metav1.CreateOptions{}); err != nil {
-		return errors.Wrapf(err, "api error on resource: %s", action.Resource)
+	if accessReview, err = kubeClient.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, accessReview, metav1.CreateOptions{}); err != nil {
+		return false, errors.Wrapf(err, "api error on resource: %s", action.Resource)
 	}
 
 	if accessReview.Status.Denied || !accessReview.Status.Allowed {
-		return fmt.Errorf("permission error on resource: %s", action.Resource)
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
 func (kubeClient *Client) printHintIfAuthError(err error) error {
