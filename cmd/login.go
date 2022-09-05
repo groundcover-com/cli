@@ -12,8 +12,8 @@ import (
 )
 
 func init() {
+	AuthCmd.AddCommand(LoginCmd)
 	RootCmd.AddCommand(LoginCmd)
-	authCmd.AddCommand(LoginCmd)
 }
 
 var LoginCmd = &cobra.Command{

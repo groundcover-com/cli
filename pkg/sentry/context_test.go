@@ -167,11 +167,11 @@ func (suite *SentryContextTestSuite) TestSelfUpdateContextSetOnCurrentScopeSucce
 
 	//act
 	sentryContext.SetOnCurrentScope()
-	sentry.CaptureMessage("self update context")
+	sentry.CaptureMessage("cli update context")
 
 	// assert
 	expect := map[string]interface{}{
-		"self-update": &sentry_utils.SelfUpdateContext{
+		"cli-update": &sentry_utils.SelfUpdateContext{
 			CurrentVersion: currentVersion,
 			LatestVersion:  lastestVersion,
 		},

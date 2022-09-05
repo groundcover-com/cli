@@ -44,7 +44,7 @@ func init() {
 
 var DeployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "deploy groundcover",
+	Short: "Deploy groundcover",
 	RunE:  runDeployCmd,
 }
 

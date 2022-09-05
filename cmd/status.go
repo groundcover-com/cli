@@ -30,7 +30,7 @@ func init() {
 
 var StatusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Get groundcover current status",
+	Short: "Get groundcover deployment status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
