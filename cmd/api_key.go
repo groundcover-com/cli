@@ -28,5 +28,5 @@ var apiKeyCmd = &cobra.Command{
 }
 
 func init() {
-	authCmd.AddCommand(apiKeyCmd)
+	AuthCmd.AddCommand(apiKeyCmd)
 }

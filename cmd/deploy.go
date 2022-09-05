@@ -43,7 +43,7 @@ func init() {
 
 var DeployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "deploy groundcover",
+	Short: "Deploy groundcover",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 

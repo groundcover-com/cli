@@ -30,7 +30,7 @@ const (
 	KUBECONTEXT_FLAG     = "kube-context"
 	HELM_RELEASE_FLAG    = "release-name"
 	CLUSTER_NAME_FLAG    = "cluster-name"
-	SKIP_SELFUPDATE_FLAG = "skip-selfupdate"
+	SKIP_CLI_UPDATE_FLAG = "skip-cli-update"
 )
 
 func init() {
@@ -39,8 +39,8 @@ func init() {
 	RootCmd.PersistentFlags().Bool(utils.ASSUME_YES_FLAG, false, "assume yes on interactive prompts")
 	viper.BindPFlag(utils.ASSUME_YES_FLAG, RootCmd.PersistentFlags().Lookup(utils.ASSUME_YES_FLAG))
 
-	RootCmd.PersistentFlags().Bool(SKIP_SELFUPDATE_FLAG, false, "disable automatic selfupdate check")
-	viper.BindPFlag(SKIP_SELFUPDATE_FLAG, RootCmd.PersistentFlags().Lookup(SKIP_SELFUPDATE_FLAG))
+	RootCmd.PersistentFlags().Bool(SKIP_CLI_UPDATE_FLAG, false, "disable automatic cli update check")
+	viper.BindPFlag(SKIP_CLI_UPDATE_FLAG, RootCmd.PersistentFlags().Lookup(SKIP_CLI_UPDATE_FLAG))
 
 	RootCmd.PersistentFlags().String(CLUSTER_NAME_FLAG, "", "cluster name")
 	viper.BindPFlag(CLUSTER_NAME_FLAG, RootCmd.PersistentFlags().Lookup(CLUSTER_NAME_FLAG))
@@ -88,14 +88,14 @@ groundcover, more data at: https://groundcover.com/docs`,
 			return err
 		}
 
-		if !viper.GetBool(SKIP_SELFUPDATE_FLAG) {
+		if !viper.GetBool(SKIP_CLI_UPDATE_FLAG) {
 			if shouldUpdate, selfUpdater := checkLatestVersionUpdate(cmd.Context()); shouldUpdate {
 				if err = selfUpdater.Apply(); err != nil {
-					fmt.Println("Self update has failed")
+					fmt.Println("cli update has failed")
 					return err
 				}
-				fmt.Println("Self update was successfully")
-				sentry.CaptureMessage("self-update executed successfully")
+				fmt.Println("cli update was successfully")
+				sentry.CaptureMessage("cli-update executed successfully")
 				os.Exit(0)
 			}
 		}
@@ -127,7 +127,7 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 	shouldUpdate := utils.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
 
 	if shouldUpdate {
-		sentry_utils.SetTransactionOnCurrentScope("self-update")
+		sentry_utils.SetTransactionOnCurrentScope(sentry_utils.SELF_UPDATE_CONTEXT_NAME)
 		sentryContext := sentry_utils.NewSelfUpdateContext(currentVersion, selfUpdater.Version)
 		sentryContext.SetOnCurrentScope()
 	}
