@@ -50,7 +50,7 @@ func (suite *SentryContextTestSuite) TestKubeContexJsonOmitEmpty() {
 }
 
 func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
-	//prepare
+	// prepare
 	nodesCount := 2
 	cluster := uuid.New().String()
 	namespace := uuid.New().String()
@@ -61,21 +61,21 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 	sentryContext.Cluster = cluster
 	sentryContext.NodesCount = nodesCount
 
-	//act
+	// act
 	sentryContext.SetOnCurrentScope()
 	sentry.CaptureMessage("kube context")
 
 	// assert
 	expect := map[string]interface{}{
 		"kubernetes": &sentry_utils.KubeContext{
-			Cluster:               cluster,
-			Namespace:             namespace,
-			NodesCount:            nodesCount,
-			Kubeconfig:            kubeconfig,
-			Kubecontext:           kubecontext,
-			NodeReportSamples:     make([]*k8s.NodeReport, sentry_utils.MAX_NODE_REPORT_SAMPLES),
-			ServerVersion:         nil,
-			InadequateNodeReports: nil,
+			Cluster:                 cluster,
+			Namespace:               namespace,
+			NodesCount:              nodesCount,
+			Kubeconfig:              kubeconfig,
+			Kubecontext:             kubecontext,
+			NodeReportSamples:       make([]*k8s.NodeReport, sentry_utils.MAX_NODE_REPORT_SAMPLES),
+			ServerVersion:           nil,
+			IncompatibleNodeReports: nil,
 		},
 	}
 
@@ -86,7 +86,7 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 }
 
 func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesSuccess() {
-	//prepare
+	// prepare
 	namespace := uuid.New().String()
 	kubeconfig := uuid.New().String()
 	kubecontext := uuid.New().String()
@@ -96,7 +96,7 @@ func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesSuccess(
 	nodeReports := make([]*k8s.NodeReport, nodesCount)
 	sentryContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext, namespace)
 
-	//act
+	// act
 	sentryContext.SetNodeReportsSamples(nodeReports)
 
 	// assert

@@ -17,10 +17,10 @@ pkg-base:
 
 build-cli:
     FROM +pkg-base
-    COPY --dir cmd .
+    COPY --dir cmd main.go .
     ARG EARTHLY_GIT_HASH
     ARG IMAGE_TAG=$EARTHLY_GIT_HASH
-    RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X 'groundcover.com/cmd/groundcover.BinaryVersion=${IMAGE_TAG}'" -o /bin/groundcover ./cmd/main.go
+    RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X 'groundcover.com/cmd.BinaryVersion=${IMAGE_TAG}'" -o /bin/groundcover ./main.go
     SAVE ARTIFACT /bin/groundcover AS LOCAL ./artifacts/groundcover
 
 build-cli-image:

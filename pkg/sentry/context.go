@@ -1,6 +1,8 @@
 package sentry
 
 import (
+	"math"
+
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
 	"groundcover.com/pkg/k8s"
@@ -19,14 +21,14 @@ type SentryContext interface {
 }
 
 type KubeContext struct {
-	NodesCount            int               `json:",omitempty"`
-	Cluster               string            `json:",omitempty"`
-	Namespace             string            `json:",omitempty"`
-	Kubeconfig            string            `json:",omitempty"`
-	Kubecontext           string            `json:",omitempty"`
-	ServerVersion         *version.Info     `json:",omitempty"`
-	InadequateNodeReports []*k8s.NodeReport `json:",omitempty"`
-	NodeReportSamples     []*k8s.NodeReport `json:",omitempty"`
+	NodesCount              int               `json:",omitempty"`
+	Cluster                 string            `json:",omitempty"`
+	Namespace               string            `json:",omitempty"`
+	Kubeconfig              string            `json:",omitempty"`
+	Kubecontext             string            `json:",omitempty"`
+	ServerVersion           *version.Info     `json:",omitempty"`
+	IncompatibleNodeReports []*k8s.NodeReport `json:",omitempty"`
+	NodeReportSamples       []*k8s.NodeReport `json:",omitempty"`
 }
 
 func NewKubeContext(kubeconfig, kubecontext, namespace string) *KubeContext {
@@ -39,7 +41,8 @@ func NewKubeContext(kubeconfig, kubecontext, namespace string) *KubeContext {
 }
 
 func (context KubeContext) SetNodeReportsSamples(nodeReports []*k8s.NodeReport) {
-	copy(context.NodeReportSamples, nodeReports)
+	samplesSize := math.Min(MAX_NODE_REPORT_SAMPLES, float64(len(nodeReports)))
+	copy(context.NodeReportSamples, nodeReports[:int(samplesSize)])
 }
 
 func (context KubeContext) SetOnCurrentScope() {

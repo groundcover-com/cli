@@ -26,6 +26,7 @@ var VersionCmd = &cobra.Command{
 }
 
 func GetVersion() (semver.Version, error) {
+	fmt.Printf("BinaryVersion: %v\n", BinaryVersion)
 	return semver.ParseTolerant(BinaryVersion)
 }
 

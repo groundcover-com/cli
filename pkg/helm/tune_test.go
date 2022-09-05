@@ -243,7 +243,7 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesHighSuccess() {
 	suite.NoError(err)
 
 	_, err = helm.SetChartValuesOverrides(&chartValues, presetPaths)
-
+	suite.NoError(err)
 	// assert
 
 	expected := make(map[string]interface{})
