@@ -17,6 +17,10 @@ import (
 	"github.com/minio/selfupdate"
 )
 
+var (
+	devVersion = semver.MustParse("0.0.0-dev")
+)
+
 type SelfUpdater struct {
 	assetId     int64
 	githubOwner string
@@ -83,6 +87,10 @@ func (selfUpdater *SelfUpdater) fetchAsset(ctx context.Context, client *github.C
 
 func (selfUpdater *SelfUpdater) IsLatestNewer(currentVersion semver.Version) bool {
 	return selfUpdater.Version.GT(currentVersion)
+}
+
+func (selfUpdater *SelfUpdater) IsDevVersion(currentVersion semver.Version) bool {
+	return currentVersion.Equals(devVersion)
 }
 
 func (selfUpdater *SelfUpdater) Apply() error {
