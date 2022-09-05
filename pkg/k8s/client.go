@@ -6,7 +6,6 @@ import (
 	"io/fs"
 
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -75,10 +74,6 @@ func (kubeClient *Client) loadClient() error {
 
 	if restConfig, err = kubeClient.ClientConfig.ClientConfig(); err != nil {
 		return err
-	}
-
-	restConfig.Impersonate = rest.ImpersonationConfig{
-		UserName: "system:serviceaccount:default",
 	}
 
 	if kubeClient.Interface, err = kubernetes.NewForConfig(restConfig); err != nil {
