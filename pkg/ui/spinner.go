@@ -4,41 +4,66 @@ import (
 	"fmt"
 	"time"
 
-	_spinner "github.com/briandowns/spinner"
+	"github.com/fatih/color"
+	"github.com/theckman/yacspin"
+)
+
+const (
+	statusOK       = "\u2714"
+	statusErr      = "\u2715"
+	spinnerCharset = 11
 )
 
 var ErrSpinnerTimeout = fmt.Errorf("spinner timeout")
 
 type Spinner struct {
-	*_spinner.Spinner
+	*yacspin.Spinner
 }
 
-func NewSpinner(charset int, prefix string) *Spinner {
+func NewSpinner(message string) *Spinner {
+	cfg := yacspin.Config{
+		Frequency:         100 * time.Millisecond,
+		Colors:            []string{"fgGreen"},
+		CharSet:           yacspin.CharSets[spinnerCharset],
+		SuffixAutoColon:   true,
+		Suffix:            " ",
+		Message:           message,
+		StopCharacter:     statusOK,
+		StopColors:        []string{"fgGreen"},
+		StopFailCharacter: statusErr,
+		StopFailColors:    []string{"fgRed"},
+	}
+
+	s, _ := yacspin.New(cfg)
+
 	spinner := new(Spinner)
-	spinner.Spinner = _spinner.New(_spinner.CharSets[charset], time.Millisecond*200)
-	spinner.Prefix = prefix
-	spinner.Color("green")
+	spinner.Spinner = s
 
 	return spinner
+}
+
+func (d *Spinner) Decor(success bool) string {
+	if !success {
+		return color.RedString(statusErr)
+	}
+
+	return color.GreenString(statusOK)
 }
 
 func (spinner *Spinner) Poll(function func() (bool, error), interval, duration time.Duration) error {
 	timeout := time.After(duration)
 	ticker := time.NewTicker(interval)
 
-	spinner.Start()
-	defer spinner.Stop()
-
 	for {
 		select {
 		case <-timeout:
 			return ErrSpinnerTimeout
 		case <-ticker.C:
-			functionDone, err := function()
+			success, err := function()
 			if err != nil {
 				return err
 			}
-			if functionDone {
+			if success {
 				return nil
 			}
 		}

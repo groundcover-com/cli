@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/helm"
@@ -19,9 +18,9 @@ import (
 )
 
 const (
-	SPINNER_TYPE                = 8 // .oO@*
-	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 3
+	ALLIGATORS_POLLING_TIMEOUT  = time.Second * 60 // TODO::MAXL return to 3 minutes
 	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
+	WAIT_FOR_ALLIGATORS_FORMAT  = "Waiting until all nodes are monitored (%d/%d)"
 )
 
 func init() {
@@ -94,43 +93,35 @@ var StatusCmd = &cobra.Command{
 }
 
 func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, expectedAlligatorsCount int) error {
-	var err error
-	var podList *v1.PodList
-	var runningAlligators int
+	spinner := ui.NewSpinner(
+		fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount),
+	)
+	spinner.Start()
+	defer spinner.Stop()
 
-	version := helmRelease.Chart.AppVersion()
-	podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
-	listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
-	spinner := ui.NewSpinner(SPINNER_TYPE, "Waiting until all nodes are monitored ")
-	spinner.Suffix = fmt.Sprintf(" (%d/%d)", 0, expectedAlligatorsCount)
-
-	areAlligatorsRunningFunc := func() (bool, error) {
-		runningAlligators = 0
-		if podList, err = podClient.List(ctx, listOptions); err != nil {
-			return false, err
-		}
-		for _, pod := range podList.Items {
-			if pod.Annotations["groundcover_version"] == version {
-				runningAlligators++
+	runningAlligators := 0
+	err := spinner.Poll(
+		func() (bool, error) {
+			var err error
+			runningAlligators, err = k8s.GetRunningAlligators(ctx, kubeClient, helmRelease.Chart.AppVersion(), helmRelease.Namespace)
+			if err != nil {
+				return false, err
 			}
-		}
-		spinner.Suffix = fmt.Sprintf(" (%d/%d)", runningAlligators, expectedAlligatorsCount)
-		if expectedAlligatorsCount > runningAlligators {
-			return false, nil
-		}
-		spinner.FinalMSG = fmt.Sprintf("All nodes are monitored (%d/%d)\n", runningAlligators, expectedAlligatorsCount)
-		return true, nil
-	}
 
-	if err = spinner.Poll(areAlligatorsRunningFunc, ALLIGATORS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT); err == nil {
-		return nil
-	}
+			spinner.Message(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, runningAlligators, expectedAlligatorsCount))
+			return runningAlligators == expectedAlligatorsCount, nil
+		},
+		ALLIGATORS_POLLING_INTERVAL,
+		ALLIGATORS_POLLING_TIMEOUT,
+	)
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
-		logrus.Warnf("timed out waiting for all the nodes to be monitored (%d/%d)", runningAlligators, expectedAlligatorsCount)
+		spinner.StopFailMessage(fmt.Sprintf("Timeout waiting for all nodes to be monitored (%d/%d)", runningAlligators, expectedAlligatorsCount))
+		spinner.StopFail()
 		return nil
 	}
 
+	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d)", expectedAlligatorsCount, expectedAlligatorsCount))
 	return err
 }

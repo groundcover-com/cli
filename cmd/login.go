@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -35,7 +33,6 @@ var LoginCmd = &cobra.Command{
 			return errors.Wrap(err, "failed to fetch api key")
 		}
 
-		fmt.Print("You are successfully logged in!\n")
 		sentry.CaptureMessage("login executed successfully")
 		return nil
 	},
