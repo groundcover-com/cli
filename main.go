@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"groundcover.com/cmd"
 	sentry_utils "groundcover.com/pkg/sentry"
+	"k8s.io/client-go/rest"
 )
 
 func main() {
@@ -16,6 +17,8 @@ func main() {
 		PadLevelText:     true,
 		DisableTimestamp: true,
 	})
+
+	rest.SetDefaultWarningHandler(rest.NoWarnings{})
 
 	environment := "prod"
 	release := fmt.Sprintf("cli@%s", cmd.BinaryVersion)

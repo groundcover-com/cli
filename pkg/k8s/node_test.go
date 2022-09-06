@@ -126,7 +126,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 	suite.NoError(err)
 
 	// act
-	compatibleNodesReports, incompatibleNodesReports := k8s.NodeRequirements.GenerateNodeReports(nodesSummeries)
+	compatibleNodesReports, incompatibleNodesReports := k8s.DefaultNodeRequirements.GenerateNodeReports(nodesSummeries)
 
 	// assert
 	suite.Len(compatibleNodesReports, 1)
@@ -134,19 +134,19 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 
 	incompatibleExpected := &k8s.NodeReport{
 		NodeSummary:            &nodesSummeries[1],
-		KernelVersionAllowed:   k8s.NodeRequirement{IsCompatible: false, Message: "4.13.0 is unsupported kernel - minimal: 4.14.0"},
-		CpuSufficient:          k8s.NodeRequirement{IsCompatible: false, Message: "insufficient cpu - acutal: 500m / minimal: 1750m"},
-		MemorySufficient:       k8s.NodeRequirement{IsCompatible: false, Message: "insufficient memory - acutal: 1000Mi / minimal: 1750Mi"},
-		ProviderAllowed:        k8s.NodeRequirement{IsCompatible: false, Message: "aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider"},
-		ArchitectureAllowed:    k8s.NodeRequirement{IsCompatible: false, Message: "arm64 is unsupported architecture - only amd64 supported"},
-		OperatingSystemAllowed: k8s.NodeRequirement{IsCompatible: false, Message: "windows is unsupported os - only linux supported"},
+		KernelVersionAllowed:   k8s.Requirement{IsCompatible: false, Message: "4.13.0 is unsupported kernel - minimal: 4.14.0"},
+		CpuSufficient:          k8s.Requirement{IsCompatible: false, Message: "insufficient cpu - acutal: 500m / minimal: 1750m"},
+		MemorySufficient:       k8s.Requirement{IsCompatible: false, Message: "insufficient memory - acutal: 1000Mi / minimal: 1750Mi"},
+		ProviderAllowed:        k8s.Requirement{IsCompatible: false, Message: "aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider"},
+		ArchitectureAllowed:    k8s.Requirement{IsCompatible: false, Message: "arm64 is unsupported architecture - only amd64 supported"},
+		OperatingSystemAllowed: k8s.Requirement{IsCompatible: false, Message: "windows is unsupported os - only linux supported"},
 		IsCompatible:           false,
 	}
 
 	suite.Equal(incompatibleExpected, incompatibleNodesReports[0])
 }
 
-func (suite *KubeNodeTestSuite) TestNodeRequirementErrorMarshalJSONSuccess() {
+func (suite *KubeNodeTestSuite) TestRequirementErrorMarshalJSONSuccess() {
 	//prepare
 	err := fmt.Errorf(uuid.New().String())
 
