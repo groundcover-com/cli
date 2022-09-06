@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- cluster requirements validation [#sc-4589]
+
 ### Changed
 
 ### Fixed
