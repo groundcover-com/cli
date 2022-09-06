@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/helm"
@@ -65,7 +64,7 @@ var UninstallCmd = &cobra.Command{
 		var release *helm.Release
 		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 			if errors.Is(err, helm_driver.ErrReleaseNotFound) {
-				logrus.Warn(fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?", releaseName, namespace))
+				fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?", releaseName, namespace)
 				return nil
 			}
 
@@ -79,7 +78,7 @@ var UninstallCmd = &cobra.Command{
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
 
 		promptMessage := fmt.Sprintf(
-			"Current groundcover installation in your cluster: cluster: %s, namespace: %s, version: %s. Are you sure you want to uninstall?",
+			"Current groundcover installation in your cluster: (cluster: %s, namespace: %s, version: %s). Are you sure you want to uninstall?",
 			clusterName, namespace, release.Version(),
 		)
 		if !ui.YesNoPrompt(promptMessage, false) {
@@ -94,6 +93,7 @@ var UninstallCmd = &cobra.Command{
 			return err
 		}
 		sentry.CaptureMessage("uninstall executed successfully")
+		fmt.Println("uninstall executed successfully")
 
 		if !ui.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false) {
 			sentry.CaptureMessage("delete pvcs execution aborted")
@@ -103,8 +103,8 @@ var UninstallCmd = &cobra.Command{
 		if err = deletePvcs(cmd.Context(), kubeClient, release); err != nil {
 			return err
 		}
+		fmt.Println("delete pvcs executed successfully")
 		sentry.CaptureMessage("delete pvcs executed successfully")
-
 		return nil
 	},
 }

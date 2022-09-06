@@ -54,7 +54,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 		IsCompatible: true,
 		ServerVersionAllowed: k8s.Requirement{
 			IsCompatible: true,
-			Message:      "Server version >= 1.24.0",
+			Message:      "K8s version >= 1.24.0",
 		},
 		UserAuthorized: k8s.Requirement{
 			IsCompatible: true,

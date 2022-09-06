@@ -127,7 +127,7 @@ func (clusterRequirements ClusterRequirements) validateServerVersion(client *Cli
 
 	return Requirement{
 		IsCompatible: true,
-		Message:      fmt.Sprintf("Server version >= %s", clusterRequirements.ServerVersion),
+		Message:      fmt.Sprintf("K8s version >= %s", clusterRequirements.ServerVersion),
 	}
 }
 
