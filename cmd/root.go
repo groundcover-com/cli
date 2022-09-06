@@ -66,19 +66,20 @@ var skipAuthCommandNames = []string{
 }
 
 var RootCmd = &cobra.Command{
-	SilenceUsage:  true,
-	SilenceErrors: true,
-	Use:           "groundcover",
-	Short:         "groundcover cli",
+	SilenceUsage:      true,
+	SilenceErrors:     true,
+	CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
+	Use:               "groundcover",
+	Short:             "groundcover cli",
 	Long: `
-                                   _                         
+	_                         
     __ _ _ __ ___  _   _ _ __   __| | ___ _____   _____ _ __ 
-   / _` + "`" + ` | '__/ _ \| | | | '_ \ / _` + "`" + ` |/ __/ _ \ \ / / _ \ '__|
-  | (_| | | | (_) | |_| | | | | (_| | (_| (_) \ V /  __/ |   
-   \__, |_|  \___/ \__,_|_| |_|\__,_|\___\___/ \_/ \___|_|   
-   |___/                                                     
-
-groundcover, more data at: https://groundcover.com/docs`,
+	/ _` + "`" + ` | '__/ _ \| | | | '_ \ / _` + "`" + ` |/ __/ _ \ \ / / _ \ '__|
+	| (_| | | | (_) | |_| | | | | (_| | (_| (_) \ V /  __/ |   
+	\__, |_|  \___/ \__,_|_| |_|\__,_|\___\___/ \_/ \___|_|   
+	|___/                                                     
+	
+	groundcover, more data at: https://groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
