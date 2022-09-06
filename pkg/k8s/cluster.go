@@ -81,60 +81,57 @@ type ClusterRequirements struct {
 	ServerVersion semver.Version
 }
 
-type ClusterRequirement struct {
-	IsCompatible bool
-	Message      string
-}
-
 type ClusterReport struct {
 	IsCompatible         bool
-	UserAuthorized       ClusterRequirement
-	ServerVersionAllowed ClusterRequirement
+	UserAuthorized       Requirement
+	ServerVersionAllowed Requirement
 }
 
 func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, namespace string) *ClusterReport {
-
 	clusterReport := &ClusterReport{
 		ServerVersionAllowed: clusterRequirements.validateServerVersion(client),
 		UserAuthorized:       clusterRequirements.validateAuthorization(ctx, client, namespace),
 	}
 
+	clusterReport.IsCompatible = clusterReport.ServerVersionAllowed.IsCompatible &&
+		clusterReport.UserAuthorized.IsCompatible
+
 	return clusterReport
 }
 
-func (clusterRequirements ClusterRequirements) validateServerVersion(client *Client) ClusterRequirement {
+func (clusterRequirements ClusterRequirements) validateServerVersion(client *Client) Requirement {
 	var err error
 
 	var versionInfo *version.Info
 	if versionInfo, err = client.Discovery().ServerVersion(); err != nil {
-		return ClusterRequirement{
+		return Requirement{
 			IsCompatible: false,
 			Message:      err.Error(),
 		}
 	}
 
 	var serverVersion semver.Version
-	if serverVersion, err = semver.ParseTolerant(fmt.Sprintf("%s.%s", versionInfo.Major, versionInfo.Minor)); err != nil {
-		return ClusterRequirement{
+	if serverVersion, err = semver.ParseTolerant(versionInfo.GitVersion); err != nil {
+		return Requirement{
 			IsCompatible: false,
 			Message:      fmt.Sprintf("unknown server version: %s", versionInfo),
 		}
 	}
 
 	if serverVersion.LT(clusterRequirements.ServerVersion) {
-		return ClusterRequirement{
+		return Requirement{
 			IsCompatible: false,
 			Message:      fmt.Sprintf("%s is unsupported cluster version - minimal: %s", serverVersion, clusterRequirements.ServerVersion),
 		}
 	}
 
-	return ClusterRequirement{
+	return Requirement{
 		IsCompatible: true,
 		Message:      fmt.Sprintf("Server version >= %s", clusterRequirements.ServerVersion),
 	}
 }
 
-func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context.Context, client *Client, namespace string) ClusterRequirement {
+func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context.Context, client *Client, namespace string) Requirement {
 	var err error
 	var permitted bool
 	var deniedResources []string
@@ -142,7 +139,7 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 	for _, action := range clusterRequirements.Actions {
 		action.Namespace = namespace
 		if permitted, err = client.isActionPermitted(ctx, action); err != nil {
-			return ClusterRequirement{
+			return Requirement{
 				IsCompatible: false,
 				Message:      err.Error(),
 			}
@@ -154,13 +151,13 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 	}
 
 	if len(deniedResources) > 0 {
-		return ClusterRequirement{
+		return Requirement{
 			IsCompatible: false,
 			Message:      fmt.Sprintf("denied permissions on resources: %s", strings.Join(deniedResources, ", ")),
 		}
 	}
 
-	return ClusterRequirement{
+	return Requirement{
 		IsCompatible: true,
 		Message:      "User authorized",
 	}

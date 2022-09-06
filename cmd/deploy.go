@@ -285,7 +285,7 @@ func checkClusterNodes(sentryKubeContext *sentry_utils.KubeContext, nodesCount i
 	sentryKubeContext.NodesCount = nodesCount
 	sentryKubeContext.SetOnCurrentScope()
 
-	compatible, incompatible := k8s.NodeRequirements.GenerateNodeReports(nodesSummeries)
+	compatible, incompatible := k8s.DefaultNodeRequirements.GenerateNodeReports(nodesSummeries)
 	nodes := append(compatible, incompatible...)
 
 	sentryKubeContext.SetNodeReportsSamples(compatible)
