@@ -73,7 +73,7 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 			NodesCount:              nodesCount,
 			Kubeconfig:              kubeconfig,
 			Kubecontext:             kubecontext,
-			NodeReportSamples:       make([]*k8s.NodeReport, sentry_utils.MAX_NODE_REPORT_SAMPLES),
+			NodeReportSamples:       nil,
 			ServerVersion:           nil,
 			IncompatibleNodeReports: nil,
 			ClusterReport:           nil,
