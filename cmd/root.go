@@ -66,10 +66,11 @@ var skipAuthCommandNames = []string{
 }
 
 var RootCmd = &cobra.Command{
-	SilenceUsage:  true,
-	SilenceErrors: true,
-	Use:           "groundcover",
-	Short:         "groundcover cli",
+	SilenceUsage:      true,
+	SilenceErrors:     true,
+	CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
+	Use:               "groundcover",
+	Short:             "groundcover cli",
 	Long: `
                                    _                         
     __ _ _ __ ___  _   _ _ __   __| | ___ _____   _____ _ __ 
