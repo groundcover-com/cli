@@ -4,19 +4,14 @@ import (
 	"fmt"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/sirupsen/logrus"
 	"groundcover.com/cmd"
 	sentry_utils "groundcover.com/pkg/sentry"
+	"groundcover.com/pkg/ui"
 	"k8s.io/client-go/rest"
 )
 
 func main() {
 	var err error
-
-	logrus.SetFormatter(&logrus.TextFormatter{
-		PadLevelText:     true,
-		DisableTimestamp: true,
-	})
 
 	rest.SetDefaultWarningHandler(rest.NoWarnings{})
 
@@ -29,12 +24,13 @@ func main() {
 
 	sentryClientOptions := sentry_utils.GetSentryClientOptions(environment, release)
 	if err = sentry.Init(sentryClientOptions); err != nil {
-		logrus.Panic(err)
+		ui.PrintErrorMessageln(err.Error())
+		panic(err)
 	}
 	defer sentry.Flush(sentry_utils.FLUSH_TIMEOUT)
 
 	if err = cmd.Execute(); err != nil {
 		sentry.CaptureException(err)
-		logrus.Error(err)
+		ui.PrintErrorMessageln(err.Error())
 	}
 }

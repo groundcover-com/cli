@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+	"groundcover.com/pkg/ui"
 	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -44,9 +44,9 @@ func (kubeClient *Client) isActionPermitted(ctx context.Context, action *authv1.
 func (kubeClient *Client) printHintIfAuthError(err error) error {
 	switch err.Error() {
 	case EKS_AUTH_PLUGIN_OUTDATED:
-		logrus.Warn(fmt.Sprintf("%s\n%s", err, HINT_EKS_AUTH_PLUGIN_UPGRADE))
+		ui.PrintWarningMessage(fmt.Sprintf("%s\n%s", err, HINT_EKS_AUTH_PLUGIN_UPGRADE))
 	case GKE_GCLOUD_AUTH_PLUGIN_MISSING:
-		logrus.Warn(fmt.Sprintf("%s\n%s", err, HINT_GKE_GCLOUD_AUTH_PLUGIN_INSTALL))
+		ui.PrintWarningMessage(fmt.Sprintf("%s\n%s", err, HINT_GKE_GCLOUD_AUTH_PLUGIN_INSTALL))
 	default:
 		return err
 	}

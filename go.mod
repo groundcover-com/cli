@@ -6,10 +6,8 @@ replace groundcover.com => ./pkg/
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/briandowns/spinner v1.18.1
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/golang-jwt/jwt/v4 v4.4.2
-	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
 	k8s.io/apimachinery v0.24.3
@@ -26,6 +24,7 @@ require helm.sh/helm/v3 v3.9.4
 
 require (
 	github.com/containerd/containerd v1.6.6
+	github.com/fatih/color v1.13.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -48,7 +47,6 @@ require (
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-gorp/gorp/v3 v3.0.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
@@ -97,6 +95,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/theckman/yacspin"
 )
 
 const (
 	statusOK       = "\u2714"
 	statusErr      = "\u2715"
+	statusWarning  = "\u270B"
 	spinnerCharset = 11
 )
 
@@ -42,15 +42,12 @@ func NewSpinner(message string) *Spinner {
 	return spinner
 }
 
-func (d *Spinner) Decor(success bool) string {
-	if !success {
-		return color.RedString(statusErr)
-	}
-
-	return color.GreenString(statusOK)
+func (s *Spinner) SetWarningSign() {
+	s.StopFailCharacter(statusWarning)
+	s.StopFailColors("fgYellow")
 }
 
-func (spinner *Spinner) Poll(function func() (bool, error), interval, duration time.Duration) error {
+func (s *Spinner) Poll(function func() (bool, error), interval, duration time.Duration) error {
 	timeout := time.After(duration)
 	ticker := time.NewTicker(interval)
 

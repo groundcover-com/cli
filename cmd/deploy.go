@@ -264,7 +264,7 @@ func helmInstallation(ctx context.Context,
 
 	expectedAlligatorsCount := len(compatible)
 	promptMessage := fmt.Sprintf(
-		"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
+		"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
 		clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
 	)
 

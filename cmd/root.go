@@ -11,7 +11,6 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/auth"
@@ -155,7 +154,7 @@ func Execute() error {
 	}
 
 	if strings.HasPrefix(err.Error(), "unknown command") {
-		logrus.Error(err)
+		ui.PrintErrorMessageln(err.Error())
 		return nil
 	}
 

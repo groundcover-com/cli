@@ -14,16 +14,24 @@ var (
 func PrintStatus(condition bool, format string, a ...interface{}) {
 	message := fmt.Sprintf(format, a...)
 	if condition {
-		PrintSuccess(message)
+		PrintSuccessMessage(message)
 	} else {
-		PrintError(message)
+		PrintErrorMessage(message)
 	}
 }
 
-func PrintSuccess(message string) {
+func PrintSuccessMessage(message string) {
 	fmt.Printf("%s %s", greenStatusOk, message)
 }
 
-func PrintError(message string) {
+func PrintErrorMessage(message string) {
 	fmt.Printf("%s %s", redStatusErr, message)
+}
+
+func PrintErrorMessageln(message string) {
+	fmt.Printf("%s %s\n", redStatusErr, message)
+}
+
+func PrintWarningMessage(message string) {
+	fmt.Print(color.RedString(message))
 }
