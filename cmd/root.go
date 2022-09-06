@@ -17,7 +17,7 @@ import (
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/selfupdate"
 	sentry_utils "groundcover.com/pkg/sentry"
-	"groundcover.com/pkg/utils"
+	"groundcover.com/pkg/ui"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/utils/strings/slices"
 )
@@ -36,8 +36,8 @@ const (
 func init() {
 	home := homedir.HomeDir()
 
-	RootCmd.PersistentFlags().Bool(utils.ASSUME_YES_FLAG, false, "assume yes on interactive prompts")
-	viper.BindPFlag(utils.ASSUME_YES_FLAG, RootCmd.PersistentFlags().Lookup(utils.ASSUME_YES_FLAG))
+	RootCmd.PersistentFlags().Bool(ui.ASSUME_YES_FLAG, false, "assume yes on interactive prompts")
+	viper.BindPFlag(ui.ASSUME_YES_FLAG, RootCmd.PersistentFlags().Lookup(ui.ASSUME_YES_FLAG))
 
 	RootCmd.PersistentFlags().Bool(SKIP_CLI_UPDATE_FLAG, false, "disable automatic cli update check")
 	viper.BindPFlag(SKIP_CLI_UPDATE_FLAG, RootCmd.PersistentFlags().Lookup(SKIP_CLI_UPDATE_FLAG))
@@ -78,7 +78,7 @@ var RootCmd = &cobra.Command{
    \__, |_|  \___/ \__,_|_| |_|\__,_|\___\___/ \_/ \___|_|   
    |___/                                                     
 
-groundcover, more data at: https://groundcover.com/docs`,
+groundcover, more data at: https://docs.groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
@@ -123,8 +123,8 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 		return false, nil
 	}
 
-	promptFormat := "Your version %s is out of date! The latest version is %s.\nDo you want to update?"
-	shouldUpdate := utils.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
+	promptFormat := "Your version %s is out of date! The latest version is %s. Do you want to update?"
+	shouldUpdate := ui.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
 
 	if shouldUpdate {
 		sentry_utils.SetTransactionOnCurrentScope(sentry_utils.SELF_UPDATE_CONTEXT_NAME)

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"groundcover.com/pkg/utils"
+	"groundcover.com/pkg/ui"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 func (client *Client) PollIsClusterExist(clusterName string) error {
 	var err error
 
-	spinner := utils.NewSpinner(CLUSTER_POLLING_SPINNER_TYPE, "Waiting until groundcover is connected to cloud platform ")
+	spinner := ui.NewSpinner(CLUSTER_POLLING_SPINNER_TYPE, "Waiting until groundcover is connected to cloud platform ")
 
 	isClusterExistInSassFunc := func() (bool, error) {
 		var clusterList map[string]interface{}
@@ -40,7 +40,7 @@ func (client *Client) PollIsClusterExist(clusterName string) error {
 		return nil
 	}
 
-	if errors.Is(err, utils.ErrSpinnerTimeout) {
+	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		return fmt.Errorf("groundcover is yet connected to cloud platform")
 	}
 

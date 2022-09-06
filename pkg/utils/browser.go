@@ -7,6 +7,6 @@ import (
 )
 
 func TryOpenBrowser(url string) {
-	open.Run(url)
 	fmt.Printf("Browse to: %s\n", url)
+	open.Run(url)
 }

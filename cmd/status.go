@@ -13,7 +13,7 @@ import (
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
-	"groundcover.com/pkg/utils"
+	"groundcover.com/pkg/ui"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -101,7 +101,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	version := helmRelease.Chart.AppVersion()
 	podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
 	listOptions := metav1.ListOptions{LabelSelector: "app=alligator", FieldSelector: "status.phase=Running"}
-	spinner := utils.NewSpinner(SPINNER_TYPE, "Waiting until all nodes are monitored ")
+	spinner := ui.NewSpinner(SPINNER_TYPE, "Waiting until all nodes are monitored ")
 	spinner.Suffix = fmt.Sprintf(" (%d/%d)", 0, expectedAlligatorsCount)
 
 	areAlligatorsRunningFunc := func() (bool, error) {
@@ -126,7 +126,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 		return nil
 	}
 
-	if errors.Is(err, utils.ErrSpinnerTimeout) {
+	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
 		logrus.Warnf("timed out waiting for all the nodes to be monitored (%d/%d)", runningAlligators, expectedAlligatorsCount)
 		return nil

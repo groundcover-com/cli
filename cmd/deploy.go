@@ -13,6 +13,7 @@ import (
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
+	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
 )
 
@@ -164,17 +165,17 @@ func checkIfRedeployWanted(helmClient *helm.Client, releaseName string, sentryHe
 	var promptMessage string
 	if chart.Version().GT(release.Version()) {
 		promptMessage = fmt.Sprintf(
-			"Current groundcover installation in your cluster is out of date! (cluster: %s, namespace: %s, version: %s), The latest version is %s.\nDo you want to upgrade?",
+			"Current groundcover installation in your cluster is out of date! (cluster: %s, namespace: %s, version: %s), The latest version is %s. Do you want to upgrade?",
 			clusterName, namespace, release.Version(), chart.Version(),
 		)
 	} else {
 		promptMessage = fmt.Sprintf(
-			"Current groundcover installation in your cluster is latest (cluster: %s, namespace: %s, version: %s) .\nDo you want to redeploy?",
+			"Current groundcover installation in your cluster is latest (cluster: %s, namespace: %s, version: %s) . Do you want to redeploy?",
 			clusterName, namespace, chart.Version(),
 		)
 	}
 
-	if !utils.YesNoPrompt(promptMessage, false) {
+	if !ui.YesNoPrompt(promptMessage, false) {
 		sentry.CaptureMessage("deploy execution aborted")
 		return false, fmt.Errorf("deploy execution aborted")
 	}
@@ -235,11 +236,11 @@ func helmInstallation(ctx context.Context,
 
 	expectedAlligatorsCount := len(compatible)
 	promptMessage := fmt.Sprintf(
-		"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s).\nDo you want to deploy?",
+		"Deploying groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s). Do you want to deploy?",
 		clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
 	)
 
-	if !utils.YesNoPrompt(promptMessage, false) {
+	if !ui.YesNoPrompt(promptMessage, false) {
 		sentry.CaptureMessage("deploy execution aborted")
 		return 0, fmt.Errorf("deploy execution aborted")
 	}

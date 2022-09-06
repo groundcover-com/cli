@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"groundcover.com/pkg/utils"
+	"groundcover.com/pkg/ui"
 )
 
 const (
@@ -45,7 +45,7 @@ func (deviceCode *DeviceCode) Fetch() error {
 func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 	var err error
 
-	spinner := utils.NewSpinner(DEVICE_CODE_POLLING_SPINNER_TYPE, "Waiting for device confirmation")
+	spinner := ui.NewSpinner(DEVICE_CODE_POLLING_SPINNER_TYPE, "Waiting for device confirmation")
 
 	data := url.Values{}
 	data.Set("client_id", DefaultClient.ClientId)
@@ -75,7 +75,7 @@ func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 		return nil
 	}
 
-	if errors.Is(err, utils.ErrSpinnerTimeout) {
+	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		return fmt.Errorf("timed out while waiting for your login in browser")
 	}
 

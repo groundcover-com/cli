@@ -12,7 +12,7 @@ import (
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
-	"groundcover.com/pkg/utils"
+	"groundcover.com/pkg/ui"
 	helm_driver "helm.sh/helm/v3/pkg/storage/driver"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,7 +82,7 @@ var UninstallCmd = &cobra.Command{
 			"Current groundcover installation in your cluster: cluster: %s, namespace: %s, version: %s\nAre you sure you want to uninstall?",
 			clusterName, namespace, release.Version(),
 		)
-		if !utils.YesNoPrompt(promptMessage, false) {
+		if !ui.YesNoPrompt(promptMessage, false) {
 			sentry.CaptureMessage("uninstall execution aborted")
 			return nil
 		}
@@ -95,7 +95,7 @@ var UninstallCmd = &cobra.Command{
 		}
 		sentry.CaptureMessage("uninstall executed successfully")
 
-		if !utils.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false) {
+		if !ui.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false) {
 			sentry.CaptureMessage("delete pvcs execution aborted")
 			return nil
 		}

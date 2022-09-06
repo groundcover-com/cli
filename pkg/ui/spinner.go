@@ -1,4 +1,4 @@
-package utils
+package ui
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ type Spinner struct {
 
 func NewSpinner(charset int, prefix string) *Spinner {
 	spinner := new(Spinner)
-	spinner.Spinner = _spinner.New(_spinner.CharSets[charset], time.Millisecond*100)
+	spinner.Spinner = _spinner.New(_spinner.CharSets[charset], time.Millisecond*200)
 	spinner.Prefix = prefix
 	spinner.Color("green")
 
