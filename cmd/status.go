@@ -21,6 +21,8 @@ const (
 	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 3
 	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
 	WAIT_FOR_ALLIGATORS_FORMAT  = "Waiting until all nodes are monitored (%d/%d)"
+	ALLIGATOR_LABEL_SELECTOR    = "app=alligator"
+	ALLIGATOR_FIELD_SELECTOR    = "status.phase=Running"
 )
 
 func init() {
@@ -103,7 +105,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	err := spinner.Poll(
 		func() (bool, error) {
 			var err error
-			runningAlligators, err = k8s.GetRunningAlligators(ctx, kubeClient, helmRelease.Chart.AppVersion(), helmRelease.Namespace)
+			runningAlligators, err = getRunningAlligators(ctx, kubeClient, helmRelease.Chart.AppVersion(), helmRelease.Namespace)
 			if err != nil {
 				return false, err
 			}
@@ -125,4 +127,27 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 
 	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d)", expectedAlligatorsCount, expectedAlligatorsCount))
 	return err
+}
+
+func getRunningAlligators(ctx context.Context, kubeClient *k8s.Client, helmVersion string, namespace string) (int, error) {
+	podClient := kubeClient.CoreV1().Pods(namespace)
+	listOptions := metav1.ListOptions{
+		LabelSelector: ALLIGATOR_LABEL_SELECTOR,
+		FieldSelector: ALLIGATOR_FIELD_SELECTOR,
+	}
+
+	runningAlligators := 0
+
+	podList, err := podClient.List(ctx, listOptions)
+	if err != nil {
+		return runningAlligators, err
+	}
+
+	for _, pod := range podList.Items {
+		if pod.Annotations["groundcover_version"] == helmVersion {
+			runningAlligators++
+		}
+	}
+
+	return runningAlligators, nil
 }

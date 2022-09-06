@@ -113,6 +113,8 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	fmt.Printf("Deploying groundcover to cluster %s!\n", clusterName)
+
 	expectedAlligatorsCount, err := helmInstallation(cmd.Context(), helmClient, sentryHelmContext, clusterName, apiKey, compatible, releaseName, namespace, nodesCount, kubeClient)
 	if err != nil {
 		return err
