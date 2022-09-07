@@ -18,8 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- cluster requirements validation [#sc-4589]
-
 ### Changed
 
 ### Fixed
@@ -29,6 +27,12 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.3.0] 2022-09-07
+
+### Added
+
+- cluster requirements validation [#sc-4589]
 
 ## [0.2.10] 2022-08-31
 
