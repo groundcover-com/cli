@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/fatih/color"
 	"github.com/getsentry/sentry-go"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
@@ -26,6 +28,7 @@ const (
 	REPOSITORY_URL_KEY_NAME_FLAG  = "git-repository-url-key-name"
 	GROUNDCOVER_URL               = "https://app.groundcover.com"
 	HELM_REPO_URL                 = "https://helm.groundcover.com"
+	FLOWERS                       = "\u2743\u2743\u2743"
 )
 
 func init() {
@@ -89,13 +92,20 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	shouldRedeploy, err := checkIfRedeployWanted(helmClient, releaseName, sentryHelmContext, clusterName, namespace)
+	groundcoverInstalled, err := checkIfGroundcoverAlreadyInstalled(helmClient, releaseName)
 	if err != nil {
 		return err
 	}
 
-	if !shouldRedeploy {
-		return nil
+	if groundcoverInstalled {
+		shouldRedeploy, err := checkIfRedeployWanted(helmClient, releaseName, sentryHelmContext, clusterName, namespace)
+		if err != nil {
+			return err
+		}
+
+		if !shouldRedeploy {
+			return nil
+		}
 	}
 
 	if err = validateCluster(cmd.Context(), kubeClient, namespace, sentryKubeContext); err != nil {
@@ -113,11 +123,28 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("\nDeploying groundcover to cluster %s!\n", clusterName)
+	chart, err := helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL)
+	if err != nil {
+		return err
+	}
+
+	if !groundcoverInstalled {
+		promptMessage := fmt.Sprintf(
+			"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
+			clusterName, namespace, len(compatible), nodesCount, chart.Version(),
+		)
+
+		if !ui.YesNoPrompt(promptMessage, false) {
+			sentry.CaptureMessage("deploy execution aborted")
+			return fmt.Errorf("deploy execution aborted")
+		}
+	} else {
+		fmt.Println("Deploying groundcover...")
+	}
 
 	expectedAlligatorsCount, err := helmInstallation(cmd.Context(), helmClient, sentryHelmContext, clusterName, apiKey, compatible, releaseName, namespace, nodesCount, kubeClient)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Helm installation failed")
 	}
 
 	_, err = watchAlligators(helmClient, releaseName, cmd, kubeClient, expectedAlligatorsCount)
@@ -129,9 +156,8 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	if err = apiClient.PollIsClusterExist(clusterName); err != nil {
 		return err
 	}
-
-	fmt.Println("\ngroundcover is installed successfully! 🎉🎉🎉")
-	utils.TryOpenBrowser("Browse to:", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
+	fmt.Println("\nThat was easy. groundcover installed! " + color.BlueString(FLOWERS))
+	utils.TryOpenBrowser("Check out:", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
 
 	sentry.CaptureMessage("deploy executed successfully")
 	return nil
@@ -154,7 +180,7 @@ func watchAlligators(helmClient *helm.Client, releaseName string, cmd *cobra.Com
 func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryKubeContext *sentry_utils.KubeContext) error {
 	var err error
 
-	fmt.Println("Validating cluster is compatible with groundcover installation:")
+	fmt.Println("Validating cluster compatibility:")
 	clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, kubeClient, namespace)
 
 	sentryKubeContext.ClusterReport = clusterReport
@@ -176,10 +202,6 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 }
 
 func checkIfRedeployWanted(helmClient *helm.Client, releaseName string, sentryHelmContext *sentry_utils.HelmContext, clusterName string, namespace string) (bool, error) {
-	installed, _ := checkIfGroundcoverAlreadyInstalled(helmClient, releaseName)
-	if !installed {
-		return true, nil
-	}
 
 	release, err := helmClient.GetCurrentRelease(releaseName)
 	if err != nil {
@@ -197,12 +219,12 @@ func checkIfRedeployWanted(helmClient *helm.Client, releaseName string, sentryHe
 	var promptMessage string
 	if chart.Version().GT(release.Version()) {
 		promptMessage = fmt.Sprintf(
-			"groundcover is already installed in your cluster with and your version is out of date! (cluster: %s, namespace: %s, version: %s), The latest version is %s. Do you want to upgrade?",
+			"Your groundcover version is out of date (cluster: %s, namespace: %s, version: %s), The latest version is %s.\nDo you want to upgrade?",
 			clusterName, namespace, release.Version(), chart.Version(),
 		)
 	} else {
 		promptMessage = fmt.Sprintf(
-			"groundcover is already installed in your cluster with latest version! (cluster: %s, namespace: %s, version: %s). Do you want to redeploy?",
+			"Latest version of groundcover is already installed in your cluster! (cluster: %s, namespace: %s, version: %s).\nDo you want to redeploy?",
 			clusterName, namespace, chart.Version(),
 		)
 	}
@@ -266,22 +288,11 @@ func helmInstallation(ctx context.Context,
 	sentryHelmContext.Upgrade = isUpgrade
 	sentryHelmContext.SetOnCurrentScope()
 
-	expectedAlligatorsCount := len(compatible)
-	promptMessage := fmt.Sprintf(
-		"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
-		clusterName, namespace, expectedAlligatorsCount, nodesCount, chart.Version(),
-	)
-
-	if !ui.YesNoPrompt(promptMessage, false) {
-		sentry.CaptureMessage("deploy execution aborted")
-		return 0, fmt.Errorf("deploy execution aborted")
-	}
-
 	if err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
 		return 0, err
 	}
 
-	return expectedAlligatorsCount, nil
+	return len(compatible), nil
 }
 
 func checkClusterNodes(sentryKubeContext *sentry_utils.KubeContext, nodesCount int, nodesSummeries []k8s.NodeSummary) ([]*k8s.NodeReport, error) {
@@ -304,6 +315,7 @@ func checkClusterNodes(sentryKubeContext *sentry_utils.KubeContext, nodesCount i
 		return nil, fmt.Errorf("can't continue with installation, no compatible nodes for installation")
 	}
 
+	fmt.Println()
 	return compatible, nil
 }
 
@@ -334,7 +346,7 @@ func defaultChartValues(clusterName, apikey string) map[string]interface{} {
 }
 
 func validateCompatibleNodes(nodes []*k8s.NodeReport) bool {
-	fmt.Println("\nValidating cluster nodes are compatible with groundcover installation:")
+	fmt.Println("\nValidating cluster nodes compatibility:")
 
 	return hasAllowedKernelVersions(nodes) &&
 		hasCpuSufficient(nodes) &&
@@ -345,7 +357,7 @@ func validateCompatibleNodes(nodes []*k8s.NodeReport) bool {
 }
 
 func hasAllowedClusterServerVersion(serverVersionAllowed k8s.Requirement) bool {
-	ui.PrintStatus(serverVersionAllowed.IsCompatible, "K8s server version > %s\n", k8s.MinimumServerVersionSupport)
+	ui.PrintStatus(serverVersionAllowed.IsCompatible, "K8s server version >= %s\n", k8s.MinimumServerVersionSupport)
 	return serverVersionAllowed.IsCompatible
 }
 
@@ -356,37 +368,37 @@ func hasUserAuthorized(userAuthorized k8s.Requirement) bool {
 
 func hasAllowedKernelVersions(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "KernelVersionAllowed")
-	ui.PrintStatus(allowedCount > 0, "Kernel version > %s (%d/%d Nodes)\n", k8s.MinimumKernelVersionSupport.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Kernel version >= %s (%d/%d Nodes)\n", k8s.MinimumKernelVersionSupport.String(), allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasCpuSufficient(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "CpuSufficient")
-	ui.PrintStatus(allowedCount > 0, "Sufficient CPU > %s (%d/%d Nodes)\n", k8s.NodeMinimumCpuRequired.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Node CPU > %s (%d/%d Nodes)\n", k8s.NodeMinimumCpuRequired.String(), allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasMemorySufficient(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "MemorySufficient")
-	ui.PrintStatus(allowedCount > 0, "Sufficient Memory > %s (%d/%d Nodes)\n", k8s.NodeMinimumMemoryRequired.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Node memory > %s (%d/%d Nodes)\n", k8s.NodeMinimumMemoryRequired.String(), allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasProviderAllowed(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "ProviderAllowed")
-	ui.PrintStatus(allowedCount > 0, "Provider Allowed (%d/%d Nodes)\n", allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Cloud provider supported (%d/%d Nodes)\n", allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasArchitectureAllowed(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "ArchitectureAllowed")
-	ui.PrintStatus(allowedCount > 0, "Architecture Allowed (%d/%d Nodes)\n", allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Node architecture supported (%d/%d Nodes)\n", allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasOperatingSystemAllowed(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "OperatingSystemAllowed")
-	ui.PrintStatus(allowedCount > 0, "Operating System Allowed (%d/%d Nodes)\n", allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Node operating system supported (%d/%d Nodes)\n", allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
