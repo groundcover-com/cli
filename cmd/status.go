@@ -50,7 +50,9 @@ var StatusCmd = &cobra.Command{
 
 		var clusterSummary *k8s.ClusterSummary
 		clusterSummary, err = kubeClient.GetClusterSummary(namespace)
-		sentryKubeContext.ClusterReport.ClusterSummary = clusterSummary
+		sentryKubeContext.ClusterReport = &k8s.ClusterReport{
+			ClusterSummary: clusterSummary,
+		}
 		sentryKubeContext.SetOnCurrentScope()
 		if err != nil {
 			return err
