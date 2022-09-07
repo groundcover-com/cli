@@ -74,10 +74,6 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = validateCluster(cmd.Context(), kubeClient, namespace, sentryKubeContext); err != nil {
-		return err
-	}
-
 	var clusterName string
 	if clusterName, err = getClusterName(kubeClient); err != nil {
 		return err
@@ -105,6 +101,10 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		if !shouldRedeploy {
 			return nil
 		}
+	}
+
+	if err = validateCluster(cmd.Context(), kubeClient, namespace, sentryKubeContext); err != nil {
+		return err
 	}
 
 	var nodesSummeries []k8s.NodeSummary
@@ -382,13 +382,13 @@ func hasAllowedKernelVersions(nodes []*k8s.NodeReport) bool {
 
 func hasCpuSufficient(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "CpuSufficient")
-	ui.PrintStatus(allowedCount > 0, "Sufficient node CPU (%d/%d Nodes)\n", k8s.NodeMinimumCpuRequired.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Sufficient node CPU (%d/%d Nodes)\n", allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasMemorySufficient(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "MemorySufficient")
-	ui.PrintStatus(allowedCount > 0, "Sufficient node memory (%d/%d Nodes)\n", k8s.NodeMinimumMemoryRequired.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Sufficient node memory (%d/%d Nodes)\n", allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
