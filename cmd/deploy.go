@@ -346,12 +346,12 @@ func defaultChartValues(clusterName, apikey string) map[string]interface{} {
 func validateCompatibleNodes(nodes []*k8s.NodeReport) bool {
 	fmt.Println("\nValidating cluster nodes compatibility:")
 
-	return hasAllowedKernelVersions(nodes) &&
+	return hasOperatingSystemAllowed(nodes) &&
+		hasAllowedKernelVersions(nodes) &&
 		hasCpuSufficient(nodes) &&
 		hasMemorySufficient(nodes) &&
 		hasProviderAllowed(nodes) &&
-		hasArchitectureAllowed(nodes) &&
-		hasOperatingSystemAllowed(nodes)
+		hasArchitectureAllowed(nodes)
 }
 
 func hasAllowedClusterServerVersion(serverVersionAllowed k8s.Requirement) bool {
@@ -372,13 +372,13 @@ func hasAllowedKernelVersions(nodes []*k8s.NodeReport) bool {
 
 func hasCpuSufficient(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "CpuSufficient")
-	ui.PrintStatus(allowedCount > 0, "Node CPU > %s (%d/%d Nodes)\n", k8s.NodeMinimumCpuRequired.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Sufficient node CPU (%d/%d Nodes)\n", k8s.NodeMinimumCpuRequired.String(), allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasMemorySufficient(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "MemorySufficient")
-	ui.PrintStatus(allowedCount > 0, "Node memory > %s (%d/%d Nodes)\n", k8s.NodeMinimumMemoryRequired.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Sufficient node memory (%d/%d Nodes)\n", k8s.NodeMinimumMemoryRequired.String(), allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
