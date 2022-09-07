@@ -1,8 +1,6 @@
 package sentry
 
 import (
-	"math"
-
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
 	"groundcover.com/pkg/k8s"
@@ -34,16 +32,20 @@ type KubeContext struct {
 
 func NewKubeContext(kubeconfig, kubecontext, namespace string) *KubeContext {
 	return &KubeContext{
-		Namespace:         namespace,
-		Kubeconfig:        kubeconfig,
-		Kubecontext:       kubecontext,
-		NodeReportSamples: make([]*k8s.NodeReport, MAX_NODE_REPORT_SAMPLES),
+		Namespace:   namespace,
+		Kubeconfig:  kubeconfig,
+		Kubecontext: kubecontext,
 	}
 }
 
-func (context KubeContext) SetNodeReportsSamples(nodeReports []*k8s.NodeReport) {
-	samplesSize := math.Min(MAX_NODE_REPORT_SAMPLES, float64(len(nodeReports)))
-	copy(context.NodeReportSamples, nodeReports[:int(samplesSize)])
+func (context *KubeContext) SetNodeReportsSamples(nodeReports []*k8s.NodeReport) {
+	samplesSize := len(nodeReports)
+	if samplesSize > MAX_NODE_REPORT_SAMPLES {
+		samplesSize = MAX_NODE_REPORT_SAMPLES
+	}
+
+	context.NodeReportSamples = make([]*k8s.NodeReport, samplesSize)
+	copy(context.NodeReportSamples, nodeReports)
 }
 
 func (context KubeContext) SetOnCurrentScope() {

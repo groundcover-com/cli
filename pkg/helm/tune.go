@@ -98,22 +98,22 @@ func tuneBackendResourcesValues(allocatableResources *AllocatableResources) (str
 
 func calcAllocatableResources(nodeReports []*k8s.NodeReport) *AllocatableResources {
 	allocatableResources := &AllocatableResources{
-		MinCpu:      nodeReports[0].NodeSummary.CPU,
-		MinMemory:   nodeReports[0].NodeSummary.Memory,
+		MinCpu:      nodeReports[0].CPU,
+		MinMemory:   nodeReports[0].Memory,
 		TotalCpu:    &resource.Quantity{},
 		TotalMemory: &resource.Quantity{},
 	}
 
 	for _, nodeReport := range nodeReports {
-		allocatableResources.TotalCpu.Add(*nodeReport.NodeSummary.CPU)
-		allocatableResources.TotalMemory.Add(*nodeReport.NodeSummary.Memory)
+		allocatableResources.TotalCpu.Add(*nodeReport.CPU)
+		allocatableResources.TotalMemory.Add(*nodeReport.Memory)
 
-		if allocatableResources.MinCpu.Cmp(*nodeReport.NodeSummary.CPU) > 0 {
-			allocatableResources.MinCpu = nodeReport.NodeSummary.CPU
+		if allocatableResources.MinCpu.Cmp(*nodeReport.CPU) > 0 {
+			allocatableResources.MinCpu = nodeReport.CPU
 		}
 
-		if allocatableResources.MinMemory.Cmp(*nodeReport.NodeSummary.Memory) > 0 {
-			allocatableResources.MinMemory = nodeReport.NodeSummary.Memory
+		if allocatableResources.MinMemory.Cmp(*nodeReport.Memory) > 0 {
+			allocatableResources.MinMemory = nodeReport.Memory
 		}
 	}
 

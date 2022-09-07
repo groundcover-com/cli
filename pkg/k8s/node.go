@@ -100,8 +100,8 @@ type NodeMinimumRequirements struct {
 }
 
 type NodeReport struct {
+	*NodeSummary
 	IsCompatible           bool
-	NodeSummary            *NodeSummary
 	KernelVersionAllowed   Requirement
 	CpuSufficient          Requirement
 	MemorySufficient       Requirement

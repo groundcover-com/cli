@@ -292,6 +292,8 @@ func checkClusterNodes(sentryKubeContext *sentry_utils.KubeContext, nodesCount i
 	nodes := append(compatible, incompatible...)
 
 	sentryKubeContext.SetNodeReportsSamples(compatible)
+	sentryKubeContext.SetOnCurrentScope()
+
 	if len(incompatible) > 0 {
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
 		sentryKubeContext.IncompatibleNodeReports = incompatible
