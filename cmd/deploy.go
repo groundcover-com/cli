@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/fatih/color"
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -28,7 +27,6 @@ const (
 	REPOSITORY_URL_KEY_NAME_FLAG  = "git-repository-url-key-name"
 	GROUNDCOVER_URL               = "https://app.groundcover.com"
 	HELM_REPO_URL                 = "https://helm.groundcover.com"
-	FLOWERS                       = "\u2743\u2743\u2743"
 )
 
 func init() {
@@ -156,7 +154,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	if err = apiClient.PollIsClusterExist(clusterName); err != nil {
 		return err
 	}
-	fmt.Println("\nThat was easy. groundcover installed! " + color.BlueString(FLOWERS))
+	fmt.Println("\nThat was easy. groundcover installed!")
 	utils.TryOpenBrowser("Check out:", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
 
 	sentry.CaptureMessage("deploy executed successfully")
