@@ -22,17 +22,13 @@ We use the following categories for changes:
 
 ### Fixed
 
+- cluster report metrics fix [#sc-4657]
+
 ### Removed
 
 ### Deprecated
 
 ### Security
-
-## [0.3.1] 2022-09-07
-
-### Fixed
-
-- cluster report metrics fix [#sc-4657]
 
 ## [0.3.0] 2022-09-07
 
