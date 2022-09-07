@@ -66,7 +66,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext, namespace)
+	sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 	sentryKubeContext.SetOnCurrentScope()
 
 	var kubeClient *k8s.Client
@@ -74,13 +74,14 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if err = validateCluster(cmd.Context(), kubeClient, namespace, sentryKubeContext); err != nil {
+		return err
+	}
+
 	var clusterName string
 	if clusterName, err = getClusterName(kubeClient); err != nil {
 		return err
 	}
-
-	sentryKubeContext.Cluster = clusterName
-	sentryKubeContext.SetOnCurrentScope()
 
 	sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
 	sentryHelmContext.SetOnCurrentScope()
@@ -104,10 +105,6 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		if !shouldRedeploy {
 			return nil
 		}
-	}
-
-	if err = validateCluster(cmd.Context(), kubeClient, namespace, sentryKubeContext); err != nil {
-		return err
 	}
 
 	var nodesSummeries []k8s.NodeSummary
@@ -179,17 +176,25 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	var err error
 
 	fmt.Println("Validating cluster compatibility:")
-	clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, kubeClient, namespace)
+
+	var clusterSummary *k8s.ClusterSummary
+	if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
+		sentryKubeContext.ClusterReport.ClusterSummary = clusterSummary
+		sentryKubeContext.SetOnCurrentScope()
+		return err
+	}
+
+	clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, kubeClient, clusterSummary)
 
 	sentryKubeContext.ClusterReport = clusterReport
 	sentryKubeContext.SetOnCurrentScope()
 
-	if !hasAllowedClusterServerVersion(clusterReport.ServerVersionAllowed) {
-		return fmt.Errorf(clusterReport.ServerVersionAllowed.Message)
+	if !hasAllowedClusterType(clusterReport.ClusterTypeAllowed) {
+		return fmt.Errorf(clusterReport.ClusterTypeAllowed.Message)
 	}
 
-	if sentryKubeContext.ServerVersion, err = kubeClient.Discovery().ServerVersion(); err != nil {
-		return err
+	if !hasAllowedClusterServerVersion(clusterReport.ServerVersionAllowed) {
+		return fmt.Errorf(clusterReport.ServerVersionAllowed.Message)
 	}
 
 	if !hasUserAuthorized(clusterReport.UserAuthorized) {
@@ -352,6 +357,11 @@ func validateCompatibleNodes(nodes []*k8s.NodeReport) bool {
 		hasMemorySufficient(nodes) &&
 		hasProviderAllowed(nodes) &&
 		hasArchitectureAllowed(nodes)
+}
+
+func hasAllowedClusterType(clusterTypeAllowd k8s.Requirement) bool {
+	ui.PrintStatus(clusterTypeAllowd.IsCompatible, "K8s cluster type supported\n")
+	return clusterTypeAllowd.IsCompatible
 }
 
 func hasAllowedClusterServerVersion(serverVersionAllowed k8s.Requirement) bool {

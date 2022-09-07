@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
+	"github.com/pkg/errors"
 	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/version"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -19,6 +20,11 @@ var (
 	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 12}
 	DefaultClusterRequirements  = &ClusterRequirements{
 		ServerVersion: MinimumServerVersionSupport,
+		BlockedTypes: []string{
+			"minikube",
+			"kind-kind",
+			"docker-desktop",
+		},
 		Actions: []*authv1.ResourceAttributes{
 			{
 				Verb:     "*",
@@ -79,45 +85,73 @@ var (
 type ClusterRequirements struct {
 	Actions       []*authv1.ResourceAttributes
 	ServerVersion semver.Version
+	BlockedTypes  []string
+}
+
+type ClusterSummary struct {
+	Namespace     string
+	ClusterName   string
+	ServerVersion semver.Version
+}
+
+func (kubeClient *Client) GetClusterSummary(namespace string) (*ClusterSummary, error) {
+	var err error
+
+	clusterSummary := &ClusterSummary{
+		Namespace: namespace,
+	}
+
+	if clusterSummary.ClusterName, err = kubeClient.GetClusterName(); err != nil {
+		return clusterSummary, err
+	}
+
+	if clusterSummary.ServerVersion, err = kubeClient.GetServerVersion(); err != nil {
+		return clusterSummary, err
+	}
+
+	return clusterSummary, nil
 }
 
 type ClusterReport struct {
+	*ClusterSummary
 	IsCompatible         bool
 	UserAuthorized       Requirement
 	ServerVersionAllowed Requirement
+	ClusterTypeAllowed   Requirement
 }
 
-func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, namespace string) *ClusterReport {
+func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, clusterSummary *ClusterSummary) *ClusterReport {
 	clusterReport := &ClusterReport{
-		ServerVersionAllowed: clusterRequirements.validateServerVersion(client),
-		UserAuthorized:       clusterRequirements.validateAuthorization(ctx, client, namespace),
+		ClusterSummary:       clusterSummary,
+		ClusterTypeAllowed:   clusterRequirements.validateClusterType(clusterSummary.ClusterName),
+		ServerVersionAllowed: clusterRequirements.validateServerVersion(clusterSummary.ServerVersion),
+		UserAuthorized:       clusterRequirements.validateAuthorization(ctx, client, clusterSummary.Namespace),
 	}
 
 	clusterReport.IsCompatible = clusterReport.ServerVersionAllowed.IsCompatible &&
-		clusterReport.UserAuthorized.IsCompatible
+		clusterReport.UserAuthorized.IsCompatible &&
+		clusterReport.ClusterTypeAllowed.IsCompatible
 
 	return clusterReport
 }
 
-func (clusterRequirements ClusterRequirements) validateServerVersion(client *Client) Requirement {
-	var err error
-
-	var versionInfo *version.Info
-	if versionInfo, err = client.Discovery().ServerVersion(); err != nil {
-		return Requirement{
-			IsCompatible: false,
-			Message:      err.Error(),
+func (clusterRequirements ClusterRequirements) validateClusterType(clusterName string) Requirement {
+	for _, blockedType := range clusterRequirements.BlockedTypes {
+		if strings.Contains(clusterName, blockedType) {
+			return Requirement{
+				IsCompatible: false,
+				Message:      fmt.Sprintf("%s is unsupported cluster type", clusterName),
+			}
 		}
 	}
 
-	var serverVersion semver.Version
-	if serverVersion, err = semver.ParseTolerant(versionInfo.GitVersion); err != nil {
-		return Requirement{
-			IsCompatible: false,
-			Message:      fmt.Sprintf("unknown server version: %s", versionInfo),
-		}
+	return Requirement{
+		IsCompatible: true,
+		Message:      "Cluster type is supported",
 	}
+}
 
+func (clusterRequirements ClusterRequirements) validateServerVersion(serverVersion semver.Version) Requirement {
 	if serverVersion.LT(clusterRequirements.ServerVersion) {
 		return Requirement{
 			IsCompatible: false,
@@ -202,4 +236,20 @@ func extractRegexClusterName(regex *regexp.Regexp, clusterName string) (string, 
 	}
 
 	return subMatch[subIndex], nil
+}
+
+func (kubeClient Client) GetServerVersion() (semver.Version, error) {
+	var err error
+	var serverVersion semver.Version
+
+	var versionInfo *version.Info
+	if versionInfo, err = kubeClient.Discovery().ServerVersion(); err != nil {
+		return serverVersion, err
+	}
+
+	if serverVersion, err = semver.ParseTolerant(versionInfo.GitVersion); err != nil {
+		return serverVersion, errors.Wrapf(err, "unknown server version %s", versionInfo.GitVersion)
+	}
+
+	return serverVersion, nil
 }

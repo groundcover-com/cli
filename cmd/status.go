@@ -40,7 +40,7 @@ var StatusCmd = &cobra.Command{
 		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 		releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
-		sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext, namespace)
+		sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 		sentryKubeContext.SetOnCurrentScope()
 
 		var kubeClient *k8s.Client
@@ -48,10 +48,13 @@ var StatusCmd = &cobra.Command{
 			return err
 		}
 
-		if sentryKubeContext.ServerVersion, err = kubeClient.Discovery().ServerVersion(); err != nil {
+		var clusterSummary *k8s.ClusterSummary
+		clusterSummary, err = kubeClient.GetClusterSummary(namespace)
+		sentryKubeContext.ClusterReport.ClusterSummary = clusterSummary
+		sentryKubeContext.SetOnCurrentScope()
+		if err != nil {
 			return err
 		}
-		sentryKubeContext.SetOnCurrentScope()
 
 		sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
 		sentryHelmContext.SetOnCurrentScope()

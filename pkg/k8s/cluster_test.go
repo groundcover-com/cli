@@ -30,15 +30,50 @@ func TestKubeClusterTestSuite(t *testing.T) {
 	suite.Run(t, &KubeClusterTestSuite{})
 }
 
+func (suite *KubeClusterTestSuite) TestGetServerVersionSuccess() {
+	//prepare
+
+	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
+		Major:      "1",
+		Minor:      "24",
+		GitVersion: "v1.24.1",
+	}
+
+	//act
+
+	serverVersion, err := suite.KubeClient.GetServerVersion()
+	suite.NoError(err)
+
+	// assert
+	expected := semver.Version{Major: 1, Minor: 24, Patch: 1}
+
+	suite.Equal(expected, serverVersion)
+}
+
+func (suite *KubeClusterTestSuite) TestServerVersionUnknown() {
+	//prepare
+	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
+		Major:      "1",
+		Minor:      "23",
+		GitVersion: "v1.23+.4",
+	}
+
+	//act
+	_, err := suite.KubeClient.GetServerVersion()
+
+	// assert
+	suite.ErrorContains(err, "unknown server version v1.23+.4")
+}
+
 func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 	//prepare
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
-		Major:      "1",
-		Minor:      "24",
-		GitVersion: "v1.24.1-test",
+	clusterSummary := &k8s.ClusterSummary{
+		ClusterName:   "test",
+		Namespace:     "default",
+		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
 	//act
@@ -47,11 +82,12 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
-	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, "default")
+	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
 
 	// assert
 	expected := &k8s.ClusterReport{
-		IsCompatible: true,
+		ClusterSummary: clusterSummary,
+		IsCompatible:   true,
 		ServerVersionAllowed: k8s.Requirement{
 			IsCompatible: true,
 			Message:      "K8s version >= 1.24.0",
@@ -59,6 +95,10 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 		UserAuthorized: k8s.Requirement{
 			IsCompatible: true,
 			Message:      "User authorized",
+		},
+		ClusterTypeAllowed: k8s.Requirement{
+			IsCompatible: true,
+			Message:      "Cluster type is supported",
 		},
 	}
 
@@ -70,6 +110,12 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
+	clusterSummary := &k8s.ClusterSummary{
+		ClusterName:   "test",
+		Namespace:     "default",
+		ServerVersion: semver.Version{Major: 1, Minor: 24},
+	}
+
 	//act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions: []*authv1.ResourceAttributes{
@@ -80,7 +126,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
 		},
 	}
 
-	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, "default")
+	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
 
 	// assert
 	expected := k8s.Requirement{
@@ -96,6 +142,12 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
+	clusterSummary := &k8s.ClusterSummary{
+		ClusterName:   "test",
+		Namespace:     "default",
+		ServerVersion: semver.Version{Major: 1, Minor: 23},
+	}
+
 	//act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions: []*authv1.ResourceAttributes{
@@ -110,7 +162,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
 		},
 	}
 
-	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, "default")
+	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
 
 	// assert
 	expected := k8s.Requirement{
@@ -126,10 +178,10 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
-		Major:      "1",
-		Minor:      "23",
-		GitVersion: "v1.23.0-test",
+	clusterSummary := &k8s.ClusterSummary{
+		ClusterName:   "test",
+		Namespace:     "default",
+		ServerVersion: semver.Version{Major: 1, Minor: 23},
 	}
 
 	//act
@@ -138,41 +190,42 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
-	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, "default")
+	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
 
 	// assert
 	expected := k8s.Requirement{
 		IsCompatible: false,
-		Message:      "1.23.0-test is unsupported cluster version - minimal: 1.24.0",
+		Message:      "1.23.0 is unsupported cluster version - minimal: 1.24.0",
 	}
 
 	suite.Equal(expected, clusterReport.ServerVersionAllowed)
 }
 
-func (suite *KubeClusterTestSuite) TestClusterReportServerVersionUnknown() {
+func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
 	//prepare
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
-		Major:      "1",
-		Minor:      "23",
-		GitVersion: "v1.23+.4",
+	clusterSummary := &k8s.ClusterSummary{
+		Namespace:     "default",
+		ClusterName:   "minikube",
+		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
 	//act
 	clusterRequirements := k8s.ClusterRequirements{
+		BlockedTypes:  []string{"minikube"},
 		Actions:       []*authv1.ResourceAttributes{},
-		ServerVersion: semver.Version{Major: 1, Minor: 23},
+		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
-	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, "default")
+	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
 
 	// assert
 	expected := k8s.Requirement{
 		IsCompatible: false,
-		Message:      "unknown server version: v1.23+.4",
+		Message:      "minikube is unsupported cluster type",
 	}
 
-	suite.Equal(expected, clusterReport.ServerVersionAllowed)
+	suite.Equal(expected, clusterReport.ClusterTypeAllowed)
 }
