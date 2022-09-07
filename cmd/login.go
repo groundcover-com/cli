@@ -46,7 +46,7 @@ func attemptAuth0Login() (*auth.Auth0Token, error) {
 		return nil, err
 	}
 
-	utils.TryOpenBrowser(deviceCode.VerificationURIComplete)
+	utils.TryOpenBrowser("Browse to: ", deviceCode.VerificationURIComplete)
 
 	var auth0Token auth.Auth0Token
 	if err = deviceCode.PollToken(&auth0Token); err != nil {

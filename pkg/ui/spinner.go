@@ -23,7 +23,7 @@ type Spinner struct {
 func NewSpinner(message string) *Spinner {
 	cfg := yacspin.Config{
 		Frequency:         100 * time.Millisecond,
-		Colors:            []string{"fgGreen"},
+		Colors:            []string{"fgBlue"},
 		CharSet:           yacspin.CharSets[spinnerCharset],
 		SuffixAutoColon:   true,
 		Suffix:            " ",

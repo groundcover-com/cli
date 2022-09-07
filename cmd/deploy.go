@@ -113,7 +113,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Deploying groundcover to cluster %s!\n", clusterName)
+	fmt.Printf("\nDeploying groundcover to cluster %s!\n", clusterName)
 
 	expectedAlligatorsCount, err := helmInstallation(cmd.Context(), helmClient, sentryHelmContext, clusterName, apiKey, compatible, releaseName, namespace, nodesCount, kubeClient)
 	if err != nil {
@@ -130,7 +130,9 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	utils.TryOpenBrowser(fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
+	fmt.Println("\ngroundcover is installed successfully! 🎉🎉🎉")
+	utils.TryOpenBrowser("Browse to:", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
+
 	sentry.CaptureMessage("deploy executed successfully")
 	return nil
 }
@@ -330,7 +332,7 @@ func defaultChartValues(clusterName, apikey string) map[string]interface{} {
 }
 
 func validateCompatibleNodes(nodes []*k8s.NodeReport) bool {
-	fmt.Println("Validating cluster nodes are compatible with groundcover installation:")
+	fmt.Println("\nValidating cluster nodes are compatible with groundcover installation:")
 
 	return hasAllowedKernelVersions(nodes) &&
 		hasCpuSufficient(nodes) &&
@@ -352,37 +354,37 @@ func hasUserAuthorized(userAuthorized k8s.Requirement) bool {
 
 func hasAllowedKernelVersions(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "KernelVersionAllowed")
-	ui.PrintStatus(allowedCount > 0, "Kernel version > %s (%d/%d)\n", k8s.MinimumKernelVersionSupport.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Kernel version > %s (%d/%d Nodes)\n", k8s.MinimumKernelVersionSupport.String(), allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasCpuSufficient(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "CpuSufficient")
-	ui.PrintStatus(allowedCount > 0, "Sufficient CPU > %s (%d/%d)\n", k8s.NodeMinimumCpuRequired.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Sufficient CPU > %s (%d/%d Nodes)\n", k8s.NodeMinimumCpuRequired.String(), allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasMemorySufficient(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "MemorySufficient")
-	ui.PrintStatus(allowedCount > 0, "Sufficient Memory > %s (%d/%d)\n", k8s.NodeMinimumMemoryRequired.String(), allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Sufficient Memory > %s (%d/%d Nodes)\n", k8s.NodeMinimumMemoryRequired.String(), allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasProviderAllowed(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "ProviderAllowed")
-	ui.PrintStatus(allowedCount > 0, "Provider Allowed (%d/%d)\n", allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Provider Allowed (%d/%d Nodes)\n", allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasArchitectureAllowed(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "ArchitectureAllowed")
-	ui.PrintStatus(allowedCount > 0, "Architecture Allowed (%d/%d)\n", allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Architecture Allowed (%d/%d Nodes)\n", allowedCount, len(nodes))
 	return allowedCount > 0
 }
 
 func hasOperatingSystemAllowed(nodes []*k8s.NodeReport) bool {
 	allowedCount := isNodePropertySupported(nodes, "OperatingSystemAllowed")
-	ui.PrintStatus(allowedCount > 0, "Operating System Allowed (%d/%d)\n", allowedCount, len(nodes))
+	ui.PrintStatus(allowedCount > 0, "Operating System Allowed (%d/%d Nodes)\n", allowedCount, len(nodes))
 	return allowedCount > 0
 }
 

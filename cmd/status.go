@@ -20,7 +20,7 @@ import (
 const (
 	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 3
 	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
-	WAIT_FOR_ALLIGATORS_FORMAT  = "Waiting until all nodes are monitored (%d/%d)"
+	WAIT_FOR_ALLIGATORS_FORMAT  = "Waiting until all nodes are monitored (%d/%d Nodes are monitored)"
 	ALLIGATOR_LABEL_SELECTOR    = "app=alligator"
 	ALLIGATOR_FIELD_SELECTOR    = "status.phase=Running"
 )
@@ -120,12 +120,12 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
 		spinner.SetWarningSign()
-		spinner.StopFailMessage(fmt.Sprintf("Timeout waiting for all nodes to be monitored (%d/%d)", runningAlligators, expectedAlligatorsCount))
+		spinner.StopFailMessage(fmt.Sprintf("Timeout waiting for all nodes to be monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
 		spinner.StopFail()
 		return nil
 	}
 
-	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d)", expectedAlligatorsCount, expectedAlligatorsCount))
+	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
 	return err
 }
 
