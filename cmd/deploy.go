@@ -179,7 +179,9 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 
 	var clusterSummary *k8s.ClusterSummary
 	if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
-		sentryKubeContext.ClusterReport.ClusterSummary = clusterSummary
+		sentryKubeContext.ClusterReport = &k8s.ClusterReport{
+			ClusterSummary: clusterSummary,
+		}
 		sentryKubeContext.SetOnCurrentScope()
 		return err
 	}
