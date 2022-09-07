@@ -79,7 +79,7 @@ var UninstallCmd = &cobra.Command{
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
 
 		promptMessage := fmt.Sprintf(
-			"Current groundcover installation in your cluster: (cluster: %s, namespace: %s, version: %s). Are you sure you want to uninstall?",
+			"Current groundcover installation in your cluster: (cluster: %s, namespace: %s, version: %s).\nAre you sure you want to uninstall?",
 			clusterName, namespace, release.Version(),
 		)
 		if !ui.YesNoPrompt(promptMessage, false) {
