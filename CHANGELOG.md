@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- cluster report metrics fix [#sc-4657]
+
 ### Removed
 
 ### Deprecated
