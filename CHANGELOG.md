@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- print validation errors in ui [#sc-4660]
+
 ### Changed
 
 ### Fixed

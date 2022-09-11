@@ -201,7 +201,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 	expected := k8s.Requirement{
 		IsCompatible:  false,
 		Message:       "K8s server version >= 1.24.0",
-		ErrorMessages: []string{"unsupported kernel version 1.23.0"},
+		ErrorMessages: []string{"1.23.0 is unsupported K8s version"},
 	}
 
 	suite.Equal(expected, clusterReport.ServerVersionAllowed)

@@ -13,6 +13,12 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
+const (
+	CLUSTER_TYPE_REPORT_MESSAGE_FORMAT          = "K8s cluster type supported"
+	CLUSTER_VERSION_REPORT_MESSAGE_FORMAT       = "K8s server version >= %s"
+	CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT = "K8s user authorized for groundcover installation"
+)
+
 var (
 	GKE_CLUSTER_REGEX = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
 	EKS_CLUSTER_REGEX = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
@@ -159,7 +165,7 @@ func (clusterRequirements ClusterRequirements) validateClusterType(clusterName s
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
-	requirement.Message = "K8s cluster type supported"
+	requirement.Message = CLUSTER_TYPE_REPORT_MESSAGE_FORMAT
 
 	return requirement
 }
@@ -168,11 +174,11 @@ func (clusterRequirements ClusterRequirements) validateServerVersion(serverVersi
 	var requirement Requirement
 
 	if serverVersion.LT(clusterRequirements.ServerVersion) {
-		requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("unsupported kernel version %s", serverVersion))
+		requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("%s is unsupported K8s version", serverVersion))
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
-	requirement.Message = fmt.Sprintf("K8s server version >= %s", clusterRequirements.ServerVersion)
+	requirement.Message = fmt.Sprintf(CLUSTER_VERSION_REPORT_MESSAGE_FORMAT, clusterRequirements.ServerVersion)
 
 	return requirement
 }
@@ -195,7 +201,7 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
-	requirement.Message = "K8s user authorized for groundcover installation"
+	requirement.Message = CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT
 
 	return requirement
 }
