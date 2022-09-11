@@ -20,6 +20,12 @@ func GetSentryClientOptions(environment, release string) sentry.ClientOptions {
 		Dsn:            PROD_DSN,
 		Release:        release,
 		Environment:    environment,
+		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+			for index, exception := range event.Exception {
+				event.Exception[index].Type = exception.Value
+			}
+			return event
+		},
 	}
 
 	if environment == "dev" {
