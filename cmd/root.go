@@ -123,7 +123,7 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 		return false, nil
 	}
 
-	promptFormat := "Your version %s is out of date! The latest version is %s. Do you want to update?"
+	promptFormat := "Your groundcover cli version %s is out of date! The latest cli version is %s. Do you want to update your cli?"
 	shouldUpdate := ui.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
 
 	if shouldUpdate {
