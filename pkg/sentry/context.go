@@ -18,12 +18,12 @@ type SentryContext interface {
 }
 
 type KubeContext struct {
-	NodesCount    int                `json:",omitempty"`
-	Kubeconfig    string             `json:",omitempty"`
-	Kubecontext   string             `json:",omitempty"`
-	ClusterReport *k8s.ClusterReport `json:",omitempty"`
-	NodesReport   *k8s.NodesReport   `json:",omitempty"`
-	NodeSamples   []*k8s.NodeSummary `json:",omitempty"`
+	NodesCount              int                     `json:",omitempty"`
+	Kubeconfig              string                  `json:",omitempty"`
+	Kubecontext             string                  `json:",omitempty"`
+	ClusterReport           *k8s.ClusterReport      `json:",omitempty"`
+	CompatibleNodeSamples   []*k8s.NodeSummary      `json:",omitempty"`
+	IncompatibleNodeSamples []*k8s.IncompatibleNode `json:",omitempty"`
 }
 
 func NewKubeContext(kubeconfig, kubecontext string) *KubeContext {
@@ -33,14 +33,22 @@ func NewKubeContext(kubeconfig, kubecontext string) *KubeContext {
 	}
 }
 
-func (context *KubeContext) SetNodesSamples(nodeReports []*k8s.NodeSummary) {
-	samplesSize := len(nodeReports)
-	if samplesSize > MAX_NODE_REPORT_SAMPLES {
-		samplesSize = MAX_NODE_REPORT_SAMPLES
+func (context *KubeContext) SetNodesSamples(nodesReport *k8s.NodesReport) {
+	compatibleSamplesSize := len(nodesReport.CompatibleNodes)
+	if compatibleSamplesSize > MAX_NODE_REPORT_SAMPLES {
+		compatibleSamplesSize = MAX_NODE_REPORT_SAMPLES
 	}
 
-	context.NodeSamples = make([]*k8s.NodeSummary, samplesSize)
-	copy(context.NodeSamples, nodeReports)
+	context.CompatibleNodeSamples = make([]*k8s.NodeSummary, compatibleSamplesSize)
+	copy(context.CompatibleNodeSamples, nodesReport.CompatibleNodes)
+
+	incompatibleSamplesSize := len(nodesReport.IncompatibleNodes)
+	if incompatibleSamplesSize > MAX_NODE_REPORT_SAMPLES {
+		incompatibleSamplesSize = MAX_NODE_REPORT_SAMPLES
+	}
+
+	context.IncompatibleNodeSamples = make([]*k8s.IncompatibleNode, incompatibleSamplesSize)
+	copy(context.IncompatibleNodeSamples, nodesReport.IncompatibleNodes)
 }
 
 func (context KubeContext) SetOnCurrentScope() {
