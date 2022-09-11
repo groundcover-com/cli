@@ -204,7 +204,7 @@ func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterNa
 	} else {
 		promptMessage = fmt.Sprintf(
 			"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
-			clusterName, namespace, len(nodesReport.CompatibleNodes), len(nodesReport.InCompatibleNodes)+len(nodesReport.CompatibleNodes), chart.Version(),
+			clusterName, namespace, len(nodesReport.CompatibleNodes), len(nodesReport.IncompatibleNodes)+len(nodesReport.CompatibleNodes), chart.Version(),
 		)
 	}
 

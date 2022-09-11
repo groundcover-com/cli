@@ -127,8 +127,20 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 	// assert
 
 	expected := &k8s.NodesReport{
-		CompatibleNodes:   nodesSummeries[:1],
-		InCompatibleNodes: nodesSummeries[1:2],
+		CompatibleNodes: nodesSummeries[:1],
+		IncompatibleNodes: []*k8s.IncompatibleNode{
+			{
+				NodeSummary: nodesSummeries[1],
+				RequirementErrors: []string{
+					"insufficient cpu 500m < 1750m",
+					"insufficient memory 1G < 1750Mi",
+					"fargate is unsupported provider",
+					"4.13.0 is unsupported kernel version",
+					"arm64 is unspported architecture",
+					"windows is unspported operating system",
+				},
+			},
+		},
 		KernelVersionAllowed: k8s.Requirement{
 			IsCompatible:  false,
 			Message:       "Kernel version >= 4.14.0 (1/2 Nodes)",

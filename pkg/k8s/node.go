@@ -93,8 +93,8 @@ type NodesReport struct {
 	ProviderAllowed        Requirement
 	ArchitectureAllowed    Requirement
 	OperatingSystemAllowed Requirement
-	CompatibleNodes        []*NodeSummary `json:"-"`
-	InCompatibleNodes      []*NodeSummary `json:",omitempty"`
+	CompatibleNodes        []*NodeSummary      `json:"-"`
+	IncompatibleNodes      []*IncompatibleNode `json:",omitempty"`
 }
 
 func (nodesReport *NodesReport) PrintStatus() {
@@ -106,45 +106,74 @@ func (nodesReport *NodesReport) PrintStatus() {
 	nodesReport.ProviderAllowed.PrintStatus()
 }
 
+type IncompatibleNode struct {
+	*NodeSummary
+	RequirementErrors []string
+}
+
 func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*NodeSummary) *NodesReport {
 	var err error
 	var nodesReport NodesReport
 
 	for _, nodeSummary := range nodesSummeries {
-		isCompatible := true
+		var requirementErrors []string
 
 		if err = nodeRequirements.validateNodeCPU(nodeSummary); err != nil {
-			isCompatible = false
-			nodesReport.CpuSufficient.ErrorMessages = append(nodesReport.CpuSufficient.ErrorMessages, err.Error())
+			requirementErrors = append(requirementErrors, err.Error())
+			nodesReport.CpuSufficient.ErrorMessages = append(
+				nodesReport.CpuSufficient.ErrorMessages,
+				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
+			)
 		}
 
 		if err = nodeRequirements.validateNodeMemory(nodeSummary); err != nil {
-			isCompatible = false
-			nodesReport.MemorySufficient.ErrorMessages = append(nodesReport.MemorySufficient.ErrorMessages, err.Error())
+			requirementErrors = append(requirementErrors, err.Error())
+			nodesReport.MemorySufficient.ErrorMessages = append(
+				nodesReport.MemorySufficient.ErrorMessages,
+				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
+			)
 		}
 
 		if err = nodeRequirements.validateNodeProvider(nodeSummary); err != nil {
-			isCompatible = false
-			nodesReport.ProviderAllowed.ErrorMessages = append(nodesReport.ProviderAllowed.ErrorMessages, err.Error())
+			requirementErrors = append(requirementErrors, err.Error())
+			nodesReport.ProviderAllowed.ErrorMessages = append(
+				nodesReport.ProviderAllowed.ErrorMessages,
+				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
+			)
 		}
 
 		if err = nodeRequirements.validateNodeKernelVersion(nodeSummary); err != nil {
-			isCompatible = false
-			nodesReport.KernelVersionAllowed.ErrorMessages = append(nodesReport.KernelVersionAllowed.ErrorMessages, err.Error())
+			requirementErrors = append(requirementErrors, err.Error())
+			nodesReport.KernelVersionAllowed.ErrorMessages = append(
+				nodesReport.KernelVersionAllowed.ErrorMessages,
+				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
+			)
 		}
 
 		if err = nodeRequirements.validateNodeArchitecture(nodeSummary); err != nil {
-			isCompatible = false
-			nodesReport.ArchitectureAllowed.ErrorMessages = append(nodesReport.ArchitectureAllowed.ErrorMessages, err.Error())
+			requirementErrors = append(requirementErrors, err.Error())
+			nodesReport.ArchitectureAllowed.ErrorMessages = append(
+				nodesReport.ArchitectureAllowed.ErrorMessages,
+				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
+			)
 		}
 
 		if err = nodeRequirements.validateNodeOperatingSystem(nodeSummary); err != nil {
-			isCompatible = false
-			nodesReport.OperatingSystemAllowed.ErrorMessages = append(nodesReport.OperatingSystemAllowed.ErrorMessages, err.Error())
+			requirementErrors = append(requirementErrors, err.Error())
+			nodesReport.OperatingSystemAllowed.ErrorMessages = append(
+				nodesReport.OperatingSystemAllowed.ErrorMessages,
+				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
+			)
 		}
 
-		if !isCompatible {
-			nodesReport.InCompatibleNodes = append(nodesReport.InCompatibleNodes, nodeSummary)
+		if len(requirementErrors) > 0 {
+			nodesReport.IncompatibleNodes = append(
+				nodesReport.IncompatibleNodes,
+				&IncompatibleNode{
+					NodeSummary:       nodeSummary,
+					RequirementErrors: requirementErrors,
+				},
+			)
 			continue
 		}
 
@@ -199,7 +228,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeCPU(nodeSummary *NodeSummary) error {
 	if nodeRequirements.CPUAmount.Cmp(*nodeSummary.CPU) > 0 {
-		return fmt.Errorf("node: %s - insufficient cpu %s < %s", nodeSummary.Name, nodeSummary.CPU, nodeRequirements.CPUAmount)
+		return fmt.Errorf("insufficient cpu %s < %s", nodeSummary.CPU, nodeRequirements.CPUAmount)
 	}
 
 	return nil
@@ -207,7 +236,7 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeCPU(nodeSummary *No
 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeMemory(nodeSummary *NodeSummary) error {
 	if nodeRequirements.MemoryAmount.Cmp(*nodeSummary.Memory) > 0 {
-		return fmt.Errorf("node: %s - insufficient memory %s < %s", nodeSummary.Name, nodeSummary.Memory, nodeRequirements.MemoryAmount)
+		return fmt.Errorf("insufficient memory %s < %s", nodeSummary.Memory, nodeRequirements.MemoryAmount)
 	}
 
 	return nil
@@ -216,7 +245,7 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeMemory(nodeSummary 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeProvider(nodeSummary *NodeSummary) error {
 	for _, blockedProvider := range nodeRequirements.BlockedProviders {
 		if strings.Contains(nodeSummary.Provider, blockedProvider) {
-			return fmt.Errorf("node: %s - %s is unsupported provider", nodeSummary.Name, blockedProvider)
+			return fmt.Errorf("%s is unsupported provider", blockedProvider)
 		}
 	}
 
@@ -228,11 +257,11 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeKernelVersion(nodeS
 
 	var kernelVersion semver.Version
 	if kernelVersion, err = semver.Parse(KERNEL_VERSION_REGEX.FindString(nodeSummary.Kernel)); err != nil {
-		return fmt.Errorf("node: %s - %s is unknown kernel version", nodeSummary.Name, nodeSummary.Kernel)
+		return fmt.Errorf("%s is unknown kernel version", nodeSummary.Kernel)
 	}
 
 	if nodeRequirements.KernelVersion.GT(kernelVersion) {
-		return fmt.Errorf("node: %s - %s is unsupported kernel version", nodeSummary.Name, nodeSummary.Kernel)
+		return fmt.Errorf("%s is unsupported kernel version", nodeSummary.Kernel)
 	}
 
 	return nil
@@ -245,7 +274,7 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeArchitecture(nodeSu
 		}
 	}
 
-	return fmt.Errorf("node: %s - %s is unspported architecture", nodeSummary.Name, nodeSummary.Architecture)
+	return fmt.Errorf("%s is unspported architecture", nodeSummary.Architecture)
 }
 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeOperatingSystem(nodeSummary *NodeSummary) error {
@@ -255,5 +284,5 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeOperatingSystem(nod
 		}
 	}
 
-	return fmt.Errorf("node: %s - %s is unspported operating system", nodeSummary.Name, nodeSummary.OperatingSystem)
+	return fmt.Errorf("%s is unspported operating system", nodeSummary.OperatingSystem)
 }
