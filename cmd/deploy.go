@@ -214,6 +214,8 @@ func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterNa
 func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseName string, chart *helm.Chart, chartValues map[string]interface{}) (*helm.Release, error) {
 	var err error
 
+	fmt.Println("\nIntalling groundcover:")
+
 	spinner := ui.NewSpinner("Installing groundcover helm release")
 	spinner.Start()
 	spinner.StopMessage("groundcover helm release is installed")
