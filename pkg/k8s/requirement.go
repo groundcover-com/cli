@@ -8,7 +8,7 @@ import (
 )
 
 type Requirement struct {
-	IsCompatible  bool     `json:",omitempty"`
+	IsCompatible  bool
 	Message       string   `json:"-"`
 	ErrorMessages []string `json:"-"`
 }
