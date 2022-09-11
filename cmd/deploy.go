@@ -160,10 +160,12 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 		return nil, err
 	}
 
+	sentryKubeContext.NodesCount = len(nodesSummeries)
+	sentryKubeContext.SetOnCurrentScope()
+
 	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
 
-	sentryKubeContext.NodesReport = nodesReport
-	sentryKubeContext.SetNodesSamples(nodesReport.CompatibleNodes)
+	sentryKubeContext.SetNodesSamples(nodesReport)
 	sentryKubeContext.SetOnCurrentScope()
 
 	nodesReport.PrintStatus()
