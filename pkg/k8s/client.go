@@ -4,10 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"strings"
 
-	"github.com/fatih/color"
-	"groundcover.com/pkg/ui"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -18,27 +15,6 @@ type Client struct {
 	kubernetes.Interface
 	clientcmd.ClientConfig
 	kubecontext string
-}
-
-type Requirement struct {
-	IsCompatible  bool     `json:",omitempty"`
-	Message       string   `json:"-"`
-	ErrorMessages []string `json:"-"`
-}
-
-func (requirement Requirement) PrintStatus() {
-	var messageBuffer strings.Builder
-
-	messageBuffer.WriteString(requirement.Message)
-	messageBuffer.WriteString("\n")
-
-	for _, errorMessage := range requirement.ErrorMessages {
-		messageBuffer.WriteString(color.RedString(ui.Bullet))
-		messageBuffer.WriteString(errorMessage)
-		messageBuffer.WriteString("\n")
-	}
-
-	ui.PrintStatus(requirement.IsCompatible, messageBuffer.String())
 }
 
 func NewKubeClient(kubeconfig, kubecontext string) (*Client, error) {
