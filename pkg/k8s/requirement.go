@@ -21,6 +21,7 @@ func (requirement Requirement) PrintStatus() {
 
 	for _, errorMessage := range requirement.ErrorMessages {
 		messageBuffer.WriteString(color.RedString(ui.Bullet))
+		messageBuffer.WriteString(" ")
 		messageBuffer.WriteString(errorMessage)
 		messageBuffer.WriteString("\n")
 	}
