@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
@@ -51,26 +50,26 @@ var DeployCmd = &cobra.Command{
 func runDeployCmd(cmd *cobra.Command, args []string) error {
 	var err error
 
+	ctx := cmd.Context()
 	namespace := viper.GetString(NAMESPACE_FLAG)
 	kubeconfig := viper.GetString(KUBECONFIG_FLAG)
 	kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 	releaseName := viper.GetString(HELM_RELEASE_FLAG)
-
-	var auth0Token auth.Auth0Token
-	if err = auth0Token.Load(); err != nil {
-		return err
-	}
-
-	var apiKey api.ApiKey
-	if err = apiKey.Load(); err != nil {
-		return err
-	}
 
 	sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 	sentryKubeContext.SetOnCurrentScope()
 
 	var kubeClient *k8s.Client
 	if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
+		return err
+	}
+
+	if err = validateCluster(ctx, kubeClient, namespace, sentryKubeContext); err != nil {
+		return err
+	}
+
+	var nodesReport *k8s.NodesReport
+	if nodesReport, err = validateNodes(ctx, kubeClient, sentryKubeContext); err != nil {
 		return err
 	}
 
@@ -87,89 +86,40 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	groundcoverInstalled, err := checkIfGroundcoverAlreadyInstalled(helmClient, releaseName)
-	if err != nil {
+	var chart *helm.Chart
+	if chart, err = getLatestChart(helmClient, sentryHelmContext); err != nil {
 		return err
 	}
 
-	if groundcoverInstalled {
-		shouldRedeploy, err := checkIfRedeployWanted(helmClient, releaseName, sentryHelmContext, clusterName, namespace)
-		if err != nil {
-			return err
-		}
-
-		if !shouldRedeploy {
-			return nil
-		}
-	}
-
-	if err = validateCluster(cmd.Context(), kubeClient, namespace, sentryKubeContext); err != nil {
+	var chartValues map[string]interface{}
+	if chartValues, err = getChartValues(clusterName, nodesReport.CompatibleNodes, sentryHelmContext); err != nil {
 		return err
 	}
 
-	var nodesSummeries []k8s.NodeSummary
-	if nodesSummeries, err = kubeClient.GetNodesSummeries(cmd.Context()); err != nil {
+	var shouldInstall bool
+	if shouldInstall, err = promptInstallSummary(helmClient, releaseName, clusterName, namespace, chart, nodesReport, sentryHelmContext); err != nil {
 		return err
 	}
 
-	nodesCount := len(nodesSummeries)
-	compatible, err := checkClusterNodes(sentryKubeContext, nodesCount, nodesSummeries)
-	if err != nil {
-		return err
+	if !shouldInstall {
+		sentry.CaptureMessage("deploy execution aborted")
+		return nil
 	}
 
-	chart, err := helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL)
-	if err != nil {
-		return err
-	}
-
-	if !groundcoverInstalled {
-		promptMessage := fmt.Sprintf(
-			"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
-			clusterName, namespace, len(compatible), nodesCount, chart.Version(),
-		)
-
-		if !ui.YesNoPrompt(promptMessage, false) {
-			sentry.CaptureMessage("deploy execution aborted")
-			return fmt.Errorf("deploy execution aborted")
-		}
-	} else {
-		fmt.Println("Deploying groundcover...")
-	}
-
-	expectedAlligatorsCount, err := helmInstallation(cmd.Context(), helmClient, sentryHelmContext, clusterName, apiKey, compatible, releaseName, namespace, nodesCount, kubeClient)
-	if err != nil {
+	var release *helm.Release
+	if release, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
 		return errors.Wrap(err, "Helm installation failed")
 	}
 
-	_, err = watchAlligators(helmClient, releaseName, cmd, kubeClient, expectedAlligatorsCount)
-	if err != nil {
-		return err
+	if err = validateInstall(ctx, kubeClient, release, clusterName, len(nodesReport.CompatibleNodes)); err != nil {
+		return errors.Wrap(err, "Helm installation validation failed")
 	}
 
-	apiClient := api.NewClient(&auth0Token)
-	if err = apiClient.PollIsClusterExist(clusterName); err != nil {
-		return err
-	}
 	fmt.Println("\nThat was easy. groundcover installed!")
 	utils.TryOpenBrowser("Check out:", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
 
 	sentry.CaptureMessage("deploy executed successfully")
 	return nil
-}
-
-func watchAlligators(helmClient *helm.Client, releaseName string, cmd *cobra.Command, kubeClient *k8s.Client, expectedAlligatorsCount int) (bool, error) {
-	release, err := helmClient.GetCurrentRelease(releaseName)
-	if err != nil {
-		return false, err
-	}
-
-	err = waitForAlligators(cmd.Context(), kubeClient, release, expectedAlligatorsCount)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
 }
 
 func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryKubeContext *sentry_utils.KubeContext) error {
@@ -191,137 +141,96 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	sentryKubeContext.ClusterReport = clusterReport
 	sentryKubeContext.SetOnCurrentScope()
 
-	if !hasAllowedClusterType(clusterReport.ClusterTypeAllowed) {
-		return fmt.Errorf(clusterReport.ClusterTypeAllowed.Message)
-	}
+	clusterReport.PrintStatus()
 
-	if !hasAllowedClusterServerVersion(clusterReport.ServerVersionAllowed) {
-		return fmt.Errorf(clusterReport.ServerVersionAllowed.Message)
-	}
-
-	if !hasUserAuthorized(clusterReport.UserAuthorized) {
-		return fmt.Errorf(clusterReport.UserAuthorized.Message)
+	if !clusterReport.IsCompatible {
+		return fmt.Errorf("can't continue with installation, cluster is not compatible for installation")
 	}
 
 	return nil
 }
 
-func checkIfRedeployWanted(helmClient *helm.Client, releaseName string, sentryHelmContext *sentry_utils.HelmContext, clusterName string, namespace string) (bool, error) {
+func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContext *sentry_utils.KubeContext) (*k8s.NodesReport, error) {
+	var err error
 
-	release, err := helmClient.GetCurrentRelease(releaseName)
-	if err != nil {
-		return false, err
+	fmt.Println("\nValidating cluster nodes compatibility:")
+
+	var nodesSummeries []*k8s.NodeSummary
+	if nodesSummeries, err = kubeClient.GetNodesSummeries(ctx); err != nil {
+		return nil, err
 	}
 
-	sentryHelmContext.PreviousChartVersion = release.Version().String()
-	sentryHelmContext.SetOnCurrentScope()
+	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
 
-	chart, err := helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL)
-	if err != nil {
+	sentryKubeContext.NodesReport = nodesReport
+	sentryKubeContext.SetNodesSamples(nodesReport.CompatibleNodes)
+	sentryKubeContext.SetOnCurrentScope()
+
+	nodesReport.PrintStatus()
+
+	if len(nodesReport.CompatibleNodes) == 0 {
+		return nil, fmt.Errorf("can't continue with installation, no compatible nodes for installation")
+	}
+
+	return nodesReport, nil
+}
+
+func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterName string, namespace string, chart *helm.Chart, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
+	var err error
+
+	var isUpgrade bool
+	var release *helm.Release
+	if release, isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
 		return false, err
 	}
 
 	var promptMessage string
-	if chart.Version().GT(release.Version()) {
-		promptMessage = fmt.Sprintf(
-			"Your groundcover version is out of date (cluster: %s, namespace: %s, version: %s), The latest version is %s.\nDo you want to upgrade?",
-			clusterName, namespace, release.Version(), chart.Version(),
-		)
+	if isUpgrade {
+		sentryHelmContext.Upgrade = isUpgrade
+		sentryHelmContext.PreviousChartVersion = release.Version().String()
+		sentryHelmContext.SetOnCurrentScope()
+
+		if chart.Version().GT(release.Version()) {
+			promptMessage = fmt.Sprintf(
+				"Your groundcover version is out of date (cluster: %s, namespace: %s, version: %s), The latest version is %s.\nDo you want to upgrade?",
+				clusterName, namespace, release.Version(), chart.Version(),
+			)
+		} else {
+			promptMessage = fmt.Sprintf(
+				"Latest version of groundcover is already installed in your cluster! (cluster: %s, namespace: %s, version: %s).\nDo you want to redeploy?",
+				clusterName, namespace, chart.Version(),
+			)
+		}
 	} else {
 		promptMessage = fmt.Sprintf(
-			"Latest version of groundcover is already installed in your cluster! (cluster: %s, namespace: %s, version: %s).\nDo you want to redeploy?",
-			clusterName, namespace, chart.Version(),
+			"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
+			clusterName, namespace, len(nodesReport.CompatibleNodes), len(nodesReport.InCompatibleNodes)+len(nodesReport.CompatibleNodes), chart.Version(),
 		)
 	}
 
-	if !ui.YesNoPrompt(promptMessage, false) {
-		sentry.CaptureMessage("deploy execution aborted")
-		return false, fmt.Errorf("deploy execution aborted")
-	}
-
-	return true, nil
+	return ui.YesNoPrompt(promptMessage, false), nil
 }
 
-func checkIfGroundcoverAlreadyInstalled(helmClient *helm.Client, releaseName string) (bool, error) {
-	return helmClient.IsReleaseInstalled(releaseName)
-}
-
-func helmInstallation(ctx context.Context,
-	helmClient *helm.Client,
-	sentryHelmContext *sentry_utils.HelmContext,
-	clusterName string,
-	apiKey api.ApiKey,
-	compatible []*k8s.NodeReport,
-	releaseName string,
-	namespace string,
-	nodesCount int,
-	kubeClient *k8s.Client) (int, error) {
-	var chart *helm.Chart
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.Release, clusterName string, compatibleNodes int) error {
 	var err error
-	if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
-		return 0, err
+
+	fmt.Println("\nValidating groundcover installation:")
+
+	var auth0Token auth.Auth0Token
+	if err = auth0Token.Load(); err != nil {
+		return err
 	}
 
-	sentryHelmContext.ChartVersion = chart.Version().String()
-	sentryHelmContext.SetOnCurrentScope()
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
-
-	chartValues := defaultChartValues(clusterName, apiKey.ApiKey)
-	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
-
-	var resourcesTunerPresetPaths []string
-	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(compatible); err != nil {
-		return 0, err
+	if err = waitForAlligators(ctx, kubeClient, release, compatibleNodes); err != nil {
+		return err
 	}
 
-	sentryHelmContext.ResourcesPresets = resourcesTunerPresetPaths
-	sentryHelmContext.SetOnCurrentScope()
-
-	var valuesOverride map[string]interface{}
-	if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, append(resourcesTunerPresetPaths, userValuesOverridePaths...)); err != nil {
-		return 0, err
+	apiClient := api.NewClient(&auth0Token)
+	if err = apiClient.PollIsClusterExist(clusterName); err != nil {
+		return err
 	}
 
-	sentryHelmContext.ValuesOverride = valuesOverride
-	sentryHelmContext.SetOnCurrentScope()
-
-	var isUpgrade bool
-	if isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
-		return 0, err
-	}
-
-	sentryHelmContext.Upgrade = isUpgrade
-	sentryHelmContext.SetOnCurrentScope()
-
-	if err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
-		return 0, err
-	}
-
-	return len(compatible), nil
-}
-
-func checkClusterNodes(sentryKubeContext *sentry_utils.KubeContext, nodesCount int, nodesSummeries []k8s.NodeSummary) ([]*k8s.NodeReport, error) {
-	sentryKubeContext.NodesCount = nodesCount
-	sentryKubeContext.SetOnCurrentScope()
-
-	compatible, incompatible := k8s.DefaultNodeRequirements.GenerateNodeReports(nodesSummeries)
-	nodes := append(compatible, incompatible...)
-
-	sentryKubeContext.SetNodeReportsSamples(compatible)
-	sentryKubeContext.SetOnCurrentScope()
-
-	if len(incompatible) > 0 {
-		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
-		sentryKubeContext.IncompatibleNodeReports = incompatible
-		sentryKubeContext.SetOnCurrentScope()
-	}
-
-	if !validateCompatibleNodes(nodes) {
-		return nil, fmt.Errorf("can't continue with installation, no compatible nodes for installation")
-	}
-
-	fmt.Println()
-	return compatible, nil
+	return nil
 }
 
 func getClusterName(kubeClient *k8s.Client) (string, error) {
@@ -339,88 +248,53 @@ func getClusterName(kubeClient *k8s.Client) (string, error) {
 	return clusterName, nil
 }
 
-func defaultChartValues(clusterName, apikey string) map[string]interface{} {
+func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.HelmContext) (*helm.Chart, error) {
+	var err error
+	var chart *helm.Chart
+
+	if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
+		return nil, err
+	}
+
+	sentryHelmContext.ChartVersion = chart.Version().String()
+	sentryHelmContext.SetOnCurrentScope()
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
+
+	return chart, nil
+}
+
+func getChartValues(clusterName string, compatibleNodes []*k8s.NodeSummary, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+	var err error
+
+	var apiKey api.ApiKey
+	if err = apiKey.Load(); err != nil {
+		return nil, err
+	}
+
 	chartValues := make(map[string]interface{})
 	chartValues["clusterId"] = clusterName
 	chartValues["origin"] = map[string]interface{}{"tag": ""}
-	chartValues["global"] = map[string]interface{}{"groundcover_token": apikey}
+	chartValues["global"] = map[string]interface{}{"groundcover_token": apiKey.ApiKey}
 	chartValues["commitHashKeyName"] = viper.GetString(COMMIT_HASH_KEY_NAME_FLAG)
 	chartValues["repositoryUrlKeyName"] = viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG)
 
-	return chartValues
-}
+	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
 
-func validateCompatibleNodes(nodes []*k8s.NodeReport) bool {
-	fmt.Println("\nValidating cluster nodes compatibility:")
-
-	return hasOperatingSystemAllowed(nodes) &&
-		hasAllowedKernelVersions(nodes) &&
-		hasCpuSufficient(nodes) &&
-		hasMemorySufficient(nodes) &&
-		hasProviderAllowed(nodes) &&
-		hasArchitectureAllowed(nodes)
-}
-
-func hasAllowedClusterType(clusterTypeAllowd k8s.Requirement) bool {
-	ui.PrintStatus(clusterTypeAllowd.IsCompatible, "K8s cluster type supported\n")
-	return clusterTypeAllowd.IsCompatible
-}
-
-func hasAllowedClusterServerVersion(serverVersionAllowed k8s.Requirement) bool {
-	ui.PrintStatus(serverVersionAllowed.IsCompatible, "K8s server version >= %s\n", k8s.MinimumServerVersionSupport)
-	return serverVersionAllowed.IsCompatible
-}
-
-func hasUserAuthorized(userAuthorized k8s.Requirement) bool {
-	ui.PrintStatus(userAuthorized.IsCompatible, "K8s user authorized for groundcover installation\n")
-	return userAuthorized.IsCompatible
-}
-
-func hasAllowedKernelVersions(nodes []*k8s.NodeReport) bool {
-	allowedCount := isNodePropertySupported(nodes, "KernelVersionAllowed")
-	ui.PrintStatus(allowedCount > 0, "Kernel version >= %s (%d/%d Nodes)\n", k8s.MinimumKernelVersionSupport.String(), allowedCount, len(nodes))
-	return allowedCount > 0
-}
-
-func hasCpuSufficient(nodes []*k8s.NodeReport) bool {
-	allowedCount := isNodePropertySupported(nodes, "CpuSufficient")
-	ui.PrintStatus(allowedCount > 0, "Sufficient node CPU (%d/%d Nodes)\n", allowedCount, len(nodes))
-	return allowedCount > 0
-}
-
-func hasMemorySufficient(nodes []*k8s.NodeReport) bool {
-	allowedCount := isNodePropertySupported(nodes, "MemorySufficient")
-	ui.PrintStatus(allowedCount > 0, "Sufficient node memory (%d/%d Nodes)\n", allowedCount, len(nodes))
-	return allowedCount > 0
-}
-
-func hasProviderAllowed(nodes []*k8s.NodeReport) bool {
-	allowedCount := isNodePropertySupported(nodes, "ProviderAllowed")
-	ui.PrintStatus(allowedCount > 0, "Cloud provider supported (%d/%d Nodes)\n", allowedCount, len(nodes))
-	return allowedCount > 0
-}
-
-func hasArchitectureAllowed(nodes []*k8s.NodeReport) bool {
-	allowedCount := isNodePropertySupported(nodes, "ArchitectureAllowed")
-	ui.PrintStatus(allowedCount > 0, "Node architecture supported (%d/%d Nodes)\n", allowedCount, len(nodes))
-	return allowedCount > 0
-}
-
-func hasOperatingSystemAllowed(nodes []*k8s.NodeReport) bool {
-	allowedCount := isNodePropertySupported(nodes, "OperatingSystemAllowed")
-	ui.PrintStatus(allowedCount > 0, "Node operating system supported (%d/%d Nodes)\n", allowedCount, len(nodes))
-	return allowedCount > 0
-}
-
-func isNodePropertySupported(nodes []*k8s.NodeReport, propertyName string) int {
-	var allowedCount int
-	for _, node := range nodes {
-		obj := reflect.ValueOf(node)
-		fieldValue := reflect.Indirect(obj).FieldByName(propertyName)
-		if fieldValue.FieldByName("IsCompatible").Bool() {
-			allowedCount++
-		}
+	var resourcesTunerPresetPaths []string
+	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(compatibleNodes); err != nil {
+		return nil, err
 	}
 
-	return allowedCount
+	sentryHelmContext.ResourcesPresets = resourcesTunerPresetPaths
+	sentryHelmContext.SetOnCurrentScope()
+
+	var valuesOverride map[string]interface{}
+	if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, append(resourcesTunerPresetPaths, userValuesOverridePaths...)); err != nil {
+		return nil, err
+	}
+
+	sentryHelmContext.ValuesOverride = valuesOverride
+	sentryHelmContext.SetOnCurrentScope()
+
+	return chartValues, nil
 }

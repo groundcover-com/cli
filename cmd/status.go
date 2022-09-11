@@ -35,6 +35,7 @@ var StatusCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		ctx := cmd.Context()
 		namespace := viper.GetString(NAMESPACE_FLAG)
 		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
 		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
@@ -49,14 +50,18 @@ var StatusCmd = &cobra.Command{
 		}
 
 		var clusterSummary *k8s.ClusterSummary
-		clusterSummary, err = kubeClient.GetClusterSummary(namespace)
-		sentryKubeContext.ClusterReport = &k8s.ClusterReport{
-			ClusterSummary: clusterSummary,
-		}
-		sentryKubeContext.SetOnCurrentScope()
-		if err != nil {
+		if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
+			sentryKubeContext.ClusterReport = &k8s.ClusterReport{
+				ClusterSummary: clusterSummary,
+			}
+			sentryKubeContext.SetOnCurrentScope()
 			return err
 		}
+
+		clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, kubeClient, clusterSummary)
+
+		sentryKubeContext.ClusterReport = clusterReport
+		sentryKubeContext.SetOnCurrentScope()
 
 		sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
 		sentryHelmContext.SetOnCurrentScope()
@@ -90,7 +95,7 @@ var StatusCmd = &cobra.Command{
 		}
 		nodesCount := len(nodeList.Items)
 
-		if err = waitForAlligators(cmd.Context(), kubeClient, release, nodesCount); err != nil {
+		if err = waitForAlligators(ctx, kubeClient, release, nodesCount); err != nil {
 			return err
 		}
 
@@ -100,9 +105,7 @@ var StatusCmd = &cobra.Command{
 }
 
 func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, expectedAlligatorsCount int) error {
-	spinner := ui.NewSpinner(
-		fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount),
-	)
+	spinner := ui.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
 	spinner.Start()
 	defer spinner.Stop()
 

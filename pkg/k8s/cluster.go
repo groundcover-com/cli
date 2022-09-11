@@ -21,8 +21,8 @@ var (
 	DefaultClusterRequirements  = &ClusterRequirements{
 		ServerVersion: MinimumServerVersionSupport,
 		BlockedTypes: []string{
+			"kind",
 			"minikube",
-			"kind-kind",
 			"docker-desktop",
 		},
 		Actions: []*authv1.ResourceAttributes{
@@ -120,6 +120,20 @@ type ClusterReport struct {
 	ClusterTypeAllowed   Requirement
 }
 
+func (clusterReport *ClusterReport) PrintStatus() {
+	clusterReport.ClusterTypeAllowed.PrintStatus()
+	if !clusterReport.ClusterTypeAllowed.IsCompatible {
+		return
+	}
+
+	clusterReport.ServerVersionAllowed.PrintStatus()
+	if !clusterReport.ServerVersionAllowed.IsCompatible {
+		return
+	}
+
+	clusterReport.UserAuthorized.PrintStatus()
+}
+
 func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, clusterSummary *ClusterSummary) *ClusterReport {
 	clusterReport := &ClusterReport{
 		ClusterSummary:       clusterSummary,
@@ -136,65 +150,54 @@ func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, cli
 }
 
 func (clusterRequirements ClusterRequirements) validateClusterType(clusterName string) Requirement {
+	var requirement Requirement
+
 	for _, blockedType := range clusterRequirements.BlockedTypes {
-		if strings.Contains(clusterName, blockedType) {
-			return Requirement{
-				IsCompatible: false,
-				Message:      fmt.Sprintf("%s is unsupported cluster type", clusterName),
-			}
+		if strings.HasPrefix(clusterName, blockedType) {
+			requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("%s is unsupported cluster type", blockedType))
 		}
 	}
 
-	return Requirement{
-		IsCompatible: true,
-		Message:      "Cluster type is supported",
-	}
+	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
+	requirement.Message = "K8s cluster type supported"
+
+	return requirement
 }
 
 func (clusterRequirements ClusterRequirements) validateServerVersion(serverVersion semver.Version) Requirement {
+	var requirement Requirement
+
 	if serverVersion.LT(clusterRequirements.ServerVersion) {
-		return Requirement{
-			IsCompatible: false,
-			Message:      fmt.Sprintf("%s is unsupported cluster version - minimal: %s", serverVersion, clusterRequirements.ServerVersion),
-		}
+		requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("unsupported kernel version %s", serverVersion))
 	}
 
-	return Requirement{
-		IsCompatible: true,
-		Message:      fmt.Sprintf("K8s version >= %s", clusterRequirements.ServerVersion),
-	}
+	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
+	requirement.Message = fmt.Sprintf("K8s server version >= %s", clusterRequirements.ServerVersion)
+
+	return requirement
 }
 
 func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context.Context, client *Client, namespace string) Requirement {
 	var err error
 	var permitted bool
-	var deniedResources []string
+	var requirement Requirement
 
 	for _, action := range clusterRequirements.Actions {
 		action.Namespace = namespace
 		if permitted, err = client.isActionPermitted(ctx, action); err != nil {
-			return Requirement{
-				IsCompatible: false,
-				Message:      err.Error(),
-			}
+			requirement.ErrorMessages = append(requirement.ErrorMessages, err.Error())
+			continue
 		}
 
 		if !permitted {
-			deniedResources = append(deniedResources, action.Resource)
+			requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("denied permissions on resource: %s", action.Resource))
 		}
 	}
 
-	if len(deniedResources) > 0 {
-		return Requirement{
-			IsCompatible: false,
-			Message:      fmt.Sprintf("denied permissions on resources: %s", strings.Join(deniedResources, ", ")),
-		}
-	}
+	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
+	requirement.Message = "K8s user authorized for groundcover installation"
 
-	return Requirement{
-		IsCompatible: true,
-		Message:      "User authorized",
-	}
+	return requirement
 }
 
 func (kubeClient *Client) GetClusterName() (string, error) {

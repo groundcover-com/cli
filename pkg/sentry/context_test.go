@@ -65,12 +65,12 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 	// assert
 	expect := map[string]interface{}{
 		"kubernetes": &sentry_utils.KubeContext{
-			NodesCount:              nodesCount,
-			Kubeconfig:              kubeconfig,
-			Kubecontext:             kubecontext,
-			NodeReportSamples:       nil,
-			IncompatibleNodeReports: nil,
-			ClusterReport:           nil,
+			NodesCount:    nodesCount,
+			Kubeconfig:    kubeconfig,
+			Kubecontext:   kubecontext,
+			NodeSamples:   nil,
+			NodesReport:   nil,
+			ClusterReport: nil,
 		},
 	}
 
@@ -87,15 +87,15 @@ func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesSuccess(
 
 	nodesCount := sentry_utils.MAX_NODE_REPORT_SAMPLES + 2
 
-	nodeReports := make([]*k8s.NodeReport, nodesCount)
+	nodeReports := make([]*k8s.NodeSummary, nodesCount)
 	sentryContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 
 	// act
-	sentryContext.SetNodeReportsSamples(nodeReports)
+	sentryContext.SetNodesSamples(nodeReports)
 
 	// assert
 	expect := nodeReports[:sentry_utils.MAX_NODE_REPORT_SAMPLES]
-	suite.Equal(expect, sentryContext.NodeReportSamples)
+	suite.Equal(expect, sentryContext.NodeSamples)
 }
 
 func (suite *SentryContextTestSuite) TestHelmContexJsonOmitEmpty() {

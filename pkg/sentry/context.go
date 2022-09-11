@@ -18,12 +18,12 @@ type SentryContext interface {
 }
 
 type KubeContext struct {
-	NodesCount              int                `json:",omitempty"`
-	Kubeconfig              string             `json:",omitempty"`
-	Kubecontext             string             `json:",omitempty"`
-	ClusterReport           *k8s.ClusterReport `json:",omitempty"`
-	IncompatibleNodeReports []*k8s.NodeReport  `json:",omitempty"`
-	NodeReportSamples       []*k8s.NodeReport  `json:",omitempty"`
+	NodesCount    int                `json:",omitempty"`
+	Kubeconfig    string             `json:",omitempty"`
+	Kubecontext   string             `json:",omitempty"`
+	ClusterReport *k8s.ClusterReport `json:",omitempty"`
+	NodesReport   *k8s.NodesReport   `json:",omitempty"`
+	NodeSamples   []*k8s.NodeSummary `json:",omitempty"`
 }
 
 func NewKubeContext(kubeconfig, kubecontext string) *KubeContext {
@@ -33,14 +33,14 @@ func NewKubeContext(kubeconfig, kubecontext string) *KubeContext {
 	}
 }
 
-func (context *KubeContext) SetNodeReportsSamples(nodeReports []*k8s.NodeReport) {
+func (context *KubeContext) SetNodesSamples(nodeReports []*k8s.NodeSummary) {
 	samplesSize := len(nodeReports)
 	if samplesSize > MAX_NODE_REPORT_SAMPLES {
 		samplesSize = MAX_NODE_REPORT_SAMPLES
 	}
 
-	context.NodeReportSamples = make([]*k8s.NodeReport, samplesSize)
-	copy(context.NodeReportSamples, nodeReports)
+	context.NodeSamples = make([]*k8s.NodeSummary, samplesSize)
+	copy(context.NodeSamples, nodeReports)
 }
 
 func (context KubeContext) SetOnCurrentScope() {
