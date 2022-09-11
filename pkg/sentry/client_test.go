@@ -42,14 +42,9 @@ func (suite *SentryClientTestSuite) TestGetSentryClientOptionsProd() {
 	clientOptions := sentry_utils.GetSentryClientOptions(environment, release)
 
 	// assert
-	expect := sentry.ClientOptions{
-		MaxBreadcrumbs: 10,
-		Release:        release,
-		Environment:    environment,
-		Dsn:            sentry_utils.PROD_DSN,
-	}
+	expect := sentry_utils.PROD_DSN
 
-	suite.Equal(expect, clientOptions)
+	suite.Equal(expect, clientOptions.Dsn)
 }
 
 func (suite *SentryClientTestSuite) TestGetSentryClientOptionsDev() {
@@ -61,14 +56,9 @@ func (suite *SentryClientTestSuite) TestGetSentryClientOptionsDev() {
 	clientOptions := sentry_utils.GetSentryClientOptions(environment, release)
 
 	// assert
-	expect := sentry.ClientOptions{
-		MaxBreadcrumbs: 10,
-		Release:        release,
-		Environment:    environment,
-		Dsn:            sentry_utils.DEV_DSN,
-	}
+	expect := sentry_utils.DEV_DSN
 
-	suite.Equal(expect, clientOptions)
+	suite.Equal(expect, clientOptions.Dsn)
 }
 
 func (suite *SentryClientTestSuite) TestSetOnCurrentScopeSuccess() {
