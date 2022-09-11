@@ -147,8 +147,8 @@ func checkAuthForCmd(cmd *cobra.Command) error {
 	return nil
 }
 
-func Execute() error {
-	err := RootCmd.Execute()
+func ExecuteContext(ctx context.Context) error {
+	err := RootCmd.ExecuteContext(ctx)
 
 	if err == nil {
 		return nil
