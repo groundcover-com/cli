@@ -180,6 +180,8 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterName string, namespace string, chart *helm.Chart, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	var err error
 
+	fmt.Println("\nInstalling groundcover:")
+
 	var isUpgrade bool
 	var release *helm.Release
 	if release, isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
@@ -210,13 +212,11 @@ func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterNa
 		)
 	}
 
-	return ui.YesNoPrompt(promptMessage, false), nil
+	return ui.YesNoPrompt(promptMessage, !isUpgrade), nil
 }
 
 func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseName string, chart *helm.Chart, chartValues map[string]interface{}) (*helm.Release, error) {
 	var err error
-
-	fmt.Println("\nIntalling groundcover:")
 
 	spinner := ui.NewSpinner("Installing groundcover helm release")
 	spinner.Start()
