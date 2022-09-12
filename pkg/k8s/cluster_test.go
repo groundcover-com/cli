@@ -90,15 +90,15 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 		IsCompatible:   true,
 		ServerVersionAllowed: k8s.Requirement{
 			IsCompatible: true,
-			Message:      "K8s version >= 1.24.0",
+			Message:      "K8s server version >= 1.24.0",
 		},
 		UserAuthorized: k8s.Requirement{
 			IsCompatible: true,
-			Message:      "User authorized",
+			Message:      "K8s user authorized for groundcover installation",
 		},
 		ClusterTypeAllowed: k8s.Requirement{
 			IsCompatible: true,
-			Message:      "Cluster type is supported",
+			Message:      "K8s cluster type supported",
 		},
 	}
 
@@ -130,8 +130,9 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible: false,
-		Message:      "denied permissions on resources: pods",
+		IsCompatible:  false,
+		Message:       "K8s user authorized for groundcover installation",
+		ErrorMessages: []string{"denied permissions on resource: pods"},
 	}
 
 	suite.Equal(expected, clusterReport.UserAuthorized)
@@ -167,7 +168,11 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
 	// assert
 	expected := k8s.Requirement{
 		IsCompatible: false,
-		Message:      "api error on resource: services: selfsubjectaccessreviews.authorization.k8s.io \"\" already exists",
+		Message:      "K8s user authorized for groundcover installation",
+		ErrorMessages: []string{
+			"denied permissions on resource: pods",
+			"api error on resource: services: selfsubjectaccessreviews.authorization.k8s.io \"\" already exists",
+		},
 	}
 
 	suite.Equal(expected, clusterReport.UserAuthorized)
@@ -194,8 +199,9 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible: false,
-		Message:      "1.23.0 is unsupported cluster version - minimal: 1.24.0",
+		IsCompatible:  false,
+		Message:       "K8s server version >= 1.24.0",
+		ErrorMessages: []string{"1.23.0 is unsupported K8s version"},
 	}
 
 	suite.Equal(expected, clusterReport.ServerVersionAllowed)
@@ -223,8 +229,9 @@ func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible: false,
-		Message:      "minikube is unsupported cluster type",
+		IsCompatible:  false,
+		Message:       "K8s cluster type supported",
+		ErrorMessages: []string{"minikube is unsupported cluster type"},
 	}
 
 	suite.Equal(expected, clusterReport.ClusterTypeAllowed)

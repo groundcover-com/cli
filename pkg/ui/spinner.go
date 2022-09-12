@@ -11,6 +11,7 @@ const (
 	statusOK       = "\u2714"
 	statusErr      = "\u2715"
 	statusWarning  = "\u270B"
+	Bullet         = "\u2022"
 	spinnerCharset = 11
 )
 

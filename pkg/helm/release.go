@@ -19,49 +19,55 @@ func (release *Release) Version() semver.Version {
 	return version
 }
 
-func (helmClient *Client) IsReleaseInstalled(name string) (bool, error) {
+func (helmClient *Client) IsReleaseInstalled(name string) (*Release, bool, error) {
 	var err error
 
 	client := action.NewStatus(helmClient.cfg)
-	_, err = client.Run(name)
+
+	var release Release
+	release.Release, err = client.Run(name)
 
 	switch {
 	case errors.Is(err, driver.ErrReleaseNotFound):
-		return false, nil
+		return nil, false, nil
 	case err != nil:
-		return false, err
+		return nil, false, err
 	default:
-		return true, nil
+		return &release, true, nil
 	}
 }
 
 func (helmClient *Client) GetCurrentRelease(name string) (*Release, error) {
 	var err error
-	var release *release.Release
 
 	client := action.NewStatus(helmClient.cfg)
-	if release, err = client.Run(name); err != nil {
+
+	var release Release
+	if release.Release, err = client.Run(name); err != nil {
 		return nil, err
 	}
 
-	return &Release{Release: release}, nil
+	return &release, nil
 }
 
-func (helmClient *Client) Install(ctx context.Context, name string, chart *Chart, values map[string]interface{}) error {
+func (helmClient *Client) Install(ctx context.Context, name string, chart *Chart, values map[string]interface{}) (*Release, error) {
+	var err error
+
 	client := action.NewInstall(helmClient.cfg)
 	client.Wait = false
 	client.ReleaseName = name
 	client.CreateNamespace = true
 	client.Namespace = helmClient.settings.Namespace()
 
-	if _, err := client.RunWithContext(ctx, chart.Chart, values); err != nil {
-		return err
+	var release Release
+	if release.Release, err = client.RunWithContext(ctx, chart.Chart, values); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return &release, nil
 }
 
-func (helmClient *Client) Upgrade(ctx context.Context, name string, chart *Chart, values map[string]interface{}) error {
+func (helmClient *Client) Upgrade(ctx context.Context, name string, chart *Chart, values map[string]interface{}) (*Release, error) {
 	var err error
 
 	client := action.NewUpgrade(helmClient.cfg)
@@ -69,15 +75,16 @@ func (helmClient *Client) Upgrade(ctx context.Context, name string, chart *Chart
 	client.ReuseValues = true
 	client.Namespace = helmClient.settings.Namespace()
 
-	_, err = client.RunWithContext(ctx, name, chart.Chart, values)
+	var release Release
+	release.Release, err = client.RunWithContext(ctx, name, chart.Chart, values)
 
 	switch {
 	case err == nil:
-		return nil
+		return &release, nil
 	case errors.Is(err, driver.ErrNoDeployedReleases), errors.Is(err, driver.ErrReleaseNotFound):
 		return helmClient.Install(ctx, name, chart, values)
 	default:
-		return err
+		return nil, err
 	}
 }
 

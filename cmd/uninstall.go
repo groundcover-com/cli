@@ -27,6 +27,7 @@ var UninstallCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		ctx := cmd.Context()
 		namespace := viper.GetString(NAMESPACE_FLAG)
 		kubeconfig := viper.GetString(KUBECONFIG_FLAG)
 		kubecontext := viper.GetString(KUBECONTEXT_FLAG)
@@ -41,14 +42,18 @@ var UninstallCmd = &cobra.Command{
 		}
 
 		var clusterSummary *k8s.ClusterSummary
-		clusterSummary, err = kubeClient.GetClusterSummary(namespace)
-		sentryKubeContext.ClusterReport = &k8s.ClusterReport{
-			ClusterSummary: clusterSummary,
-		}
-		sentryKubeContext.SetOnCurrentScope()
-		if err != nil {
+		if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
+			sentryKubeContext.ClusterReport = &k8s.ClusterReport{
+				ClusterSummary: clusterSummary,
+			}
+			sentryKubeContext.SetOnCurrentScope()
 			return err
 		}
+
+		clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, kubeClient, clusterSummary)
+
+		sentryKubeContext.ClusterReport = clusterReport
+		sentryKubeContext.SetOnCurrentScope()
 
 		var clusterName string
 		if clusterName, err = getClusterName(kubeClient); err != nil {
@@ -67,7 +72,7 @@ var UninstallCmd = &cobra.Command{
 		var release *helm.Release
 		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 			if errors.Is(err, helm_driver.ErrReleaseNotFound) {
-				ui.PrintWarningMessage(fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?", releaseName, namespace))
+				ui.PrintWarningMessage(fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?\n", releaseName, namespace))
 				return nil
 			}
 
@@ -92,7 +97,7 @@ var UninstallCmd = &cobra.Command{
 		if err = helmClient.Uninstall(release.Name); err != nil {
 			return err
 		}
-		if err = deleteReleaseLeftovers(cmd.Context(), kubeClient, release); err != nil {
+		if err = deleteReleaseLeftovers(ctx, kubeClient, release); err != nil {
 			return err
 		}
 		sentry.CaptureMessage("uninstall executed successfully")
@@ -103,7 +108,7 @@ var UninstallCmd = &cobra.Command{
 			return nil
 		}
 
-		if err = deletePvcs(cmd.Context(), kubeClient, release); err != nil {
+		if err = deletePvcs(ctx, kubeClient, release); err != nil {
 			return err
 		}
 		fmt.Println("delete pvcs executed successfully")

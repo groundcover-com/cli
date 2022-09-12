@@ -2,13 +2,9 @@ package k8s_test
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"strconv"
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 	"groundcover.com/pkg/k8s"
 	v1 "k8s.io/api/core/v1"
@@ -91,7 +87,7 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 	suite.NoError(err)
 
 	// assert
-	expected := []k8s.NodeSummary{
+	expected := []*k8s.NodeSummary{
 		{
 			CPU:             resource.NewScaledQuantity(2000, resource.Milli),
 			Memory:          resource.NewScaledQuantity(4000, resource.Mega),
@@ -126,39 +122,56 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 	suite.NoError(err)
 
 	// act
-	compatibleNodesReports, incompatibleNodesReports := k8s.DefaultNodeRequirements.GenerateNodeReports(nodesSummeries)
+	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
 
 	// assert
-	suite.Len(compatibleNodesReports, 1)
-	suite.Len(incompatibleNodesReports, 1)
 
-	incompatibleExpected := &k8s.NodeReport{
-		NodeSummary:            &nodesSummeries[1],
-		KernelVersionAllowed:   k8s.Requirement{IsCompatible: false, Message: "4.13.0 is unsupported kernel - minimal: 4.14.0"},
-		CpuSufficient:          k8s.Requirement{IsCompatible: false, Message: "insufficient cpu - acutal: 500m / minimal: 1750m"},
-		MemorySufficient:       k8s.Requirement{IsCompatible: false, Message: "insufficient memory - acutal: 1000Mi / minimal: 1750Mi"},
-		ProviderAllowed:        k8s.Requirement{IsCompatible: false, Message: "aws://eu-west-3/fargate-i-53df4efedd is unsupported node provider"},
-		ArchitectureAllowed:    k8s.Requirement{IsCompatible: false, Message: "arm64 is unsupported architecture - only amd64 supported"},
-		OperatingSystemAllowed: k8s.Requirement{IsCompatible: false, Message: "windows is unsupported os - only linux supported"},
-		IsCompatible:           false,
+	expected := &k8s.NodesReport{
+		CompatibleNodes: nodesSummeries[:1],
+		IncompatibleNodes: []*k8s.IncompatibleNode{
+			{
+				NodeSummary: nodesSummeries[1],
+				RequirementErrors: []string{
+					"insufficient cpu 500m < 1750m",
+					"insufficient memory 1G < 1750Mi",
+					"fargate is unsupported provider",
+					"4.13.0 is unsupported kernel version",
+					"arm64 is unspported architecture",
+					"windows is unspported operating system",
+				},
+			},
+		},
+		KernelVersionAllowed: k8s.Requirement{
+			IsCompatible:  false,
+			Message:       "Kernel version >= 4.14.0 (1/2 Nodes)",
+			ErrorMessages: []string{"node: incompatible - 4.13.0 is unsupported kernel version"},
+		},
+		CpuSufficient: k8s.Requirement{
+			IsCompatible:  false,
+			Message:       "Sufficient node CPU (1/2 Nodes)",
+			ErrorMessages: []string{"node: incompatible - insufficient cpu 500m < 1750m"},
+		},
+		MemorySufficient: k8s.Requirement{
+			IsCompatible:  false,
+			Message:       "Sufficient node memory (1/2 Nodes)",
+			ErrorMessages: []string{"node: incompatible - insufficient memory 1G < 1750Mi"},
+		},
+		ProviderAllowed: k8s.Requirement{
+			IsCompatible:  false,
+			Message:       "Cloud provider supported (1/2 Nodes)",
+			ErrorMessages: []string{"node: incompatible - fargate is unsupported provider"},
+		},
+		ArchitectureAllowed: k8s.Requirement{
+			IsCompatible:  false,
+			Message:       "Node architecture supported (1/2 Nodes)",
+			ErrorMessages: []string{"node: incompatible - arm64 is unspported architecture"},
+		},
+		OperatingSystemAllowed: k8s.Requirement{
+			IsCompatible:  false,
+			Message:       "Node operating system supported (1/2 Nodes)",
+			ErrorMessages: []string{"node: incompatible - windows is unspported operating system"},
+		},
 	}
 
-	suite.Equal(incompatibleExpected, incompatibleNodesReports[0])
-}
-
-func (suite *KubeNodeTestSuite) TestRequirementErrorMarshalJSONSuccess() {
-	//prepare
-	err := fmt.Errorf(uuid.New().String())
-
-	//act
-	emptyJson, _ := json.Marshal(err)
-	nodeRequirementError := k8s.NewNodeRequirementError(err)
-	json, _ := json.Marshal(nodeRequirementError)
-
-	// assert
-	expectEmpty := []byte("{}")
-	expect := []byte(strconv.Quote(err.Error()))
-
-	suite.Equal(expect, json)
-	suite.Equal(expectEmpty, emptyJson)
+	suite.Equal(expected, nodesReport)
 }

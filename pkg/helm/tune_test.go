@@ -34,45 +34,33 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesLowSuccess() {
 	lowerThenThresholdMemory := resource.MustParse("4000Mi")
 	higherThenThresholdMemory := resource.MustParse("3000Mi")
 
-	lowerCpuNodeReports := []*k8s.NodeReport{
+	lowerCpuNodeReports := []*k8s.NodeSummary{
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &lowerThenThresholdCpu,
-				Memory: &higherThenThresholdMemory,
-			},
+			CPU:    &lowerThenThresholdCpu,
+			Memory: &higherThenThresholdMemory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &lowerThenThresholdCpu,
-				Memory: &higherThenThresholdMemory,
-			},
+			CPU:    &lowerThenThresholdCpu,
+			Memory: &higherThenThresholdMemory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &lowerThenThresholdCpu,
-				Memory: &higherThenThresholdMemory,
-			},
+			CPU:    &lowerThenThresholdCpu,
+			Memory: &higherThenThresholdMemory,
 		},
 	}
 
-	lowerMemoryNodeReports := []*k8s.NodeReport{
+	lowerMemoryNodeReports := []*k8s.NodeSummary{
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &higherThenThresholdCpu,
-				Memory: &lowerThenThresholdMemory,
-			},
+			CPU:    &higherThenThresholdCpu,
+			Memory: &lowerThenThresholdMemory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &higherThenThresholdCpu,
-				Memory: &lowerThenThresholdMemory,
-			},
+			CPU:    &higherThenThresholdCpu,
+			Memory: &lowerThenThresholdMemory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &higherThenThresholdCpu,
-				Memory: &lowerThenThresholdMemory,
-			},
+			CPU:    &higherThenThresholdCpu,
+			Memory: &lowerThenThresholdMemory,
 		},
 	}
 
@@ -126,45 +114,33 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesMediumSuccess() {
 	lowerThenThresholdMemory := resource.MustParse("18000Mi")
 	higherThenThresholdMemory := resource.MustParse("3000Mi")
 
-	lowerCpuNodeReports := []*k8s.NodeReport{
+	lowerCpuNodeReports := []*k8s.NodeSummary{
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &lowerThenThresholdCpu,
-				Memory: &higherThenThresholdMemory,
-			},
+			CPU:    &lowerThenThresholdCpu,
+			Memory: &higherThenThresholdMemory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &lowerThenThresholdCpu,
-				Memory: &higherThenThresholdMemory,
-			},
+			CPU:    &lowerThenThresholdCpu,
+			Memory: &higherThenThresholdMemory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &lowerThenThresholdCpu,
-				Memory: &higherThenThresholdMemory,
-			},
+			CPU:    &lowerThenThresholdCpu,
+			Memory: &higherThenThresholdMemory,
 		},
 	}
 
-	lowerMemoryNodeReports := []*k8s.NodeReport{
+	lowerMemoryNodeReports := []*k8s.NodeSummary{
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &higherThenThresholdCpu,
-				Memory: &lowerThenThresholdMemory,
-			},
+			CPU:    &higherThenThresholdCpu,
+			Memory: &lowerThenThresholdMemory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &higherThenThresholdCpu,
-				Memory: &lowerThenThresholdMemory,
-			},
+			CPU:    &higherThenThresholdCpu,
+			Memory: &lowerThenThresholdMemory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &higherThenThresholdCpu,
-				Memory: &lowerThenThresholdMemory,
-			},
+			CPU:    &higherThenThresholdCpu,
+			Memory: &lowerThenThresholdMemory,
 		},
 	}
 
@@ -215,24 +191,18 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesHighSuccess() {
 	memory := resource.MustParse("36000Mi")
 	chartValues := make(map[string]interface{})
 
-	nodeReports := []*k8s.NodeReport{
+	nodeReports := []*k8s.NodeSummary{
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &cpu,
-				Memory: &memory,
-			},
+			CPU:    &cpu,
+			Memory: &memory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &cpu,
-				Memory: &memory,
-			},
+			CPU:    &cpu,
+			Memory: &memory,
 		},
 		{
-			NodeSummary: &k8s.NodeSummary{
-				CPU:    &cpu,
-				Memory: &memory,
-			},
+			CPU:    &cpu,
+			Memory: &memory,
 		},
 	}
 

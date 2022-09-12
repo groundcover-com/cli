@@ -35,11 +35,11 @@ type AllocatableResources struct {
 	TotalMemory *resource.Quantity
 }
 
-func GetResourcesTunerPresetPaths(nodeReports []*k8s.NodeReport) ([]string, error) {
+func GetResourcesTunerPresetPaths(nodesSummeries []*k8s.NodeSummary) ([]string, error) {
 	var err error
 
 	presetPaths := make([]string, 2)
-	allocatableResources := calcAllocatableResources(nodeReports)
+	allocatableResources := calcAllocatableResources(nodesSummeries)
 
 	if presetPaths[0], err = tuneAgentResourcesValues(allocatableResources); err != nil {
 		return nil, err
@@ -96,24 +96,24 @@ func tuneBackendResourcesValues(allocatableResources *AllocatableResources) (str
 	return presetPath, nil
 }
 
-func calcAllocatableResources(nodeReports []*k8s.NodeReport) *AllocatableResources {
+func calcAllocatableResources(nodesSummeries []*k8s.NodeSummary) *AllocatableResources {
 	allocatableResources := &AllocatableResources{
-		MinCpu:      nodeReports[0].CPU,
-		MinMemory:   nodeReports[0].Memory,
+		MinCpu:      nodesSummeries[0].CPU,
+		MinMemory:   nodesSummeries[0].Memory,
 		TotalCpu:    &resource.Quantity{},
 		TotalMemory: &resource.Quantity{},
 	}
 
-	for _, nodeReport := range nodeReports {
-		allocatableResources.TotalCpu.Add(*nodeReport.CPU)
-		allocatableResources.TotalMemory.Add(*nodeReport.Memory)
+	for _, nodeSummary := range nodesSummeries {
+		allocatableResources.TotalCpu.Add(*nodeSummary.CPU)
+		allocatableResources.TotalMemory.Add(*nodeSummary.Memory)
 
-		if allocatableResources.MinCpu.Cmp(*nodeReport.CPU) > 0 {
-			allocatableResources.MinCpu = nodeReport.CPU
+		if allocatableResources.MinCpu.Cmp(*nodeSummary.CPU) > 0 {
+			allocatableResources.MinCpu = nodeSummary.CPU
 		}
 
-		if allocatableResources.MinMemory.Cmp(*nodeReport.Memory) > 0 {
-			allocatableResources.MinMemory = nodeReport.Memory
+		if allocatableResources.MinMemory.Cmp(*nodeSummary.Memory) > 0 {
+			allocatableResources.MinMemory = nodeSummary.Memory
 		}
 	}
 

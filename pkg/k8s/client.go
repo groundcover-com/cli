@@ -17,11 +17,6 @@ type Client struct {
 	kubecontext string
 }
 
-type Requirement struct {
-	IsCompatible bool
-	Message      string
-}
-
 func NewKubeClient(kubeconfig, kubecontext string) (*Client, error) {
 	var err error
 

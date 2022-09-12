@@ -68,8 +68,8 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 			NodesCount:              nodesCount,
 			Kubeconfig:              kubeconfig,
 			Kubecontext:             kubecontext,
-			NodeReportSamples:       nil,
-			IncompatibleNodeReports: nil,
+			CompatibleNodeSamples:   nil,
+			IncompatibleNodeSamples: nil,
 			ClusterReport:           nil,
 		},
 	}
@@ -84,18 +84,24 @@ func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesSuccess(
 	// prepare
 	kubeconfig := uuid.New().String()
 	kubecontext := uuid.New().String()
-
 	nodesCount := sentry_utils.MAX_NODE_REPORT_SAMPLES + 2
 
-	nodeReports := make([]*k8s.NodeReport, nodesCount)
+	nodesReport := &k8s.NodesReport{
+		CompatibleNodes:   make([]*k8s.NodeSummary, nodesCount),
+		IncompatibleNodes: make([]*k8s.IncompatibleNode, nodesCount),
+	}
+
 	sentryContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 
 	// act
-	sentryContext.SetNodeReportsSamples(nodeReports)
+	sentryContext.SetNodesSamples(nodesReport)
 
 	// assert
-	expect := nodeReports[:sentry_utils.MAX_NODE_REPORT_SAMPLES]
-	suite.Equal(expect, sentryContext.NodeReportSamples)
+	expectCompatibleNodes := nodesReport.CompatibleNodes[:sentry_utils.MAX_NODE_REPORT_SAMPLES]
+	expectInCompatibleNodes := nodesReport.IncompatibleNodes[:sentry_utils.MAX_NODE_REPORT_SAMPLES]
+
+	suite.Equal(expectCompatibleNodes, sentryContext.CompatibleNodeSamples)
+	suite.Equal(expectInCompatibleNodes, sentryContext.IncompatibleNodeSamples)
 }
 
 func (suite *SentryContextTestSuite) TestHelmContexJsonOmitEmpty() {

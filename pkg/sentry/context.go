@@ -18,12 +18,12 @@ type SentryContext interface {
 }
 
 type KubeContext struct {
-	NodesCount              int                `json:",omitempty"`
-	Kubeconfig              string             `json:",omitempty"`
-	Kubecontext             string             `json:",omitempty"`
-	ClusterReport           *k8s.ClusterReport `json:",omitempty"`
-	IncompatibleNodeReports []*k8s.NodeReport  `json:",omitempty"`
-	NodeReportSamples       []*k8s.NodeReport  `json:",omitempty"`
+	NodesCount              int                     `json:",omitempty"`
+	Kubeconfig              string                  `json:",omitempty"`
+	Kubecontext             string                  `json:",omitempty"`
+	ClusterReport           *k8s.ClusterReport      `json:",omitempty"`
+	CompatibleNodeSamples   []*k8s.NodeSummary      `json:",omitempty"`
+	IncompatibleNodeSamples []*k8s.IncompatibleNode `json:",omitempty"`
 }
 
 func NewKubeContext(kubeconfig, kubecontext string) *KubeContext {
@@ -33,14 +33,22 @@ func NewKubeContext(kubeconfig, kubecontext string) *KubeContext {
 	}
 }
 
-func (context *KubeContext) SetNodeReportsSamples(nodeReports []*k8s.NodeReport) {
-	samplesSize := len(nodeReports)
-	if samplesSize > MAX_NODE_REPORT_SAMPLES {
-		samplesSize = MAX_NODE_REPORT_SAMPLES
+func (context *KubeContext) SetNodesSamples(nodesReport *k8s.NodesReport) {
+	compatibleSamplesSize := len(nodesReport.CompatibleNodes)
+	if compatibleSamplesSize > MAX_NODE_REPORT_SAMPLES {
+		compatibleSamplesSize = MAX_NODE_REPORT_SAMPLES
 	}
 
-	context.NodeReportSamples = make([]*k8s.NodeReport, samplesSize)
-	copy(context.NodeReportSamples, nodeReports)
+	context.CompatibleNodeSamples = make([]*k8s.NodeSummary, compatibleSamplesSize)
+	copy(context.CompatibleNodeSamples, nodesReport.CompatibleNodes)
+
+	incompatibleSamplesSize := len(nodesReport.IncompatibleNodes)
+	if incompatibleSamplesSize > MAX_NODE_REPORT_SAMPLES {
+		incompatibleSamplesSize = MAX_NODE_REPORT_SAMPLES
+	}
+
+	context.IncompatibleNodeSamples = make([]*k8s.IncompatibleNode, incompatibleSamplesSize)
+	copy(context.IncompatibleNodeSamples, nodesReport.IncompatibleNodes)
 }
 
 func (context KubeContext) SetOnCurrentScope() {
