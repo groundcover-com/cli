@@ -35,3 +35,7 @@ func PrintErrorMessageln(message string) {
 func PrintWarningMessage(message string) {
 	fmt.Print(color.RedString(message))
 }
+
+func UrlLink(url string) string {
+	return color.New(color.FgBlue).Add(color.Underline).Sprint(url)
+}

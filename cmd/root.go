@@ -22,16 +22,20 @@ import (
 )
 
 const (
-	GITHUB_REPO           = "cli"
-	GITHUB_OWNER          = "groundcover-com"
-	NAMESPACE_FLAG        = "namespace"
-	KUBECONFIG_FLAG       = "kubeconfig"
-	KUBECONTEXT_FLAG      = "kube-context"
-	HELM_RELEASE_FLAG     = "release-name"
-	CLUSTER_NAME_FLAG     = "cluster-name"
-	SKIP_CLI_UPDATE_FLAG  = "skip-cli-update"
-	SUPPORT_SLACK_MESSAGE = "questions? issues? ping us anytime - https://groundcover.com/join-slack"
-	JOIN_SLACK_MESSAGE    = "join us on slack, we promise to keep things interesting - https://groundcover.com/join-slack"
+	GITHUB_REPO          = "cli"
+	GITHUB_OWNER         = "groundcover-com"
+	NAMESPACE_FLAG       = "namespace"
+	KUBECONFIG_FLAG      = "kubeconfig"
+	KUBECONTEXT_FLAG     = "kube-context"
+	HELM_RELEASE_FLAG    = "release-name"
+	CLUSTER_NAME_FLAG    = "cluster-name"
+	SKIP_CLI_UPDATE_FLAG = "skip-cli-update"
+)
+
+var (
+	JOIN_SLACK_LINK       = ui.UrlLink("https://groundcover.com/join-slack")
+	SUPPORT_SLACK_MESSAGE = fmt.Sprintf("questions? issues? ping us anytime %s", JOIN_SLACK_LINK)
+	JOIN_SLACK_MESSAGE    = fmt.Sprintf("join us on slack, we promise to keep things interesting %s", JOIN_SLACK_LINK)
 )
 
 func init() {
