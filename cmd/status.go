@@ -95,7 +95,7 @@ var StatusCmd = &cobra.Command{
 		}
 		nodesCount := len(nodeList.Items)
 
-		if err = waitForAlligators(ctx, kubeClient, release, nodesCount); err != nil {
+		if err = waitForAlligators(ctx, kubeClient, release, nodesCount, sentryHelmContext); err != nil {
 			return err
 		}
 
@@ -104,7 +104,7 @@ var StatusCmd = &cobra.Command{
 	},
 }
 
-func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, expectedAlligatorsCount int) error {
+func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
 	spinner := ui.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
 	spinner.Start()
 	defer spinner.Stop()
@@ -124,6 +124,9 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 		ALLIGATORS_POLLING_INTERVAL,
 		ALLIGATORS_POLLING_TIMEOUT,
 	)
+
+	sentryHelmContext.RunningAlligators = fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
+	sentryHelmContext.SetOnCurrentScope()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)

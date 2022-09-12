@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
@@ -111,7 +112,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = validateInstall(ctx, kubeClient, release, clusterName, len(nodesReport.CompatibleNodes)); err != nil {
+	if err = validateInstall(ctx, kubeClient, release, clusterName, len(nodesReport.CompatibleNodes), sentryHelmContext); err != nil {
 		return errors.Wrap(err, "Helm installation validation failed")
 	}
 
@@ -192,6 +193,7 @@ func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterNa
 	if isUpgrade {
 		sentryHelmContext.Upgrade = isUpgrade
 		sentryHelmContext.PreviousChartVersion = release.Version().String()
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.UPGRADE_TAG, strconv.FormatBool(isUpgrade))
 		sentryHelmContext.SetOnCurrentScope()
 
 		if chart.Version().GT(release.Version()) {
@@ -225,7 +227,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 
 	var release *helm.Release
 	if release, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
-		spinner.StopFailMessage("groundcover helm release installation faild")
+		spinner.StopFailMessage("groundcover helm release installation failed")
 		spinner.StopFail()
 		return nil, err
 	}
@@ -233,7 +235,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return release, nil
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.Release, clusterName string, compatibleNodes int) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.Release, clusterName string, compatibleNodes int, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	fmt.Println("\nValidating groundcover installation:")
@@ -243,7 +245,7 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.
 		return err
 	}
 
-	if err = waitForAlligators(ctx, kubeClient, release, compatibleNodes); err != nil {
+	if err = waitForAlligators(ctx, kubeClient, release, compatibleNodes, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -307,8 +309,13 @@ func getChartValues(clusterName string, compatibleNodes []*k8s.NodeSummary, sent
 		return nil, err
 	}
 
-	sentryHelmContext.ResourcesPresets = resourcesTunerPresetPaths
-	sentryHelmContext.SetOnCurrentScope()
+	if len(resourcesTunerPresetPaths) > 0 {
+		sentryHelmContext.ResourcesPresets = resourcesTunerPresetPaths
+		sentryHelmContext.SetOnCurrentScope()
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.DEFAULT_RESOURCES_PRESET_TAG, "false")
+	} else {
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.DEFAULT_RESOURCES_PRESET_TAG, "true")
+	}
 
 	var valuesOverride map[string]interface{}
 	if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, append(resourcesTunerPresetPaths, userValuesOverridePaths...)); err != nil {
