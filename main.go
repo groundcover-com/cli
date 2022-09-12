@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
 
 	"github.com/getsentry/sentry-go"
 	"groundcover.com/cmd"
@@ -29,8 +32,33 @@ func main() {
 	}
 	defer sentry.Flush(sentry_utils.FLUSH_TIMEOUT)
 
-	if err = cmd.Execute(); err != nil {
+	ctx, cleanup := contextWithSignalInterrupt()
+	defer cleanup()
+
+	if err = cmd.ExecuteContext(ctx); err != nil {
 		sentry.CaptureException(err)
 		ui.PrintErrorMessageln(err.Error())
 	}
+}
+
+func contextWithSignalInterrupt() (context.Context, func()) {
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	cleanup := func() {
+		signal.Stop(signalChan)
+		cancel()
+	}
+
+	go func() {
+		select {
+		case <-signalChan:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	return ctx, cleanup
 }

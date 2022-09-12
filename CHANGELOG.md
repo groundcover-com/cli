@@ -18,6 +18,7 @@ We use the following categories for changes:
 
 ### Added
 
+- interrupt signal handler [#sc-4649]
 - print validation errors in ui [#sc-4660]
 
 ### Changed
