@@ -18,9 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- interrupt signal handler [#sc-4649]
-- print validation errors in ui [#sc-4660]
-
 ### Changed
 
 ### Fixed
@@ -30,6 +27,13 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.3.2] 2022-09-12
+
+### Added
+
+- interrupt signal handler [#sc-4649]
+- print validation errors in ui [#sc-4660]
 
 ## [0.3.1] 2022-09-07
 
