@@ -217,7 +217,7 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesHighSuccess() {
 	// assert
 
 	expected := make(map[string]interface{})
-	expectedPresetPaths := []string{"", ""}
+	var expectedPresetPaths []string
 
 	suite.Equal(expected, chartValues)
 	suite.Equal(expectedPresetPaths, presetPaths)

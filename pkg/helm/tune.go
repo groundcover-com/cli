@@ -38,15 +38,25 @@ type AllocatableResources struct {
 func GetResourcesTunerPresetPaths(nodesSummeries []*k8s.NodeSummary) ([]string, error) {
 	var err error
 
-	presetPaths := make([]string, 2)
 	allocatableResources := calcAllocatableResources(nodesSummeries)
 
-	if presetPaths[0], err = tuneAgentResourcesValues(allocatableResources); err != nil {
-		return nil, err
+	tuneFuncs := []func(*AllocatableResources) (string, error){
+		tuneAgentResourcesValues,
+		tuneBackendResourcesValues,
 	}
 
-	if presetPaths[1], err = tuneBackendResourcesValues(allocatableResources); err != nil {
-		return nil, err
+	var presetPath string
+	var presetPaths []string
+	for _, tuneFunc := range tuneFuncs {
+		if presetPath, err = tuneFunc(allocatableResources); err != nil {
+			return nil, err
+		}
+
+		if presetPath == "" {
+			continue
+		}
+
+		presetPaths = append(presetPaths, presetPath)
 	}
 
 	return presetPaths, nil
