@@ -107,8 +107,8 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	var release *helm.Release
-	if release, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
-		return errors.Wrap(err, "Helm installation failed")
+	if release, err = installHelmRelease(ctx, helmClient, releaseName, chart, chartValues); err != nil {
+		return err
 	}
 
 	if err = validateInstall(ctx, kubeClient, release, clusterName, len(nodesReport.CompatibleNodes)); err != nil {
@@ -160,10 +160,12 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 		return nil, err
 	}
 
+	sentryKubeContext.NodesCount = len(nodesSummeries)
+	sentryKubeContext.SetOnCurrentScope()
+
 	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
 
-	sentryKubeContext.NodesReport = nodesReport
-	sentryKubeContext.SetNodesSamples(nodesReport.CompatibleNodes)
+	sentryKubeContext.SetNodesSamples(nodesReport)
 	sentryKubeContext.SetOnCurrentScope()
 
 	nodesReport.PrintStatus()
@@ -177,6 +179,8 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 
 func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterName string, namespace string, chart *helm.Chart, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	var err error
+
+	fmt.Println("\nInstalling groundcover:")
 
 	var isUpgrade bool
 	var release *helm.Release
@@ -208,7 +212,25 @@ func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterNa
 		)
 	}
 
-	return ui.YesNoPrompt(promptMessage, false), nil
+	return ui.YesNoPrompt(promptMessage, !isUpgrade), nil
+}
+
+func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseName string, chart *helm.Chart, chartValues map[string]interface{}) (*helm.Release, error) {
+	var err error
+
+	spinner := ui.NewSpinner("Installing groundcover helm release")
+	spinner.Start()
+	spinner.StopMessage("groundcover helm release is installed")
+	defer spinner.Stop()
+
+	var release *helm.Release
+	if release, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
+		spinner.StopFailMessage("groundcover helm release installation faild")
+		spinner.StopFail()
+		return nil, err
+	}
+
+	return release, nil
 }
 
 func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.Release, clusterName string, compatibleNodes int) error {

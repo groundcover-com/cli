@@ -72,7 +72,7 @@ var UninstallCmd = &cobra.Command{
 		var release *helm.Release
 		if release, err = helmClient.GetCurrentRelease(releaseName); err != nil {
 			if errors.Is(err, helm_driver.ErrReleaseNotFound) {
-				ui.PrintWarningMessage(fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?", releaseName, namespace))
+				ui.PrintWarningMessage(fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?\n", releaseName, namespace))
 				return nil
 			}
 
