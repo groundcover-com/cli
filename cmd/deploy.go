@@ -118,7 +118,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("\nThat was easy. groundcover installed!")
 	utils.TryOpenBrowser("Check out:", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
-	fmt.Println(JOIN_SLACK_MESSAGE)
+	fmt.Printf("\n%s\n", JOIN_SLACK_MESSAGE)
 
 	sentry.CaptureMessage("deploy executed successfully")
 	return nil

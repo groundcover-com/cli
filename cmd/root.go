@@ -163,7 +163,7 @@ func ExecuteContext(ctx context.Context) error {
 
 	sentry.CaptureException(err)
 	ui.PrintErrorMessageln(err.Error())
-	fmt.Println(SUPPORT_SLACK_MESSAGE)
+	fmt.Printf("\n%s\n", SUPPORT_SLACK_MESSAGE)
 	return err
 }
 
