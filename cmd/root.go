@@ -22,14 +22,16 @@ import (
 )
 
 const (
-	GITHUB_REPO          = "cli"
-	GITHUB_OWNER         = "groundcover-com"
-	NAMESPACE_FLAG       = "namespace"
-	KUBECONFIG_FLAG      = "kubeconfig"
-	KUBECONTEXT_FLAG     = "kube-context"
-	HELM_RELEASE_FLAG    = "release-name"
-	CLUSTER_NAME_FLAG    = "cluster-name"
-	SKIP_CLI_UPDATE_FLAG = "skip-cli-update"
+	GITHUB_REPO           = "cli"
+	GITHUB_OWNER          = "groundcover-com"
+	NAMESPACE_FLAG        = "namespace"
+	KUBECONFIG_FLAG       = "kubeconfig"
+	KUBECONTEXT_FLAG      = "kube-context"
+	HELM_RELEASE_FLAG     = "release-name"
+	CLUSTER_NAME_FLAG     = "cluster-name"
+	SKIP_CLI_UPDATE_FLAG  = "skip-cli-update"
+	SUPPORT_SLACK_MESSAGE = "questions? issues? ping us anytime - https://groundcover.com/join-slack"
+	JOIN_SLACK_MESSAGE    = "join us on slack, we promise to keep things interesting - https://groundcover.com/join-slack"
 )
 
 func init() {
@@ -159,6 +161,9 @@ func ExecuteContext(ctx context.Context) error {
 		return nil
 	}
 
+	sentry.CaptureException(err)
+	ui.PrintErrorMessageln(err.Error())
+	fmt.Println(SUPPORT_SLACK_MESSAGE)
 	return err
 }
 

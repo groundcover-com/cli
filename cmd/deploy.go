@@ -118,6 +118,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("\nThat was easy. groundcover installed!")
 	utils.TryOpenBrowser("Check out:", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
+	fmt.Println(JOIN_SLACK_MESSAGE)
 
 	sentry.CaptureMessage("deploy executed successfully")
 	return nil
@@ -226,7 +227,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	defer spinner.Stop()
 
 	var release *helm.Release
-	if release, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
+	if release, err = helmClient.Install(ctx, releaseName, chart, chartValues); err != nil {
 		spinner.StopFailMessage("groundcover helm release installation failed")
 		spinner.StopFail()
 		return nil, err
