@@ -35,10 +35,7 @@ func main() {
 	ctx, cleanup := contextWithSignalInterrupt()
 	defer cleanup()
 
-	if err = cmd.ExecuteContext(ctx); err != nil {
-		sentry.CaptureException(err)
-		ui.PrintErrorMessageln(err.Error())
-	}
+	cmd.ExecuteContext(ctx)
 }
 
 func contextWithSignalInterrupt() (context.Context, func()) {

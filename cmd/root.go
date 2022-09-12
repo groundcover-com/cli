@@ -32,6 +32,12 @@ const (
 	SKIP_CLI_UPDATE_FLAG = "skip-cli-update"
 )
 
+var (
+	JOIN_SLACK_LINK       = ui.UrlLink("https://groundcover.com/join-slack")
+	SUPPORT_SLACK_MESSAGE = fmt.Sprintf("questions? issues? ping us anytime %s", JOIN_SLACK_LINK)
+	JOIN_SLACK_MESSAGE    = fmt.Sprintf("join us on slack, we promise to keep things interesting %s", JOIN_SLACK_LINK)
+)
+
 func init() {
 	home := homedir.HomeDir()
 
@@ -159,6 +165,9 @@ func ExecuteContext(ctx context.Context) error {
 		return nil
 	}
 
+	sentry.CaptureException(err)
+	ui.PrintErrorMessageln(err.Error())
+	fmt.Printf("\n%s\n", SUPPORT_SLACK_MESSAGE)
 	return err
 }
 
