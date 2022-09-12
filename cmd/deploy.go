@@ -227,7 +227,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	defer spinner.Stop()
 
 	var release *helm.Release
-	if release, err = helmClient.Install(ctx, releaseName, chart, chartValues); err != nil {
+	if release, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
 		spinner.StopFailMessage("groundcover helm release installation failed")
 		spinner.StopFail()
 		return nil, err
