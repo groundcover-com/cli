@@ -1,6 +1,6 @@
 module groundcover.com
 
-go 1.17
+go 1.19
 
 replace groundcover.com => ./pkg/
 
