@@ -28,6 +28,21 @@ We use the following categories for changes:
 
 ### Security
 
+
+## [0.3.3] 2022-09-13
+
+### Added
+
+### Changed
+
+### Fixed
+- added k8s client auth plugins
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.3.2] 2022-09-12
 
 ### Added
