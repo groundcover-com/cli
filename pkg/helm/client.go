@@ -1,8 +1,8 @@
 package helm
 
 import (
-	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/containerd/containerd/log"
 	"groundcover.com/pkg/utils"
@@ -18,7 +18,11 @@ type Client struct {
 func NewHelmClient(namespace, kubecontext string) (*Client, error) {
 	var err error
 
-	helmPath := fmt.Sprintf("%s/helm", utils.PresistentStorage.BasePath)
+	helmPath := filepath.Join(utils.PresistentStorage.BasePath, "/helm")
+
+	os.Setenv("HELM_DATA_HOME", helmPath)
+	os.Setenv("HELM_CACHE_HOME", helmPath)
+	os.Setenv("HELM_CONFIG_HOME", helmPath)
 
 	helmClient := &Client{
 		settings: cli.New(),
@@ -28,10 +32,6 @@ func NewHelmClient(namespace, kubecontext string) (*Client, error) {
 	helmClient.settings.Debug = true
 	helmClient.settings.SetNamespace(namespace)
 	helmClient.settings.KubeContext = kubecontext
-	helmClient.settings.PluginsDirectory = fmt.Sprintf("%s/plugins", helmPath)
-	helmClient.settings.RepositoryCache = fmt.Sprintf("%s/repository", helmPath)
-	helmClient.settings.RepositoryConfig = fmt.Sprintf("%s/repositories.yaml", helmPath)
-	helmClient.settings.RegistryConfig = fmt.Sprintf("%s/registry/config.json", helmPath)
 
 	if err = helmClient.cfg.Init(helmClient.settings.RESTClientGetter(), helmClient.settings.Namespace(), os.Getenv("HELM_DRIVER"), log.L.Debugf); err != nil {
 		return nil, err

@@ -20,7 +20,7 @@ import (
 
 const (
 	VALUES_FLAG                   = "values"
-	CHART_NAME                    = "groundcover"
+	CHART_NAME                    = "groundcover/groundcover"
 	HELM_REPO_NAME                = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
 	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
@@ -282,7 +282,7 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	}
 
 	var chart *helm.Chart
-	if chart, err = helmClient.GetLatestChart(fmt.Sprintf("%s/%s", HELM_REPO_NAME, CHART_NAME)); err != nil {
+	if chart, err = helmClient.GetLatestChart(CHART_NAME); err != nil {
 		return nil, err
 	}
 
