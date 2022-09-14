@@ -18,9 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- store helm storage in groundcover cache directory [#sc-4780]
-- disable klog stderr output [#sc-4775]
-
 ### Changed
 
 ### Fixed
@@ -30,6 +27,13 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.3.4] 2022-09-14
+
+### Added
+
+- store helm storage in groundcover cache directory [#sc-4780]
+- disable klog stderr output [#sc-4775]
 
 ## [0.3.3] 2022-09-13
 
