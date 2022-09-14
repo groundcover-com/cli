@@ -18,7 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
-- disable klog stderr output
+- store helm storage in groundcover cache directory [#sc-4780]
+- disable klog stderr output [#sc-4775]
 
 ### Changed
 
