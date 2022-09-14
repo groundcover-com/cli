@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -11,10 +12,15 @@ import (
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 )
 
 func main() {
 	var err error
+
+	klog.InitFlags(nil)
+	flag.Set("logtostderr", "false")
+	flag.Parse()
 
 	rest.SetDefaultWarningHandler(rest.NoWarnings{})
 
