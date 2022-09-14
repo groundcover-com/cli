@@ -276,12 +276,12 @@ func getClusterName(kubeClient *k8s.Client) (string, error) {
 
 func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.HelmContext) (*helm.Chart, error) {
 	var err error
-	var chart *helm.Chart
 
 	if err = helmClient.AddRepo(HELM_REPO_NAME, HELM_REPO_URL); err != nil {
 		return nil, err
 	}
 
+	var chart *helm.Chart
 	if chart, err = helmClient.GetLatestChart(fmt.Sprintf("%s/%s", HELM_REPO_NAME, CHART_NAME)); err != nil {
 		return nil, err
 	}
