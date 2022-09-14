@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- store helm storage in groundcover cache directory [#sc-4780]
+
 ### Changed
 
 ### Fixed
@@ -28,7 +30,6 @@ We use the following categories for changes:
 
 ### Security
 
-
 ## [0.3.3] 2022-09-13
 
 ### Added
@@ -36,7 +37,9 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
+
 - added k8s client auth plugins
+
 ### Removed
 
 ### Deprecated

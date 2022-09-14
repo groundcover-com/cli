@@ -21,6 +21,7 @@ import (
 const (
 	VALUES_FLAG                   = "values"
 	CHART_NAME                    = "groundcover"
+	HELM_REPO_NAME                = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
 	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
 	COMMIT_HASH_KEY_NAME_FLAG     = "git-commit-hash-key-name"
@@ -277,7 +278,11 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	var err error
 	var chart *helm.Chart
 
-	if chart, err = helmClient.GetLatestChart(CHART_NAME, HELM_REPO_URL); err != nil {
+	if err = helmClient.AddRepo(HELM_REPO_NAME, HELM_REPO_URL); err != nil {
+		return nil, err
+	}
+
+	if chart, err = helmClient.GetLatestChart(fmt.Sprintf("%s/%s", HELM_REPO_NAME, CHART_NAME)); err != nil {
 		return nil, err
 	}
 
