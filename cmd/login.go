@@ -18,24 +18,26 @@ func init() {
 var LoginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login to groundcover",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var err error
+	RunE:  runLoginCmd,
+}
 
-		var auth0Token *auth.Auth0Token
-		if auth0Token, err = attemptAuth0Login(); err != nil {
-			return errors.Wrap(err, "failed to login")
-		}
+func runLoginCmd(cmd *cobra.Command, args []string) error {
+	var err error
 
-		sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.Claims.Email})
-		sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.Claims.Org)
+	var auth0Token *auth.Auth0Token
+	if auth0Token, err = attemptAuth0Login(); err != nil {
+		return errors.Wrap(err, "failed to login")
+	}
 
-		if err = fetchAndSaveApiKey(auth0Token); err != nil {
-			return errors.Wrap(err, "failed to fetch api key")
-		}
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.Claims.Email})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.Claims.Org)
 
-		sentry.CaptureMessage("login executed successfully")
-		return nil
-	},
+	if err = fetchAndSaveApiKey(auth0Token); err != nil {
+		return errors.Wrap(err, "failed to fetch api key")
+	}
+
+	sentry.CaptureMessage("login executed successfully")
+	return nil
 }
 
 func attemptAuth0Login() (*auth.Auth0Token, error) {

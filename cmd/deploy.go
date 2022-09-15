@@ -128,7 +128,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryKubeContext *sentry_utils.KubeContext) error {
 	var err error
 
-	fmt.Println("Validating cluster compatibility:")
+	fmt.Println("\nValidating cluster compatibility:")
 
 	var clusterSummary *k8s.ClusterSummary
 	if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {

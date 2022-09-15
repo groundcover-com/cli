@@ -90,7 +90,7 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 
 		sentry_utils.SetTransactionOnCurrentScope(cmd.Name())
 
-		if err = checkAuthForCmd(cmd); err != nil {
+		if err = validateAuthentication(cmd, args); err != nil {
 			return err
 		}
 
@@ -141,16 +141,32 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 	return shouldUpdate, selfUpdater
 }
 
-func checkAuthForCmd(cmd *cobra.Command) error {
+func validateAuthentication(cmd *cobra.Command, args []string) error {
+	var err error
+
 	if slices.Contains(skipAuthCommandNames, cmd.Name()) {
 		return nil
 	}
 
-	if err := validateAuth0Token(); err != nil {
-		return errors.Wrap(err, "failed to authenticate. Please retry `groundcover login`")
+	fmt.Println("Validating groundcover authentication:")
+
+	err = validateAuth0Token()
+
+	if err == nil {
+		ui.PrintStatus(true, "Device authentication is valid")
+		return nil
 	}
 
-	return nil
+	if !ui.YesNoPrompt("authentication is required, do you want to login?", true) {
+		os.Exit(0)
+	}
+
+	sentry.WithScope(func(scope *sentry.Scope) {
+		scope.SetTransaction("login")
+		err = runLoginCmd(cmd, args)
+	})
+
+	return err
 }
 
 func ExecuteContext(ctx context.Context) error {
