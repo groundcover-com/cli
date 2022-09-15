@@ -63,6 +63,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	var kubeClient *k8s.Client
 	if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
+		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
 		return err
 	}
 

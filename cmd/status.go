@@ -46,6 +46,8 @@ var StatusCmd = &cobra.Command{
 
 		var kubeClient *k8s.Client
 		if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
+			fmt.Printf("Error creating kubernetes client: %s, setting level warning", err)
+			sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
 			return err
 		}
 
