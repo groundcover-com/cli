@@ -58,6 +58,11 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 	releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
+	var auth0Token auth.Auth0Token
+	if err = auth0Token.Load(); err != nil {
+		return err
+	}
+
 	sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 	sentryKubeContext.SetOnCurrentScope()
 
@@ -113,7 +118,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = validateInstall(ctx, kubeClient, release, clusterName, len(nodesReport.CompatibleNodes), sentryHelmContext); err != nil {
+	if err = validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(nodesReport.CompatibleNodes), sentryHelmContext); err != nil {
 		return errors.Wrap(err, "Helm installation validation failed")
 	}
 
@@ -237,21 +242,16 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return release, nil
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.Release, clusterName string, compatibleNodes int, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.Release, auth0Token *auth.Auth0Token, clusterName string, compatibleNodes int, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	fmt.Println("\nValidating groundcover installation:")
-
-	var auth0Token auth.Auth0Token
-	if err = auth0Token.Load(); err != nil {
-		return err
-	}
 
 	if err = waitForAlligators(ctx, kubeClient, release, compatibleNodes, sentryHelmContext); err != nil {
 		return err
 	}
 
-	apiClient := api.NewClient(&auth0Token)
+	apiClient := api.NewClient(auth0Token)
 	if err = apiClient.PollIsClusterExist(clusterName); err != nil {
 		return err
 	}
