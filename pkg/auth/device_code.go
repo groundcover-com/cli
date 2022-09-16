@@ -13,7 +13,7 @@ import (
 const (
 	DEVICE_CODE_ENDPOINT         = "device/code"
 	DEVICE_CODE_POLLING_TIMEOUT  = time.Minute * 1
-	DEVICE_CODE_POLLING_INTERVAL = time.Second * 5
+	DEVICE_CODE_POLLING_INTERVAL = time.Second * 7
 )
 
 type DeviceCode struct {
@@ -44,7 +44,7 @@ func (deviceCode *DeviceCode) Fetch() error {
 func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 	spinner := ui.NewSpinner("Waiting for device confirmation")
 	spinner.StopMessage("Device authentication confirmed, You are successfully logged in!")
-	
+
 	spinner.Start()
 	defer spinner.Stop()
 
