@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	NODE_MINIUM_REQUIREMENTS_CPU           = "1750m"
-	NODE_MINIUM_REQUIREMENTS_MEMORY        = "1750Mi"
+	NODE_MINIUM_REQUIREMENTS_CPU           = "1500m"
+	NODE_MINIUM_REQUIREMENTS_MEMORY        = "1500Mi"
 	CPU_REPORT_MESSAGE_FORMAT              = "Sufficient node CPU (%d/%d Nodes)"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "Kernel version >= %s (%d/%d Nodes)"
 	MEMORY_REPORT_MESSAGE_FORMAT           = "Sufficient node memory (%d/%d Nodes)"
