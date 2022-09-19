@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 3
+	ALLIGATORS_POLLING_TIMEOUT  = time.Second * 3
 	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
 	WAIT_FOR_ALLIGATORS_FORMAT  = "Waiting until all nodes are monitored (%d/%d Nodes)"
 	ALLIGATOR_LABEL_SELECTOR    = "app=alligator"
@@ -161,4 +161,21 @@ func getRunningAlligators(ctx context.Context, kubeClient *k8s.Client, helmVersi
 	}
 
 	return runningAlligators, nil
+}
+
+func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, helmVersion string, namespace string, sentryHelmContext *sentry_utils.HelmContext) {
+	podClient := kubeClient.CoreV1().Pods(namespace)
+
+	podList, err := podClient.List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return
+	}
+
+	podsStatus := make(map[string]k8s.PodStatus)
+	for _, pod := range podList.Items {
+		podsStatus[pod.Name] = k8s.BuildPodStatus(pod)
+	}
+
+	sentryHelmContext.PodsStatus = podsStatus
+	sentryHelmContext.SetOnCurrentScope()
 }
