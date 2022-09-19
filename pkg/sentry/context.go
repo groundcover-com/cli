@@ -66,6 +66,7 @@ type HelmContext struct {
 	ResourcesPresets     []string                 `json:",omitempty"`
 	ValuesOverride       map[string]interface{}   `json:",omitempty"`
 	PodsStatus           map[string]k8s.PodStatus `json:",omitempty"`
+	BoundPvcs            []string                 `json:",omitempty"`
 }
 
 func NewHelmContext(releaseName, chartName, repoUrl string) *HelmContext {
