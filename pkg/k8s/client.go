@@ -77,9 +77,17 @@ func (kubeClient *Client) loadClient() error {
 		return err
 	}
 
+	OverrideDepartedAuthenticationApiVersion(restConfig)
+
 	if kubeClient.Interface, err = kubernetes.NewForConfig(restConfig); err != nil {
 		return kubeClient.printHintIfAuthError(err)
 	}
 
 	return nil
+}
+
+func OverrideDepartedAuthenticationApiVersion(restConfig *restclient.Config) {
+	if restConfig.ExecProvider.APIVersion == "client.authentication.k8s.io/v1alpha1" {
+		restConfig.ExecProvider.APIVersion = "client.authentication.k8s.io/v1beta1"
+	}
 }

@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- override departed authentication api version [#sc-4856]
+
 ### Changed
 
 ### Fixed
