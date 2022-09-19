@@ -118,11 +118,11 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	installationError := validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(nodesReport.CompatibleNodes), sentryHelmContext)
+	err = validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(nodesReport.CompatibleNodes), sentryHelmContext)
 	reportPodsStatus(ctx, kubeClient, release.Chart.AppVersion(), release.Namespace, sentryHelmContext)
 
-	if installationError != nil {
-		return errors.Wrap(installationError, "Helm installation validation failed")
+	if err != nil {
+		return errors.Wrap(err, "Helm installation validation failed")
 	}
 
 	fmt.Println("\nThat was easy. groundcover installed!")
