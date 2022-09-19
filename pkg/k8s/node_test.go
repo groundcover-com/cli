@@ -132,8 +132,8 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 			{
 				NodeSummary: nodesSummeries[1],
 				RequirementErrors: []string{
-					"insufficient cpu 500m < 1750m",
-					"insufficient memory 1G < 1750Mi",
+					"insufficient cpu 500m < 1500m",
+					"insufficient memory 1G < 1500Mi",
 					"fargate is unsupported provider",
 					"4.13.0 is unsupported kernel version",
 					"arm64 is unspported architecture",
@@ -149,12 +149,12 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 		CpuSufficient: k8s.Requirement{
 			IsCompatible:  false,
 			Message:       "Sufficient node CPU (1/2 Nodes)",
-			ErrorMessages: []string{"node: incompatible - insufficient cpu 500m < 1750m"},
+			ErrorMessages: []string{"node: incompatible - insufficient cpu 500m < 1500m"},
 		},
 		MemorySufficient: k8s.Requirement{
 			IsCompatible:  false,
 			Message:       "Sufficient node memory (1/2 Nodes)",
-			ErrorMessages: []string{"node: incompatible - insufficient memory 1G < 1750Mi"},
+			ErrorMessages: []string{"node: incompatible - insufficient memory 1G < 1500Mi"},
 		},
 		ProviderAllowed: k8s.Requirement{
 			IsCompatible:  false,
