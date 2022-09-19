@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	DEVICE_CODE_ENDPOINT         = "device/code"
-	DEVICE_CODE_POLLING_TIMEOUT  = time.Minute * 1
-	DEVICE_CODE_POLLING_INTERVAL = time.Second * 7
+	DEVICE_CODE_ENDPOINT            = "device/code"
+	DEVICE_CODE_POLLING_TIMEOUT     = time.Minute * 1
+	DEVICE_CODE_POLLING_INTERVAL    = time.Second * 7
+	AUTH0_ACCOUNT_NOT_INVITED_ERROR = "access_denied: User has yet to receive an invitation."
 )
 
 type DeviceCode struct {
@@ -43,7 +44,7 @@ func (deviceCode *DeviceCode) Fetch() error {
 
 func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 	spinner := ui.NewSpinner("Waiting for device confirmation")
-	spinner.StopMessage("Device authentication confirmed, You are successfully logged in!")
+	spinner.StopMessage("Device authentication confirmed by auth0")
 
 	spinner.Start()
 	defer spinner.Stop()
@@ -66,6 +67,10 @@ func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 		spinner.StopFailMessage("timed out while waiting for your login in browser")
 		spinner.StopFail()
 		return fmt.Errorf("timed out while waiting for your login in browser")
+	}
+
+	if err.Error() == AUTH0_ACCOUNT_NOT_INVITED_ERROR {
+		return errors.New("sorry, we don't support private emails, please try again with your company email")
 	}
 
 	return err
