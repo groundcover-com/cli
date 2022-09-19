@@ -18,11 +18,14 @@ import (
 )
 
 const (
-	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 3
-	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
-	WAIT_FOR_ALLIGATORS_FORMAT  = "Waiting until all nodes are monitored (%d/%d Nodes)"
-	ALLIGATOR_LABEL_SELECTOR    = "app=alligator"
-	ALLIGATOR_FIELD_SELECTOR    = "status.phase=Running"
+	PORTAL_POLLING_TIMEOUT     = time.Minute * 3
+	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 3
+	PODS_POLLING_INTERVAL      = time.Second * 10
+	WAIT_FOR_PORTAL_FORMAT     = "Waiting until cluster establish connectivity"
+	WAIT_FOR_ALLIGATORS_FORMAT = "Waiting until all nodes are monitored (%d/%d Nodes)"
+	ALLIGATOR_LABEL_SELECTOR   = "app=alligator"
+	PORTAL_LABEL_SELECTOR      = "app=portal"
+	RUNNING_FIELD_SELECTOR     = "status.phase=Running"
 )
 
 func init() {
@@ -104,8 +107,56 @@ var StatusCmd = &cobra.Command{
 	},
 }
 
+func waitForPortal(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, sentryHelmContext *sentry_utils.HelmContext) error {
+	spinner := ui.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
+	spinner.StopMessage("Cluster established connectivity")
+	spinner.StopFailMessage("Cluster failed to establish connectivity")
+
+	spinner.Start()
+	defer spinner.Stop()
+
+	appVersion := helmRelease.Chart.AppVersion()
+
+	isPortalRunningFunc := func() (bool, error) {
+		podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
+		listOptions := metav1.ListOptions{
+			LabelSelector: PORTAL_LABEL_SELECTOR,
+			FieldSelector: RUNNING_FIELD_SELECTOR,
+		}
+
+		podList, err := podClient.List(ctx, listOptions)
+		if err != nil {
+			return false, err
+		}
+
+		for _, pod := range podList.Items {
+			if pod.Annotations["groundcover_version"] == appVersion {
+				return true, nil
+			}
+		}
+
+		return false, nil
+	}
+
+	err := spinner.Poll(isPortalRunningFunc, PODS_POLLING_INTERVAL, PORTAL_POLLING_TIMEOUT)
+
+	if err == nil {
+		return nil
+	}
+
+	spinner.StopFail()
+
+	if errors.Is(err, ui.ErrSpinnerTimeout) {
+		return fmt.Errorf("timeout waiting for cluster to establish connectivity")
+	}
+
+	return err
+}
+
 func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
 	spinner := ui.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
+	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
+
 	spinner.Start()
 	defer spinner.Stop()
 
@@ -121,12 +172,16 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 			spinner.Message(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, runningAlligators, expectedAlligatorsCount))
 			return runningAlligators == expectedAlligatorsCount, nil
 		},
-		ALLIGATORS_POLLING_INTERVAL,
+		PODS_POLLING_INTERVAL,
 		ALLIGATORS_POLLING_TIMEOUT,
 	)
 
 	sentryHelmContext.RunningAlligators = fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
 	sentryHelmContext.SetOnCurrentScope()
+
+	if err == nil {
+		return nil
+	}
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
@@ -136,7 +191,9 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 		return nil
 	}
 
-	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
+	spinner.StopFailMessage(fmt.Sprintf("Not all nodes are monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
+	spinner.StopFail()
+
 	return err
 }
 
@@ -144,7 +201,7 @@ func getRunningAlligators(ctx context.Context, kubeClient *k8s.Client, helmVersi
 	podClient := kubeClient.CoreV1().Pods(namespace)
 	listOptions := metav1.ListOptions{
 		LabelSelector: ALLIGATOR_LABEL_SELECTOR,
-		FieldSelector: ALLIGATOR_FIELD_SELECTOR,
+		FieldSelector: RUNNING_FIELD_SELECTOR,
 	}
 
 	runningAlligators := 0

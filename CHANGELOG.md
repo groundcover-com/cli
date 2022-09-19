@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- cluster established connectivity validation [#sc-4861]
+
 ### Changed
 
 ### Fixed

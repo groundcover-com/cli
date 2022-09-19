@@ -247,6 +247,10 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.
 
 	fmt.Println("\nValidating groundcover installation:")
 
+	if err = waitForPortal(ctx, kubeClient, release, sentryHelmContext); err != nil {
+		return err
+	}
+
 	if err = waitForAlligators(ctx, kubeClient, release, compatibleNodes, sentryHelmContext); err != nil {
 		return err
 	}
