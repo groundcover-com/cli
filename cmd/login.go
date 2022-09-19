@@ -10,9 +10,6 @@ import (
 	"groundcover.com/pkg/utils"
 )
 
-const (
-	ErrAuthAccessDenied = "access_denied: User has yet to receive an invitation."
-)
 
 func init() {
 	AuthCmd.AddCommand(LoginCmd)
@@ -30,9 +27,6 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 
 	var auth0Token *auth.Auth0Token
 	if auth0Token, err = attemptAuth0Login(); err != nil {
-		if err.Error() == ErrAuthAccessDenied {
-			return errors.New("sorry, we don't support private emails, please try again with your company email.")
-		}
 		return errors.Wrap(err, "failed to login")
 	}
 
