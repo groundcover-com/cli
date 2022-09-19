@@ -28,6 +28,12 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.3.8] 2022-09-19
+
+### Fixed
+
+- handle private mail error [#sc-4852]
+
 ## [0.3.7] 2022-09-19
 
 ### Added
