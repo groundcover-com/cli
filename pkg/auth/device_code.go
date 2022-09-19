@@ -43,7 +43,7 @@ func (deviceCode *DeviceCode) Fetch() error {
 
 func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 	spinner := ui.NewSpinner("Waiting for device confirmation")
-	spinner.StopMessage("Device authentication confirmed, You are successfully logged in!")
+	spinner.StopMessage("Device authentication confirmed by auth0")
 
 	spinner.Start()
 	defer spinner.Stop()
