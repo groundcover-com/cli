@@ -85,9 +85,3 @@ func (kubeClient *Client) loadClient() error {
 
 	return nil
 }
-
-func OverrideDepartedAuthenticationApiVersion(restConfig *restclient.Config) {
-	if restConfig.ExecProvider.APIVersion == "client.authentication.k8s.io/v1alpha1" {
-		restConfig.ExecProvider.APIVersion = "client.authentication.k8s.io/v1beta1"
-	}
-}

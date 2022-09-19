@@ -8,6 +8,7 @@ import (
 	"groundcover.com/pkg/ui"
 	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 )
 
 const (
@@ -22,6 +23,17 @@ const (
   * Update your kubeconfig by following https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html
 `
 )
+
+func OverrideDepartedAuthenticationApiVersion(restConfig *restclient.Config) {
+	if restConfig.ExecProvider == nil {
+		return
+	}
+
+	if restConfig.ExecProvider.APIVersion == "client.authentication.k8s.io/v1alpha1" {
+		restConfig.ExecProvider.APIVersion = "client.authentication.k8s.io/v1beta1"
+	}
+
+}
 
 func (kubeClient *Client) isActionPermitted(ctx context.Context, action *authv1.ResourceAttributes) (bool, error) {
 	var err error
