@@ -118,7 +118,10 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(nodesReport.CompatibleNodes), sentryHelmContext); err != nil {
+	err = validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(nodesReport.CompatibleNodes), sentryHelmContext)
+	reportPodsStatus(ctx, kubeClient, release.Chart.AppVersion(), release.Namespace, sentryHelmContext)
+
+	if err != nil {
 		return errors.Wrap(err, "Helm installation validation failed")
 	}
 
