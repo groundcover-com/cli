@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -36,7 +37,10 @@ func NewHelmClient(namespace, kubecontext string) (*Client, error) {
 	helmClient.settings.SetNamespace(namespace)
 	helmClient.settings.KubeContext = kubecontext
 
-	getter := helmClient.settings.RESTClientGetter().(*genericclioptions.ConfigFlags)
+	getter, ok := helmClient.settings.RESTClientGetter().(*genericclioptions.ConfigFlags)
+	if !ok {
+		return nil, fmt.Errorf("failed to cast helm rest client getter")
+	}
 
 	getter.WrapConfigFn = func(restConfig *rest.Config) *rest.Config {
 		k8s.OverrideDepartedAuthenticationApiVersion(restConfig)
