@@ -18,9 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- override departed authentication api version [#sc-4856]
-- cluster established connectivity validation [#sc-4861]
-
 ### Changed
 
 ### Fixed
@@ -30,6 +27,13 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.3.9] 2022-09-20
+
+### Added
+
+- override departed authentication api version [#sc-4856]
+- cluster established connectivity validation [#sc-4861]
 
 ## [0.3.8] 2022-09-19
 
