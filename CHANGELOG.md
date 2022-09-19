@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- authentication validation [#sc-4815]
+
 ### Changed
 
 ### Fixed
