@@ -18,6 +18,7 @@ We use the following categories for changes:
 
 ### Added
 
+- override departed authentication api version [#sc-4856]
 - cluster established connectivity validation [#sc-4861]
 
 ### Changed
