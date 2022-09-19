@@ -18,8 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- authentication validation [#sc-4815]
-
 ### Changed
 
 ### Fixed
@@ -29,6 +27,12 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.3.7] 2022-09-19
+
+### Added
+
+- authentication validation [#sc-4815]
 
 ## [0.3.4] 2022-09-14
 
