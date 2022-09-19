@@ -162,7 +162,7 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 	}
 
 	sentry.WithScope(func(scope *sentry.Scope) {
-		scope.SetTransaction("login")
+		scope.SetTransaction(LoginCmd.Name())
 		err = runLoginCmd(cmd, args)
 	})
 
