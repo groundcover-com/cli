@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	DEVICE_CODE_ENDPOINT         = "device/code"
-	DEVICE_CODE_POLLING_TIMEOUT  = time.Minute * 1
-	DEVICE_CODE_POLLING_INTERVAL = time.Second * 7
-	ErrAuthAccessDenied          = "access_denied: User has yet to receive an invitation."
+	DEVICE_CODE_ENDPOINT           = "device/code"
+	DEVICE_CODE_POLLING_TIMEOUT    = time.Minute * 1
+	DEVICE_CODE_POLLING_INTERVAL   = time.Second * 7
+	AUTH0_ACOUNT_NOT_INVITED_ERROR = "access_denied: User has yet to receive an invitation."
 )
 
 type DeviceCode struct {
@@ -69,7 +69,7 @@ func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 		return fmt.Errorf("timed out while waiting for your login in browser")
 	}
 
-	if err.Error() == ErrAuthAccessDenied {
+	if err.Error() == AUTH0_ACOUNT_NOT_INVITED_ERROR {
 		return errors.New("sorry, we don't support private emails, please try again with your company email")
 	}
 
