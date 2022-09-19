@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	ALLIGATORS_POLLING_TIMEOUT  = time.Second * 3
+	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 3
 	ALLIGATORS_POLLING_INTERVAL = time.Second * 10
 	WAIT_FOR_ALLIGATORS_FORMAT  = "Waiting until all nodes are monitored (%d/%d Nodes)"
 	ALLIGATOR_LABEL_SELECTOR    = "app=alligator"
