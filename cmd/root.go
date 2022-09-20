@@ -153,7 +153,7 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 	err = validateAuth0Token()
 
 	if err == nil {
-		ui.PrintStatus(true, "Device authentication is valid")
+		ui.PrintSuccessMessage("Device authentication is valid")
 		return nil
 	}
 

@@ -120,6 +120,8 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	var err error
 	var nodesReport NodesReport
 
+	nodesCount := len(nodesSummeries)
+
 	for _, nodeSummary := range nodesSummeries {
 		var requirementErrors []string
 
@@ -194,6 +196,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	}
 
 	nodesReport.CpuSufficient.IsCompatible = len(nodesReport.CpuSufficient.ErrorMessages) == 0
+	nodesReport.CpuSufficient.IsNonCompatible = len(nodesReport.CpuSufficient.ErrorMessages) == nodesCount
 	nodesReport.CpuSufficient.Message = fmt.Sprintf(
 		CPU_REPORT_MESSAGE_FORMAT,
 		len(nodesSummeries)-len(nodesReport.CpuSufficient.ErrorMessages),
@@ -201,6 +204,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	)
 
 	nodesReport.MemorySufficient.IsCompatible = len(nodesReport.MemorySufficient.ErrorMessages) == 0
+	nodesReport.MemorySufficient.IsNonCompatible = len(nodesReport.MemorySufficient.ErrorMessages) == nodesCount
 	nodesReport.MemorySufficient.Message = fmt.Sprintf(
 		MEMORY_REPORT_MESSAGE_FORMAT,
 		len(nodesSummeries)-len(nodesReport.MemorySufficient.ErrorMessages),
@@ -208,6 +212,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	)
 
 	nodesReport.ProviderAllowed.IsCompatible = len(nodesReport.ProviderAllowed.ErrorMessages) == 0
+	nodesReport.ProviderAllowed.IsNonCompatible = len(nodesReport.ProviderAllowed.ErrorMessages) == nodesCount
 	nodesReport.ProviderAllowed.Message = fmt.Sprintf(
 		PROVIDER_REPORT_MESSAGE_FORMAT,
 		len(nodesSummeries)-len(nodesReport.ProviderAllowed.ErrorMessages),
@@ -215,6 +220,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	)
 
 	nodesReport.KernelVersionAllowed.IsCompatible = len(nodesReport.KernelVersionAllowed.ErrorMessages) == 0
+	nodesReport.KernelVersionAllowed.IsNonCompatible = len(nodesReport.KernelVersionAllowed.ErrorMessages) == nodesCount
 	nodesReport.KernelVersionAllowed.Message = fmt.Sprintf(
 		KERNEL_REPORT_MESSAGE_FORMAT,
 		MinimumKernelVersionSupport,
@@ -223,6 +229,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	)
 
 	nodesReport.ArchitectureAllowed.IsCompatible = len(nodesReport.ArchitectureAllowed.ErrorMessages) == 0
+	nodesReport.ArchitectureAllowed.IsNonCompatible = len(nodesReport.ArchitectureAllowed.ErrorMessages) == nodesCount
 	nodesReport.ArchitectureAllowed.Message = fmt.Sprintf(
 		ARCHITECTURE_REPORT_MESSAGE_FORMAT,
 		len(nodesSummeries)-len(nodesReport.ArchitectureAllowed.ErrorMessages),
@@ -230,6 +237,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	)
 
 	nodesReport.OperatingSystemAllowed.IsCompatible = len(nodesReport.OperatingSystemAllowed.ErrorMessages) == 0
+	nodesReport.OperatingSystemAllowed.IsNonCompatible = len(nodesReport.OperatingSystemAllowed.ErrorMessages) == nodesCount
 	nodesReport.OperatingSystemAllowed.Message = fmt.Sprintf(
 		OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT,
 		len(nodesSummeries)-len(nodesReport.OperatingSystemAllowed.ErrorMessages),
@@ -237,6 +245,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	)
 
 	nodesReport.Schedulable.IsCompatible = len(nodesReport.Schedulable.ErrorMessages) == 0
+	nodesReport.Schedulable.IsNonCompatible = len(nodesReport.Schedulable.ErrorMessages) == nodesCount
 	nodesReport.Schedulable.Message = fmt.Sprintf(
 		SCHEDULABLE_REPORT_MESSAGE_FORMAT,
 		len(nodesSummeries)-len(nodesReport.Schedulable.ErrorMessages),

@@ -11,15 +11,6 @@ var (
 	redStatusErr  = color.RedString(statusErr)
 )
 
-func PrintStatus(condition bool, format string, a ...interface{}) {
-	message := fmt.Sprintf(format, a...)
-	if condition {
-		PrintSuccessMessage(message)
-	} else {
-		PrintErrorMessage(message)
-	}
-}
-
 func PrintSuccessMessage(message string) {
 	fmt.Printf("%s %s", greenStatusOk, message)
 }
@@ -33,7 +24,7 @@ func PrintErrorMessageln(message string) {
 }
 
 func PrintWarningMessage(message string) {
-	fmt.Print(color.RedString(message))
+	fmt.Printf("%s %s", statusWarning, message)
 }
 
 func UrlLink(url string) string {
