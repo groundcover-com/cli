@@ -17,10 +17,11 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
-- added watch pvc readiness [#sc-4860]
-### Changed
 
+- added watch pvc readiness [#sc-4860]
 - validate node schedulable [#sc-4878]
+
+### Changed
 
 ### Fixed
 
