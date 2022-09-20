@@ -246,7 +246,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.
 	spinner := ui.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
 
 	spinner.StopMessage("Persistent Volumes are ready")
-	spinner.StopFailMessage("Persistent Volumes failed to be ready")
+	spinner.StopFailMessage("Not all Persistent Volumes are bound, timeout waiting for them to be ready")
 
 	spinner.Start()
 	defer spinner.Stop()
@@ -284,7 +284,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.
 	spinner.StopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return fmt.Errorf("timeout waiting for persistent volumes to be ready")
+		return fmt.Errorf("timeout waiting for persistent volume claims to be ready")
 	}
 
 	return err
