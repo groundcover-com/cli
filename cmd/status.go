@@ -14,7 +14,6 @@ import (
 	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -263,7 +262,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.
 		}
 
 		for _, pvc := range pvcList.Items {
-			if pvc.Status.Phase == corev1.ClaimBound {
+			if pvc.Status.Phase == v1.ClaimBound {
 				pvcs[pvc.Name] = true
 			}
 		}
