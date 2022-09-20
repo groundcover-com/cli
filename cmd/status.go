@@ -9,6 +9,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/maps"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
@@ -21,11 +22,14 @@ const (
 	PORTAL_POLLING_TIMEOUT     = time.Minute * 3
 	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 3
 	PODS_POLLING_INTERVAL      = time.Second * 10
+	PVC_POLLING_TIMEOUT        = time.Minute * 2
 	WAIT_FOR_PORTAL_FORMAT     = "Waiting until cluster establish connectivity"
 	WAIT_FOR_ALLIGATORS_FORMAT = "Waiting until all nodes are monitored (%d/%d Nodes)"
 	ALLIGATOR_LABEL_SELECTOR   = "app=alligator"
 	PORTAL_LABEL_SELECTOR      = "app=portal"
 	RUNNING_FIELD_SELECTOR     = "status.phase=Running"
+	WAIT_FOR_PVCS_FORMAT       = "Waiting until all PVCs are bound (%d/%d PVCs)"
+	EXPECTED_BOUND_PVCS        = 4
 )
 
 func init() {
@@ -235,4 +239,52 @@ func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, helmVersion s
 
 	sentryHelmContext.PodsStatus = podsStatus
 	sentryHelmContext.SetOnCurrentScope()
+}
+
+func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, sentryHelmContext *sentry_utils.HelmContext) error {
+	spinner := ui.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
+
+	spinner.StopMessage("Persistent Volumes are ready")
+	spinner.StopFailMessage("Not all Persistent Volumes are bound, timeout waiting for them to be ready")
+
+	spinner.Start()
+	defer spinner.Stop()
+
+	pvcs := make(map[string]bool, 0)
+
+	isPvcsReadyFunc := func() (bool, error) {
+		pvcClient := kubeClient.CoreV1().PersistentVolumeClaims(helmRelease.Namespace)
+		listOptions := metav1.ListOptions{}
+
+		pvcList, err := pvcClient.List(ctx, listOptions)
+		if err != nil {
+			return false, err
+		}
+
+		for _, pvc := range pvcList.Items {
+			if pvc.Status.Phase == v1.ClaimBound {
+				pvcs[pvc.Name] = true
+			}
+		}
+
+		spinner.Message(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, len(pvcs), EXPECTED_BOUND_PVCS))
+		return len(pvcs) == EXPECTED_BOUND_PVCS, nil
+	}
+
+	err := spinner.Poll(isPvcsReadyFunc, PODS_POLLING_INTERVAL, PVC_POLLING_TIMEOUT)
+
+	sentryHelmContext.BoundPvcs = maps.Keys(pvcs)
+	sentryHelmContext.SetOnCurrentScope()
+
+	if err == nil {
+		return nil
+	}
+
+	spinner.StopFail()
+
+	if errors.Is(err, ui.ErrSpinnerTimeout) {
+		return fmt.Errorf("timeout waiting for persistent volume claims to be ready")
+	}
+
+	return err
 }
