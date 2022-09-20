@@ -49,6 +49,13 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 				},
 				Spec: v1.NodeSpec{
 					ProviderID: "aws://eu-west-3/fargate-i-53df4efedd",
+					Taints: []v1.Taint{
+						{
+							Key:    "test",
+							Value:  "test",
+							Effect: "NoSchedule",
+						},
+					},
 				},
 				Status: v1.NodeStatus{
 					Allocatable: v1.ResourceList{
@@ -107,6 +114,13 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 			Kernel:          "4.13.0",
 			OSImage:         "amazon linux",
 			Provider:        "aws://eu-west-3/fargate-i-53df4efedd",
+			Taints: []v1.Taint{
+				{
+					Key:    "test",
+					Value:  "test",
+					Effect: "NoSchedule",
+				},
+			},
 		},
 	}
 
@@ -138,6 +152,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 					"4.13.0 is unsupported kernel version",
 					"arm64 is unspported architecture",
 					"windows is unspported operating system",
+					"NoSchedule taint is set",
 				},
 			},
 		},
@@ -170,6 +185,11 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 			IsCompatible:  false,
 			Message:       "Node operating system supported (1/2 Nodes)",
 			ErrorMessages: []string{"node: incompatible - windows is unspported operating system"},
+		},
+		Schedulable: k8s.Requirement{
+			IsCompatible:  false,
+			Message:       "Node is schedulable (1/2 Nodes)",
+			ErrorMessages: []string{"node: incompatible - NoSchedule taint is set"},
 		},
 	}
 

@@ -20,6 +20,8 @@ We use the following categories for changes:
 
 ### Changed
 
+- validate node schedulable [#sc-4878]
+
 ### Fixed
 
 ### Removed

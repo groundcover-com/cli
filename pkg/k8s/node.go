@@ -15,6 +15,7 @@ import (
 const (
 	NODE_MINIUM_REQUIREMENTS_CPU           = "1500m"
 	NODE_MINIUM_REQUIREMENTS_MEMORY        = "1500Mi"
+	SCHEDULABLE_REPORT_MESSAGE_FORMAT      = "Node is schedulable (%d/%d Nodes)"
 	CPU_REPORT_MESSAGE_FORMAT              = "Sufficient node CPU (%d/%d Nodes)"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "Kernel version >= %s (%d/%d Nodes)"
 	MEMORY_REPORT_MESSAGE_FORMAT           = "Sufficient node memory (%d/%d Nodes)"
@@ -49,6 +50,7 @@ type NodeSummary struct {
 	OSImage         string             `json:",omitempty"`
 	Architecture    string             `json:",omitempty"`
 	OperatingSystem string             `json:",omitempty"`
+	Taints          []v1.Taint         `json:",omitempty"`
 }
 
 func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary, error) {
@@ -62,6 +64,7 @@ func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary
 	var nodeSummeries []*NodeSummary
 	for _, node := range nodeList.Items {
 		nodeSummary := &NodeSummary{
+			Taints:          node.Spec.Taints,
 			Name:            node.ObjectMeta.Name,
 			Provider:        node.Spec.ProviderID,
 			OSImage:         node.Status.NodeInfo.OSImage,
@@ -87,6 +90,7 @@ type NodeMinimumRequirements struct {
 }
 
 type NodesReport struct {
+	Schedulable            Requirement
 	KernelVersionAllowed   Requirement
 	CpuSufficient          Requirement
 	MemorySufficient       Requirement
@@ -104,6 +108,7 @@ func (nodesReport *NodesReport) PrintStatus() {
 	nodesReport.ArchitectureAllowed.PrintStatus()
 	nodesReport.OperatingSystemAllowed.PrintStatus()
 	nodesReport.ProviderAllowed.PrintStatus()
+	nodesReport.Schedulable.PrintStatus()
 }
 
 type IncompatibleNode struct {
@@ -166,6 +171,14 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 			)
 		}
 
+		if err = nodeRequirements.validateNodeSchedulable(nodeSummary); err != nil {
+			requirementErrors = append(requirementErrors, err.Error())
+			nodesReport.Schedulable.ErrorMessages = append(
+				nodesReport.Schedulable.ErrorMessages,
+				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
+			)
+		}
+
 		if len(requirementErrors) > 0 {
 			nodesReport.IncompatibleNodes = append(
 				nodesReport.IncompatibleNodes,
@@ -220,6 +233,13 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	nodesReport.OperatingSystemAllowed.Message = fmt.Sprintf(
 		OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT,
 		len(nodesSummeries)-len(nodesReport.OperatingSystemAllowed.ErrorMessages),
+		len(nodesSummeries),
+	)
+
+	nodesReport.Schedulable.IsCompatible = len(nodesReport.Schedulable.ErrorMessages) == 0
+	nodesReport.Schedulable.Message = fmt.Sprintf(
+		SCHEDULABLE_REPORT_MESSAGE_FORMAT,
+		len(nodesSummeries)-len(nodesReport.Schedulable.ErrorMessages),
 		len(nodesSummeries),
 	)
 
@@ -285,4 +305,14 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeOperatingSystem(nod
 	}
 
 	return fmt.Errorf("%s is unspported operating system", nodeSummary.OperatingSystem)
+}
+
+func (nodeRequirements *NodeMinimumRequirements) validateNodeSchedulable(nodeSummary *NodeSummary) error {
+	for _, taint := range nodeSummary.Taints {
+		if taint.Effect == "NoSchedule" {
+			return fmt.Errorf("NoSchedule taint is set")
+		}
+	}
+
+	return nil
 }
