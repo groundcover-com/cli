@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"regexp"
 	"strings"
 
@@ -17,11 +18,20 @@ const (
 	CLUSTER_TYPE_REPORT_MESSAGE_FORMAT          = "K8s cluster type supported"
 	CLUSTER_VERSION_REPORT_MESSAGE_FORMAT       = "K8s server version >= %s"
 	CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT = "K8s user authorized for groundcover installation"
+	CLUSTER_CLI_AUTH_SUPPORTED                  = "K8s CLI auth supported"
+
+	INSTALL_AWS_CLI_HINT = `Hint: 
+  * Install aws cli by following https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html`
 )
 
 var (
 	GKE_CLUSTER_REGEX = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
 	EKS_CLUSTER_REGEX = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
+
+	AwsCliV2                    = semver.Version{Major: 2, Minor: 0, Patch: 0}
+	AwsCliV3                    = semver.Version{Major: 3, Minor: 0, Patch: 0}
+	MinSupportedAwsCliV1Version = semver.Version{Major: 1, Minor: 23, Patch: 9}
+	MinSupportedAwsCliV2Version = semver.Version{Major: 2, Minor: 7, Patch: 0}
 
 	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 12}
 	DefaultClusterRequirements  = &ClusterRequirements{
@@ -120,10 +130,11 @@ func (kubeClient *Client) GetClusterSummary(namespace string) (*ClusterSummary, 
 
 type ClusterReport struct {
 	*ClusterSummary
-	IsCompatible         bool
-	UserAuthorized       Requirement
-	ServerVersionAllowed Requirement
-	ClusterTypeAllowed   Requirement
+	IsCompatible          bool
+	UserAuthorized        Requirement
+	ProviderExecSupported Requirement
+	ServerVersionAllowed  Requirement
+	ClusterTypeAllowed    Requirement
 }
 
 func (clusterReport *ClusterReport) PrintStatus() {
@@ -138,19 +149,26 @@ func (clusterReport *ClusterReport) PrintStatus() {
 	}
 
 	clusterReport.UserAuthorized.PrintStatus()
+	if !clusterReport.UserAuthorized.IsCompatible {
+		return
+	}
+
+	clusterReport.ProviderExecSupported.PrintStatus()
 }
 
 func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, clusterSummary *ClusterSummary) *ClusterReport {
 	clusterReport := &ClusterReport{
-		ClusterSummary:       clusterSummary,
-		ClusterTypeAllowed:   clusterRequirements.validateClusterType(clusterSummary.ClusterName),
-		ServerVersionAllowed: clusterRequirements.validateServerVersion(clusterSummary.ServerVersion),
-		UserAuthorized:       clusterRequirements.validateAuthorization(ctx, client, clusterSummary.Namespace),
+		ClusterSummary:        clusterSummary,
+		UserAuthorized:        clusterRequirements.validateAuthorization(ctx, client, clusterSummary.Namespace),
+		ProviderExecSupported: clusterRequirements.validateProviderExecSupported(ctx, clusterSummary.ClusterName),
+		ServerVersionAllowed:  clusterRequirements.validateServerVersion(clusterSummary.ServerVersion),
+		ClusterTypeAllowed:    clusterRequirements.validateClusterType(clusterSummary.ClusterName),
 	}
 
 	clusterReport.IsCompatible = clusterReport.ServerVersionAllowed.IsCompatible &&
 		clusterReport.UserAuthorized.IsCompatible &&
-		clusterReport.ClusterTypeAllowed.IsCompatible
+		clusterReport.ClusterTypeAllowed.IsCompatible &&
+		clusterReport.ProviderExecSupported.IsCompatible
 
 	return clusterReport
 }
@@ -204,6 +222,68 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 	requirement.Message = CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT
 
 	return requirement
+}
+
+func (clusterRequirements ClusterRequirements) validateProviderExecSupported(ctx context.Context, clusterName string) Requirement {
+	if !EKS_CLUSTER_REGEX.MatchString(clusterName) {
+		return Requirement{
+			Message:      CLUSTER_CLI_AUTH_SUPPORTED,
+			IsCompatible: true,
+		}
+	}
+
+	awsCliCmd := exec.CommandContext(ctx, "aws", "--version")
+	awsVersion, err := awsCliCmd.Output()
+	if err != nil {
+		return Requirement{
+			IsCompatible:    false,
+			IsNonCompatible: true,
+			Message:         CLUSTER_CLI_AUTH_SUPPORTED,
+			ErrorMessages:   []string{"Failed getting aws cli version, make sure aws cli is installed", INSTALL_AWS_CLI_HINT},
+		}
+	}
+
+	strippedAwsVersion := strings.TrimSuffix(string(awsVersion), "\n")
+	supported := ValidateAwsCliVersionSupported(strippedAwsVersion)
+	if !supported {
+		return Requirement{
+			IsCompatible:    false,
+			IsNonCompatible: true,
+			Message:         CLUSTER_CLI_AUTH_SUPPORTED,
+			ErrorMessages:   []string{fmt.Sprintf("Unsupported aws-cli version: %q", strippedAwsVersion), HINT_EKS_AUTH_PLUGIN_UPGRADE},
+		}
+	}
+
+	return Requirement{
+		Message:      CLUSTER_CLI_AUTH_SUPPORTED,
+		IsCompatible: true,
+	}
+}
+
+func ValidateAwsCliVersionSupported(version string) bool {
+	// aws version format: aws-cli/2.7.32 Python/3.9.11 Linux/5.11.0-1021-aws exe/x86_64.ubuntu.20 prompt/off
+	versionParts := strings.Split(string(version), " ")
+	if len(versionParts) < 2 {
+		return false
+	}
+
+	awsVersionFirstPartParts := strings.Split(versionParts[0], "/")
+	if len(awsVersionFirstPartParts) < 2 {
+		return false
+	}
+
+	awsVersionString := awsVersionFirstPartParts[1]
+	awsSemVer, err := semver.Parse(awsVersionString)
+	if err != nil {
+		return false
+	}
+
+	if awsSemVer.GTE(MinSupportedAwsCliV1Version) && awsSemVer.LT(AwsCliV2) ||
+		awsSemVer.GTE(MinSupportedAwsCliV2Version) && awsSemVer.LT(AwsCliV3) {
+		return true
+	}
+
+	return false
 }
 
 func (kubeClient *Client) GetClusterName() (string, error) {

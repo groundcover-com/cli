@@ -20,8 +20,7 @@ const (
 	EKS_AUTH_PLUGIN_OUTDATED     = "exec plugin: invalid apiVersion \"client.authentication.k8s.io/v1alpha1\""
 	HINT_EKS_AUTH_PLUGIN_UPGRADE = `Hint:
   * Upgrade AWS CLI by following https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
-  * Update your kubeconfig by following https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html
-`
+  * Update your kubeconfig by following https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html`
 )
 
 func OverrideDepartedAuthenticationApiVersion(restConfig *restclient.Config) {

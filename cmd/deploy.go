@@ -155,7 +155,7 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	clusterReport.PrintStatus()
 
 	if !clusterReport.IsCompatible {
-		return fmt.Errorf("can't continue with installation, cluster is not compatible for installation")
+		return fmt.Errorf("can't continue with installation, cluster is not compatible for installation. Fix issues and try again :)")
 	}
 
 	return nil

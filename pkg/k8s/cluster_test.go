@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/blang/semver/v4"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"groundcover.com/pkg/k8s"
 	authv1 "k8s.io/api/authorization/v1"
@@ -31,15 +32,14 @@ func TestKubeClusterTestSuite(t *testing.T) {
 }
 
 func (suite *KubeClusterTestSuite) TestGetServerVersionSuccess() {
-	//prepare
-
+	// arrange
 	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
 		Major:      "1",
 		Minor:      "24",
 		GitVersion: "v1.24.1",
 	}
 
-	//act
+	// act
 
 	serverVersion, err := suite.KubeClient.GetServerVersion()
 	suite.NoError(err)
@@ -51,14 +51,14 @@ func (suite *KubeClusterTestSuite) TestGetServerVersionSuccess() {
 }
 
 func (suite *KubeClusterTestSuite) TestServerVersionUnknown() {
-	//prepare
+	// arrange
 	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
 		Major:      "1",
 		Minor:      "23",
 		GitVersion: "v1.23+.4",
 	}
 
-	//act
+	// act
 	_, err := suite.KubeClient.GetServerVersion()
 
 	// assert
@@ -66,7 +66,7 @@ func (suite *KubeClusterTestSuite) TestServerVersionUnknown() {
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
@@ -76,7 +76,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
-	//act
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions:       []*authv1.ResourceAttributes{},
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
@@ -106,7 +106,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
@@ -116,7 +116,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
-	//act
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions: []*authv1.ResourceAttributes{
 			{
@@ -139,7 +139,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
@@ -149,7 +149,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
 		ServerVersion: semver.Version{Major: 1, Minor: 23},
 	}
 
-	//act
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions: []*authv1.ResourceAttributes{
 			{
@@ -179,7 +179,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
@@ -189,7 +189,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 		ServerVersion: semver.Version{Major: 1, Minor: 23},
 	}
 
-	//act
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions:       []*authv1.ResourceAttributes{},
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
@@ -208,7 +208,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
@@ -218,7 +218,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
-	//act
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		BlockedTypes:  []string{"minikube"},
 		Actions:       []*authv1.ResourceAttributes{},
@@ -235,4 +235,73 @@ func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
 	}
 
 	suite.Equal(expected, clusterReport.ClusterTypeAllowed)
+}
+
+func TestValidateAwsCliVersionSupported(t *testing.T) {
+	testCases := []struct {
+		name     string
+		version  string
+		expected bool
+	}{
+		{
+			name:     "bad format version, no spaces",
+			version:  "bad",
+			expected: false,
+		},
+		{
+			name:     "bad format version, first path no slash",
+			version:  "bad version",
+			expected: false,
+		},
+		{
+			name:     "aws cli version 1.18.0",
+			version:  "aws-cli/1.18.0 Python/3.7.4 Darwin/19.4.0 botocore/1.17.0",
+			expected: false,
+		},
+		{
+			name:     "aws cli version 1.23.9",
+			version:  "aws-cli/1.23.9 Python/3.7.4 Darwin/19.4.0 botocore/1.23.9",
+			expected: true,
+		},
+		{
+			name:     "aws cli version 1.23.10",
+			version:  "aws-cli/1.23.10 Python/3.7.4 Darwin/19.4.0 botocore/1.23.10",
+			expected: true,
+		},
+		{
+			name:     "aws cli version 2.0.0",
+			version:  "aws-cli/2.0.0 Python/3.7.4 Darwin/19.4.0 botocore/2.0.0dev0",
+			expected: false,
+		},
+		{
+			name:     "aws cli version 2.7.0",
+			version:  "aws-cli/2.7.0 Python/3.7.4 Darwin/19.4.0 botocore/2.7.0",
+			expected: true,
+		},
+		{
+			name:     "aws cli version 2.7.1",
+			version:  "aws-cli/2.7.1 Python/3.7.4 Darwin/19.4.0 botocore/2.7.1",
+			expected: true,
+		},
+		{
+			name:     "aws cli version 3.0.0",
+			version:  "aws-cli/3.0.0 Python/3.7.4 Darwin/19.4.0 botocore/3.0.0",
+			expected: false,
+		},
+		{
+			name:     "aws cli version 0.9.0",
+			version:  "aws-cli/0.9.0 Python/3.7.4 Darwin/19.4.0 botocore/0.9.0",
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// act
+			actual := k8s.ValidateAwsCliVersionSupported(tc.version)
+
+			// assert
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
 }
