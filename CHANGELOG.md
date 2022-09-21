@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- support v1alpha1 authentication [#sc-4939]
+
 ### Changed
 
 ### Fixed

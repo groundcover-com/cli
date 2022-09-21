@@ -77,10 +77,8 @@ func (kubeClient *Client) loadClient() error {
 		return err
 	}
 
-	OverrideDepartedAuthenticationApiVersion(restConfig)
-
 	if kubeClient.Interface, err = kubernetes.NewForConfig(restConfig); err != nil {
-		return kubeClient.printHintIfAuthError(err)
+		return err
 	}
 
 	return nil
