@@ -26,6 +26,7 @@ require (
 	github.com/containerd/containerd v1.6.6
 	github.com/fatih/color v1.13.0
 	gopkg.in/yaml.v3 v3.0.1
+	k8s.io/cli-runtime v0.24.3
 )
 
 require (
@@ -122,7 +123,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiserver v0.24.3 // indirect
-	k8s.io/cli-runtime v0.24.3 // indirect
 	k8s.io/component-base v0.24.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1 // indirect
 	oras.land/oras-go v1.2.0 // indirect
@@ -173,7 +173,7 @@ require (
 	google.golang.org/grpc v1.48.0 // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect
 	k8s.io/apiextensions-apiserver v0.24.3 // indirect
-	k8s.io/klog/v2 v2.70.1 // indirect
+	k8s.io/klog/v2 v2.70.1
 	k8s.io/kubectl v0.24.3 // indirect
 	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
 	sigs.k8s.io/kustomize/api v0.11.5 // indirect

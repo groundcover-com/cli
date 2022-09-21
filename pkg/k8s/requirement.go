@@ -8,9 +8,10 @@ import (
 )
 
 type Requirement struct {
-	IsCompatible  bool
-	Message       string   `json:"-"`
-	ErrorMessages []string `json:"-"`
+	IsCompatible    bool
+	IsNonCompatible bool
+	Message         string   `json:"-"`
+	ErrorMessages   []string `json:"-"`
 }
 
 func (requirement Requirement) PrintStatus() {
@@ -26,5 +27,12 @@ func (requirement Requirement) PrintStatus() {
 		messageBuffer.WriteString("\n")
 	}
 
-	ui.PrintStatus(requirement.IsCompatible, messageBuffer.String())
+	switch {
+	case requirement.IsCompatible:
+		ui.PrintSuccessMessage(messageBuffer.String())
+	case requirement.IsNonCompatible:
+		ui.PrintErrorMessage(messageBuffer.String())
+	default:
+		ui.PrintWarningMessage(messageBuffer.String())
+	}
 }

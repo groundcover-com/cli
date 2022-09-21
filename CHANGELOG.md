@@ -17,7 +17,10 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
+
 - added watch pvc readiness [#sc-4860]
+- validate node schedulable [#sc-4878]
+
 ### Changed
 - change timeout for portal connection polling to 7 mins [#sc-4860]
 ### Fixed
