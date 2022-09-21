@@ -130,11 +130,11 @@ func (kubeClient *Client) GetClusterSummary(namespace string) (*ClusterSummary, 
 
 type ClusterReport struct {
 	*ClusterSummary
-	IsCompatible          bool
-	UserAuthorized        Requirement
-	ProviderExecSupported Requirement
-	ServerVersionAllowed  Requirement
-	ClusterTypeAllowed    Requirement
+	IsCompatible         bool
+	UserAuthorized       Requirement
+	CliAuthSupported     Requirement
+	ServerVersionAllowed Requirement
+	ClusterTypeAllowed   Requirement
 }
 
 func (clusterReport *ClusterReport) PrintStatus() {
@@ -153,22 +153,22 @@ func (clusterReport *ClusterReport) PrintStatus() {
 		return
 	}
 
-	clusterReport.ProviderExecSupported.PrintStatus()
+	clusterReport.CliAuthSupported.PrintStatus()
 }
 
 func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, clusterSummary *ClusterSummary) *ClusterReport {
 	clusterReport := &ClusterReport{
-		ClusterSummary:        clusterSummary,
-		UserAuthorized:        clusterRequirements.validateAuthorization(ctx, client, clusterSummary.Namespace),
-		ProviderExecSupported: clusterRequirements.validateProviderExecSupported(ctx, clusterSummary.ClusterName),
-		ServerVersionAllowed:  clusterRequirements.validateServerVersion(clusterSummary.ServerVersion),
-		ClusterTypeAllowed:    clusterRequirements.validateClusterType(clusterSummary.ClusterName),
+		ClusterSummary:       clusterSummary,
+		UserAuthorized:       clusterRequirements.validateAuthorization(ctx, client, clusterSummary.Namespace),
+		CliAuthSupported:     clusterRequirements.validateCliAuthSupported(ctx, clusterSummary.ClusterName),
+		ServerVersionAllowed: clusterRequirements.validateServerVersion(clusterSummary.ServerVersion),
+		ClusterTypeAllowed:   clusterRequirements.validateClusterType(clusterSummary.ClusterName),
 	}
 
 	clusterReport.IsCompatible = clusterReport.ServerVersionAllowed.IsCompatible &&
 		clusterReport.UserAuthorized.IsCompatible &&
 		clusterReport.ClusterTypeAllowed.IsCompatible &&
-		clusterReport.ProviderExecSupported.IsCompatible
+		clusterReport.CliAuthSupported.IsCompatible
 
 	return clusterReport
 }
@@ -224,7 +224,7 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 	return requirement
 }
 
-func (clusterRequirements ClusterRequirements) validateProviderExecSupported(ctx context.Context, clusterName string) Requirement {
+func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx context.Context, clusterName string) Requirement {
 	if !EKS_CLUSTER_REGEX.MatchString(clusterName) {
 		return Requirement{
 			Message:      CLUSTER_CLI_AUTH_SUPPORTED,
