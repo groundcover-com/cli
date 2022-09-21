@@ -19,7 +19,7 @@ We use the following categories for changes:
 ### Added
 - added watch pvc readiness [#sc-4860]
 ### Changed
-
+- change timeout for portal connection polling to 7 mins [#sc-4860]
 ### Fixed
 
 ### Removed

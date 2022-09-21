@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	PORTAL_POLLING_TIMEOUT     = time.Minute * 3
+	PORTAL_POLLING_TIMEOUT     = time.Minute * 7
 	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 3
 	PODS_POLLING_INTERVAL      = time.Second * 10
 	PVC_POLLING_TIMEOUT        = time.Minute * 2
