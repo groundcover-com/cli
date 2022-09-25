@@ -262,7 +262,6 @@ func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx cont
 
 func ValidateAwsCliVersionSupported(version string) bool {
 	// aws version format: aws-cli/2.7.32 Python/3.9.11 Linux/5.11.0-1021-aws exe/x86_64.ubuntu.20 prompt/off
-	// we want to extract the version number from the first part of the version string using regex
 	awsCliVersionRegex := regexp.MustCompile(`aws-cli/(\d+\.\d+\.\d+)`)
 	matches := awsCliVersionRegex.FindStringSubmatch(version)
 	if len(matches) != 2 {
