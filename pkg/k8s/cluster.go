@@ -262,24 +262,20 @@ func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx cont
 
 func ValidateAwsCliVersionSupported(version string) bool {
 	// aws version format: aws-cli/2.7.32 Python/3.9.11 Linux/5.11.0-1021-aws exe/x86_64.ubuntu.20 prompt/off
-	versionParts := strings.Split(string(version), " ")
-	if len(versionParts) < 2 {
+	// we want to extract the version number from the first part of the version string using regex
+	awsCliVersionRegex := regexp.MustCompile(`aws-cli/(\d+\.\d+\.\d+)`)
+	matches := awsCliVersionRegex.FindStringSubmatch(version)
+	if len(matches) != 2 {
 		return false
 	}
 
-	awsVersionFirstPartParts := strings.Split(versionParts[0], "/")
-	if len(awsVersionFirstPartParts) < 2 {
-		return false
-	}
-
-	awsVersionString := awsVersionFirstPartParts[1]
-	awsSemVer, err := semver.Parse(awsVersionString)
+	awsCliVersion, err := semver.Parse(matches[1])
 	if err != nil {
 		return false
 	}
 
-	if awsSemVer.GTE(MinSupportedAwsCliV1Version) && awsSemVer.LT(AwsCliV2) ||
-		awsSemVer.GTE(MinSupportedAwsCliV2Version) && awsSemVer.LT(AwsCliV3) {
+	if awsCliVersion.GTE(MinSupportedAwsCliV1Version) && awsCliVersion.LT(AwsCliV2) ||
+		awsCliVersion.GTE(MinSupportedAwsCliV2Version) && awsCliVersion.LT(AwsCliV3) {
 		return true
 	}
 
