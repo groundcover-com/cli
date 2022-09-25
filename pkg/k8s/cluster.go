@@ -165,6 +165,7 @@ func (clusterRequirements ClusterRequirements) validateClusterType(clusterName s
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
+	requirement.IsNonCompatible = requirement.IsCompatible
 	requirement.Message = CLUSTER_TYPE_REPORT_MESSAGE_FORMAT
 
 	return requirement
@@ -178,6 +179,7 @@ func (clusterRequirements ClusterRequirements) validateServerVersion(serverVersi
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
+	requirement.IsNonCompatible = requirement.IsCompatible
 	requirement.Message = fmt.Sprintf(CLUSTER_VERSION_REPORT_MESSAGE_FORMAT, clusterRequirements.ServerVersion)
 
 	return requirement
@@ -201,6 +203,7 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
+	requirement.IsNonCompatible = requirement.IsCompatible
 	requirement.Message = CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT
 
 	return requirement

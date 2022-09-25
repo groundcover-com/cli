@@ -89,16 +89,19 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 		ClusterSummary: clusterSummary,
 		IsCompatible:   true,
 		ServerVersionAllowed: k8s.Requirement{
-			IsCompatible: true,
-			Message:      "K8s server version >= 1.24.0",
+			IsCompatible:    true,
+			IsNonCompatible: true,
+			Message:         "K8s server version >= 1.24.0",
 		},
 		UserAuthorized: k8s.Requirement{
-			IsCompatible: true,
-			Message:      "K8s user authorized for groundcover installation",
+			IsCompatible:    true,
+			IsNonCompatible: true,
+			Message:         "K8s user authorized for groundcover installation",
 		},
 		ClusterTypeAllowed: k8s.Requirement{
-			IsCompatible: true,
-			Message:      "K8s cluster type supported",
+			IsCompatible:    true,
+			IsNonCompatible: true,
+			Message:         "K8s cluster type supported",
 		},
 	}
 
