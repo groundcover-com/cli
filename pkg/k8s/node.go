@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
+	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +28,7 @@ const (
 var (
 	KERNEL_VERSION_REGEX = regexp.MustCompile("^(?P<major>[0-9]).(?P<minor>[0-9]+).(?P<patch>[0-9]+)")
 
+	taintKeysSet                = make(map[string]struct{})
 	NodeMinimumCpuRequired      = resource.MustParse(NODE_MINIUM_REQUIREMENTS_CPU)
 	NodeMinimumMemoryRequired   = resource.MustParse(NODE_MINIUM_REQUIREMENTS_MEMORY)
 	MinimumKernelVersionSupport = semver.Version{Major: 4, Minor: 14}
@@ -50,7 +52,7 @@ type NodeSummary struct {
 	OSImage         string             `json:",omitempty"`
 	Architecture    string             `json:",omitempty"`
 	OperatingSystem string             `json:",omitempty"`
-	Taints          []v1.Taint         `json:",omitempty"`
+	Taints          []v1.Taint         `json:"-"`
 }
 
 func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary, error) {
@@ -97,8 +99,10 @@ type NodesReport struct {
 	ProviderAllowed        Requirement
 	ArchitectureAllowed    Requirement
 	OperatingSystemAllowed Requirement
+	Tolerations            []map[string]string `json:"-"`
 	CompatibleNodes        []*NodeSummary      `json:"-"`
-	IncompatibleNodes      []*IncompatibleNode `json:",omitempty"`
+	PendingNodes           []*IncompatibleNode `json:"-"`
+	IncompatibleNodes      []*IncompatibleNode `json:"-"`
 }
 
 func (nodesReport *NodesReport) PrintStatus() {
@@ -109,6 +113,49 @@ func (nodesReport *NodesReport) PrintStatus() {
 	nodesReport.OperatingSystemAllowed.PrintStatus()
 	nodesReport.ProviderAllowed.PrintStatus()
 	nodesReport.Schedulable.PrintStatus()
+}
+
+func (nodesReport *NodesReport) GetTaintKeys() []string {
+	return maps.Keys(taintKeysSet)
+}
+
+func (nodesReport *NodesReport) ResolvePendingNodes(allowedTaintKeys []string) {
+	for _, allowedTaintKey := range allowedTaintKeys {
+		nodesReport.Tolerations = append(
+			nodesReport.Tolerations,
+			map[string]string{
+				"operator": "Exists",
+				"effect":   "NoSchedule",
+				"key":      allowedTaintKey,
+			},
+		)
+	}
+
+	for _, pendingNode := range nodesReport.PendingNodes {
+		var compatibleNode bool
+
+		for _, taint := range pendingNode.NodeSummary.Taints {
+			if taint.Effect != "NoSchedule" {
+				continue
+			}
+
+			for _, allowedTaintKey := range allowedTaintKeys {
+				if taint.Key == allowedTaintKey {
+					compatibleNode = true
+					break
+				}
+			}
+		}
+
+		if compatibleNode {
+			nodesReport.CompatibleNodes = append(nodesReport.CompatibleNodes, pendingNode.NodeSummary)
+			continue
+		}
+
+		nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, pendingNode)
+	}
+
+	nodesReport.PendingNodes = nodesReport.PendingNodes[:0]
 }
 
 type IncompatibleNode struct {
@@ -173,17 +220,26 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 			)
 		}
 
+		if len(requirementErrors) > 0 {
+			nodesReport.IncompatibleNodes = append(
+				nodesReport.IncompatibleNodes,
+				&IncompatibleNode{
+					NodeSummary:       nodeSummary,
+					RequirementErrors: requirementErrors,
+				},
+			)
+			continue
+		}
+
 		if err = nodeRequirements.validateNodeSchedulable(nodeSummary); err != nil {
 			requirementErrors = append(requirementErrors, err.Error())
 			nodesReport.Schedulable.ErrorMessages = append(
 				nodesReport.Schedulable.ErrorMessages,
 				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
 			)
-		}
 
-		if len(requirementErrors) > 0 {
-			nodesReport.IncompatibleNodes = append(
-				nodesReport.IncompatibleNodes,
+			nodesReport.PendingNodes = append(
+				nodesReport.PendingNodes,
 				&IncompatibleNode{
 					NodeSummary:       nodeSummary,
 					RequirementErrors: requirementErrors,
@@ -317,10 +373,22 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeOperatingSystem(nod
 }
 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeSchedulable(nodeSummary *NodeSummary) error {
+	var hasNoScheduleTaint bool
+
 	for _, taint := range nodeSummary.Taints {
-		if taint.Effect == "NoSchedule" {
-			return fmt.Errorf("NoSchedule taint is set")
+		if taint.Effect != "NoSchedule" {
+			continue
 		}
+
+		hasNoScheduleTaint = true
+
+		if _, exists := taintKeysSet[taint.Key]; !exists {
+			taintKeysSet[taint.Key] = struct{}{}
+		}
+	}
+
+	if hasNoScheduleTaint {
+		return fmt.Errorf("NoSchedule taint is set")
 	}
 
 	return nil

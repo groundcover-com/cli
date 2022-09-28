@@ -99,7 +99,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	var chartValues map[string]interface{}
-	if chartValues, err = getChartValues(clusterName, nodesReport.CompatibleNodes, sentryHelmContext); err != nil {
+	if chartValues, err = getChartValues(clusterName, nodesReport, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -181,9 +181,17 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 
 	nodesReport.PrintStatus()
 
-	if len(nodesReport.CompatibleNodes) == 0 {
+	if len(nodesReport.CompatibleNodes) == 0 || nodesReport.Schedulable.IsNonCompatible {
 		return nil, fmt.Errorf("can't continue with installation, no compatible nodes for installation")
 	}
+
+	if len(nodesReport.PendingNodes) == 0 {
+		return nodesReport, nil
+	}
+
+	taintKeys := nodesReport.GetTaintKeys()
+	allowedTaintKeys := ui.MultiSelectPrompt("Do you want set tolerations to allow scheduling groundcover on following taints:", taintKeys, taintKeys)
+	nodesReport.ResolvePendingNodes(allowedTaintKeys)
 
 	return nodesReport, nil
 }
@@ -304,7 +312,7 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	return chart, nil
 }
 
-func getChartValues(clusterName string, compatibleNodes []*k8s.NodeSummary, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func getChartValues(clusterName string, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey api.ApiKey
@@ -318,11 +326,12 @@ func getChartValues(clusterName string, compatibleNodes []*k8s.NodeSummary, sent
 	chartValues["global"] = map[string]interface{}{"groundcover_token": apiKey.ApiKey}
 	chartValues["commitHashKeyName"] = viper.GetString(COMMIT_HASH_KEY_NAME_FLAG)
 	chartValues["repositoryUrlKeyName"] = viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG)
+	chartValues["agent"] = map[string]interface{}{"tolerations": nodesReport.Tolerations}
 
 	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
 
 	var resourcesTunerPresetPaths []string
-	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(compatibleNodes); err != nil {
+	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(nodesReport.CompatibleNodes); err != nil {
 		return nil, err
 	}
 

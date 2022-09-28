@@ -22,3 +22,16 @@ func YesNoPrompt(message string, defaultValue bool) bool {
 
 	return answer
 }
+
+func MultiSelectPrompt(message string, options, defaults []string) []string {
+	prompt := &survey.MultiSelect{
+		Options: options,
+		Default: defaults,
+		Message: message,
+	}
+
+	var response []string
+	survey.AskOne(prompt, &response)
+
+	return response
+}
