@@ -132,27 +132,31 @@ func (nodesReport *NodesReport) ResolvePendingNodes(allowedTaintKeys []string) {
 	}
 
 	for _, pendingNode := range nodesReport.PendingNodes {
-		var compatibleNode bool
+		if len(allowedTaintKeys) == 0 {
+			nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, pendingNode)
+			break
+		}
 
+		var incompatibleNode bool
 		for _, taint := range pendingNode.NodeSummary.Taints {
 			if taint.Effect != "NoSchedule" {
 				continue
 			}
 
 			for _, allowedTaintKey := range allowedTaintKeys {
-				if taint.Key == allowedTaintKey {
-					compatibleNode = true
+				if taint.Key != allowedTaintKey {
+					incompatibleNode = true
 					break
 				}
 			}
 		}
 
-		if compatibleNode {
-			nodesReport.CompatibleNodes = append(nodesReport.CompatibleNodes, pendingNode.NodeSummary)
+		if incompatibleNode {
+			nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, pendingNode)
 			continue
 		}
 
-		nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, pendingNode)
+		nodesReport.CompatibleNodes = append(nodesReport.CompatibleNodes, pendingNode.NodeSummary)
 	}
 
 	nodesReport.PendingNodes = nodesReport.PendingNodes[:0]

@@ -315,11 +315,18 @@ func (suite *KubeNodeTestSuite) TestDeclinePendingNodesSuccess() {
 
 	// act
 	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries[2:])
-	nodesReport.ResolvePendingNodes([]string{})
+	nodesReport.ResolvePendingNodes([]string{"bad"})
 
 	// assert
 
 	expected := &k8s.NodesReport{
+		Tolerations: []map[string]string{
+			{
+				"key":      "bad",
+				"operator": "Exists",
+				"effect":   "NoSchedule",
+			},
+		},
 		PendingNodes: []*k8s.IncompatibleNode{},
 		IncompatibleNodes: []*k8s.IncompatibleNode{
 			{
