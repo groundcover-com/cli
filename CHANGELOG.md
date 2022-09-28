@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- command time took metric [#sc-4963]
+
 ### Changed
 
 ### Fixed

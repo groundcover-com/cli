@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"groundcover.com/pkg/api"
@@ -22,7 +21,6 @@ var apiKeyCmd = &cobra.Command{
 
 		fmt.Println(apiKey.ApiKey)
 
-		sentry.CaptureMessage("print-api-key executed successfully")
 		return nil
 	},
 }

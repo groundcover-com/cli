@@ -3,6 +3,7 @@ package sentry_test
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
@@ -182,6 +183,30 @@ func (suite *SentryContextTestSuite) TestSelfUpdateContextSetOnCurrentScopeSucce
 
 	event := suite.Transport.lastEvent
 	sentry.CurrentHub().Scope().RemoveContext(sentry_utils.SELF_UPDATE_CONTEXT_NAME)
+
+	suite.Equal(expect, event.Contexts)
+}
+
+func (suite *SentryContextTestSuite) TestCommandContextSetOnCurrentScopeSuccess() {
+	//prepare
+	start := time.Now()
+	sentry.CurrentHub().Scope().SetTransaction("test")
+
+	//act
+	sentryContext := sentry_utils.NewCommandContext(start)
+	sentryContext.SetOnCurrentScope()
+	sentry.CaptureMessage("command context")
+
+	// assert
+	expect := map[string]interface{}{
+		"command": &sentry_utils.CommandContext{
+			Name: "test",
+			Took: "0s",
+		},
+	}
+
+	event := suite.Transport.lastEvent
+	sentry.CurrentHub().Scope().RemoveContext(sentry_utils.COMMAND_CONTEXT_NAME)
 
 	suite.Equal(expect, event.Contexts)
 }
