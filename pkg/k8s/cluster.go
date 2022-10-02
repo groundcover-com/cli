@@ -25,11 +25,10 @@ const (
 )
 
 var (
-	GKE_CLUSTER_REGEX = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
-	EKS_CLUSTER_REGEX = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
+	gkeClusterRegex    = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
+	eksClusterRegex    = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
+	awsCliVersionRegex = regexp.MustCompile(`aws-cli/(\d+\.\d+\.\d+)`)
 
-	AwsCliV2                    = semver.Version{Major: 2, Minor: 0, Patch: 0}
-	AwsCliV3                    = semver.Version{Major: 3, Minor: 0, Patch: 0}
 	MinSupportedAwsCliV1Version = semver.Version{Major: 1, Minor: 23, Patch: 9}
 	MinSupportedAwsCliV2Version = semver.Version{Major: 2, Minor: 7, Patch: 0}
 
@@ -225,7 +224,7 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 }
 
 func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx context.Context, clusterName string) Requirement {
-	if !EKS_CLUSTER_REGEX.MatchString(clusterName) {
+	if !eksClusterRegex.MatchString(clusterName) {
 		return Requirement{
 			Message:      CLUSTER_CLI_AUTH_SUPPORTED,
 			IsCompatible: true,
@@ -261,8 +260,6 @@ func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx cont
 }
 
 func ValidateAwsCliVersionSupported(version string) bool {
-	// aws version format: aws-cli/2.7.32 Python/3.9.11 Linux/5.11.0-1021-aws exe/x86_64.ubuntu.20 prompt/off
-	awsCliVersionRegex := regexp.MustCompile(`aws-cli/(\d+\.\d+\.\d+)`)
 	matches := awsCliVersionRegex.FindStringSubmatch(version)
 	if len(matches) != 2 {
 		return false
@@ -273,12 +270,14 @@ func ValidateAwsCliVersionSupported(version string) bool {
 		return false
 	}
 
-	if awsCliVersion.GTE(MinSupportedAwsCliV1Version) && awsCliVersion.LT(AwsCliV2) ||
-		awsCliVersion.GTE(MinSupportedAwsCliV2Version) && awsCliVersion.LT(AwsCliV3) {
-		return true
+	switch awsCliVersion.Major {
+	case 1:
+		return awsCliVersion.GTE(MinSupportedAwsCliV1Version)
+	case 2:
+		return awsCliVersion.GTE(MinSupportedAwsCliV2Version)
+	default:
+		return false
 	}
-
-	return false
 }
 
 func (kubeClient *Client) GetClusterName() (string, error) {
@@ -301,10 +300,10 @@ func (kubeClient *Client) GetClusterShortName() (string, error) {
 	}
 
 	switch {
-	case EKS_CLUSTER_REGEX.MatchString(clusterName):
-		return extractRegexClusterName(EKS_CLUSTER_REGEX, clusterName)
-	case GKE_CLUSTER_REGEX.MatchString(clusterName):
-		return extractRegexClusterName(GKE_CLUSTER_REGEX, clusterName)
+	case eksClusterRegex.MatchString(clusterName):
+		return extractRegexClusterName(eksClusterRegex, clusterName)
+	case gkeClusterRegex.MatchString(clusterName):
+		return extractRegexClusterName(gkeClusterRegex, clusterName)
 	default:
 		return clusterName, nil
 	}
