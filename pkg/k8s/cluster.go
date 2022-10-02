@@ -165,6 +165,7 @@ func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, cli
 
 func (clusterRequirements ClusterRequirements) validateClusterType(clusterName string) Requirement {
 	var requirement Requirement
+	requirement.Message = CLUSTER_TYPE_REPORT_MESSAGE_FORMAT
 
 	for _, blockedType := range clusterRequirements.BlockedTypes {
 		if strings.HasPrefix(clusterName, blockedType) {
@@ -174,7 +175,6 @@ func (clusterRequirements ClusterRequirements) validateClusterType(clusterName s
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
 	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
-	requirement.Message = CLUSTER_TYPE_REPORT_MESSAGE_FORMAT
 
 	return requirement
 }
@@ -204,7 +204,9 @@ func (clusterRequirements ClusterRequirements) validateServerVersion(client *Cli
 func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context.Context, client *Client, namespace string) Requirement {
 	var err error
 	var permitted bool
+
 	var requirement Requirement
+	requirement.Message = CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT
 
 	for _, action := range clusterRequirements.Actions {
 		action.Namespace = namespace
@@ -220,15 +222,14 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
 	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
-	requirement.Message = CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT
 
 	return requirement
 }
 
 func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx context.Context, clusterName string) Requirement {
 	var err error
-	var requirement Requirement
 
+	var requirement Requirement
 	requirement.Message = CLUSTER_CLI_AUTH_SUPPORTED
 
 	if !eksClusterRegex.MatchString(clusterName) {

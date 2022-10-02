@@ -19,6 +19,7 @@ We use the following categories for changes:
 ### Added
 
 - add spinner to cli update [#sc-5038]
+- add aws cli version validation [#sc-4942]
 
 ### Changed
 
