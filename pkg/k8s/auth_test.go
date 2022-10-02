@@ -36,12 +36,12 @@ func TestValidateAwsCliVersionSupported(t *testing.T) {
 		{
 			name:     "bad format version, no spaces",
 			version:  "bad",
-			expected: fmt.Errorf("aws-cli version 0.0.0 is unsupported"),
+			expected: fmt.Errorf("unknown aws cli version: \"bad\""),
 		},
 		{
 			name:     "bad format version, first path no slash",
 			version:  "bad version",
-			expected: fmt.Errorf("aws-cli version 0.0.0 is unsupported"),
+			expected: fmt.Errorf("unknown aws cli version: \"bad version\""),
 		},
 		{
 			name:     "aws cli version 1.18.0",
@@ -89,9 +89,10 @@ func TestValidateAwsCliVersionSupported(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// act
 			version, err := k8s.DefaultAwsCliVersionValidator.Parse(tc.version)
-			assert.NoError(t, err)
 
-			err = k8s.DefaultAwsCliVersionValidator.Validate(version)
+			if err == nil {
+				err = k8s.DefaultAwsCliVersionValidator.Validate(version)
+			}
 
 			// assert
 			assert.Equal(t, tc.expected, err)

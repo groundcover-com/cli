@@ -55,12 +55,11 @@ func (validator *AwsCliVersionValidator) Fetch(ctx context.Context) (semver.Vers
 }
 
 func (validator *AwsCliVersionValidator) Parse(versionString string) (semver.Version, error) {
-	var err error
 	var version semver.Version
 
 	matches := validator.Regexp.FindStringSubmatch(versionString)
 	if len(matches) != 2 {
-		return version, err
+		return version, fmt.Errorf("unknown aws cli version: %q", versionString)
 	}
 
 	return semver.Parse(matches[1])
