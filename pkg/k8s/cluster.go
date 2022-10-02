@@ -3,7 +3,6 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"regexp"
 	"strings"
 
@@ -19,18 +18,11 @@ const (
 	CLUSTER_VERSION_REPORT_MESSAGE_FORMAT       = "K8s server version >= %s"
 	CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT = "K8s user authorized for groundcover installation"
 	CLUSTER_CLI_AUTH_SUPPORTED                  = "K8s CLI auth supported"
-
-	INSTALL_AWS_CLI_HINT = `Hint: 
-  * Install aws cli by following https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html`
 )
 
 var (
-	gkeClusterRegex    = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
-	eksClusterRegex    = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
-	awsCliVersionRegex = regexp.MustCompile(`aws-cli/(\d+\.\d+\.\d+)`)
-
-	MinSupportedAwsCliV1Version = semver.Version{Major: 1, Minor: 23, Patch: 9}
-	MinSupportedAwsCliV2Version = semver.Version{Major: 2, Minor: 7, Patch: 0}
+	gkeClusterRegex = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
+	eksClusterRegex = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
 
 	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 12}
 	DefaultClusterRequirements  = &ClusterRequirements{
@@ -120,10 +112,6 @@ func (kubeClient *Client) GetClusterSummary(namespace string) (*ClusterSummary, 
 		return clusterSummary, err
 	}
 
-	if clusterSummary.ServerVersion, err = kubeClient.GetServerVersion(); err != nil {
-		return clusterSummary, err
-	}
-
 	return clusterSummary, nil
 }
 
@@ -138,21 +126,24 @@ type ClusterReport struct {
 
 func (clusterReport *ClusterReport) PrintStatus() {
 	clusterReport.ClusterTypeAllowed.PrintStatus()
-	if !clusterReport.ClusterTypeAllowed.IsCompatible {
-		return
-	}
-
-	clusterReport.ServerVersionAllowed.PrintStatus()
-	if !clusterReport.ServerVersionAllowed.IsCompatible {
-		return
-	}
-
-	clusterReport.UserAuthorized.PrintStatus()
-	if !clusterReport.UserAuthorized.IsCompatible {
+	if clusterReport.ClusterTypeAllowed.IsNonCompatible {
 		return
 	}
 
 	clusterReport.CliAuthSupported.PrintStatus()
+	if clusterReport.CliAuthSupported.IsNonCompatible {
+		return
+	}
+
+	clusterReport.ServerVersionAllowed.PrintStatus()
+	if clusterReport.ServerVersionAllowed.IsNonCompatible {
+		return
+	}
+
+	clusterReport.UserAuthorized.PrintStatus()
+	if !clusterReport.UserAuthorized.IsNonCompatible {
+		return
+	}
 }
 
 func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, clusterSummary *ClusterSummary) *ClusterReport {
@@ -160,7 +151,7 @@ func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, cli
 		ClusterSummary:       clusterSummary,
 		UserAuthorized:       clusterRequirements.validateAuthorization(ctx, client, clusterSummary.Namespace),
 		CliAuthSupported:     clusterRequirements.validateCliAuthSupported(ctx, clusterSummary.ClusterName),
-		ServerVersionAllowed: clusterRequirements.validateServerVersion(clusterSummary.ServerVersion),
+		ServerVersionAllowed: clusterRequirements.validateServerVersion(client, clusterSummary),
 		ClusterTypeAllowed:   clusterRequirements.validateClusterType(clusterSummary.ClusterName),
 	}
 
@@ -182,22 +173,30 @@ func (clusterRequirements ClusterRequirements) validateClusterType(clusterName s
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
-	requirement.IsNonCompatible = requirement.IsCompatible
+	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
 	requirement.Message = CLUSTER_TYPE_REPORT_MESSAGE_FORMAT
 
 	return requirement
 }
 
-func (clusterRequirements ClusterRequirements) validateServerVersion(serverVersion semver.Version) Requirement {
-	var requirement Requirement
+func (clusterRequirements ClusterRequirements) validateServerVersion(client *Client, clusterSummary *ClusterSummary) Requirement {
+	var err error
 
-	if serverVersion.LT(clusterRequirements.ServerVersion) {
-		requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("%s is unsupported K8s version", serverVersion))
+	var requirement Requirement
+	requirement.Message = fmt.Sprintf(CLUSTER_VERSION_REPORT_MESSAGE_FORMAT, clusterRequirements.ServerVersion)
+
+	if clusterSummary.ServerVersion, err = client.GetServerVersion(); err != nil {
+		requirement.IsNonCompatible = true
+		requirement.ErrorMessages = append(requirement.ErrorMessages, err.Error())
+		return requirement
+	}
+
+	if clusterSummary.ServerVersion.LT(clusterRequirements.ServerVersion) {
+		requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("%s is unsupported K8s version", clusterSummary.ServerVersion))
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
-	requirement.IsNonCompatible = requirement.IsCompatible
-	requirement.Message = fmt.Sprintf(CLUSTER_VERSION_REPORT_MESSAGE_FORMAT, clusterRequirements.ServerVersion)
+	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
 
 	return requirement
 }
@@ -220,67 +219,44 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
-	requirement.IsNonCompatible = requirement.IsCompatible
+	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
 	requirement.Message = CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT
 
 	return requirement
 }
 
 func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx context.Context, clusterName string) Requirement {
+	var err error
+	var requirement Requirement
+
+	requirement.Message = CLUSTER_CLI_AUTH_SUPPORTED
+
 	if !eksClusterRegex.MatchString(clusterName) {
-		return Requirement{
-			Message:      CLUSTER_CLI_AUTH_SUPPORTED,
-			IsCompatible: true,
+		requirement.IsCompatible = true
+		return requirement
+	}
+
+	var awsCliVersion semver.Version
+	if awsCliVersion, err = DefaultAwsCliVersionValidator.Fetch(ctx); err != nil {
+		requirement.IsNonCompatible = true
+		requirement.ErrorMessages = []string{
+			"Failed getting aws cli version, make sure aws cli is installed",
+			HINT_INSTALL_AWS_CLI,
+		}
+		return requirement
+	}
+
+	if err = DefaultAwsCliVersionValidator.Validate(awsCliVersion); err != nil {
+		requirement.ErrorMessages = []string{
+			err.Error(),
+			HINT_EKS_AUTH_PLUGIN_UPGRADE,
 		}
 	}
 
-	awsCliCmd := exec.CommandContext(ctx, "aws", "--version")
-	awsVersion, err := awsCliCmd.Output()
-	if err != nil {
-		return Requirement{
-			IsCompatible:    false,
-			IsNonCompatible: true,
-			Message:         CLUSTER_CLI_AUTH_SUPPORTED,
-			ErrorMessages:   []string{"Failed getting aws cli version, make sure aws cli is installed", INSTALL_AWS_CLI_HINT},
-		}
-	}
+	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
+	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
 
-	strippedAwsVersion := strings.TrimSuffix(string(awsVersion), "\n")
-	supported := ValidateAwsCliVersionSupported(strippedAwsVersion)
-	if !supported {
-		return Requirement{
-			IsCompatible:    false,
-			IsNonCompatible: true,
-			Message:         CLUSTER_CLI_AUTH_SUPPORTED,
-			ErrorMessages:   []string{fmt.Sprintf("Unsupported aws-cli version: %q", strippedAwsVersion), HINT_EKS_AUTH_PLUGIN_UPGRADE},
-		}
-	}
-
-	return Requirement{
-		Message:      CLUSTER_CLI_AUTH_SUPPORTED,
-		IsCompatible: true,
-	}
-}
-
-func ValidateAwsCliVersionSupported(version string) bool {
-	matches := awsCliVersionRegex.FindStringSubmatch(version)
-	if len(matches) != 2 {
-		return false
-	}
-
-	awsCliVersion, err := semver.Parse(matches[1])
-	if err != nil {
-		return false
-	}
-
-	switch awsCliVersion.Major {
-	case 1:
-		return awsCliVersion.GTE(MinSupportedAwsCliV1Version)
-	case 2:
-		return awsCliVersion.GTE(MinSupportedAwsCliV2Version)
-	default:
-		return false
-	}
+	return requirement
 }
 
 func (kubeClient *Client) GetClusterName() (string, error) {

@@ -3,7 +3,10 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"regexp"
 
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"groundcover.com/pkg/ui"
 	authv1 "k8s.io/api/authorization/v1"
@@ -21,7 +24,64 @@ const (
 	HINT_EKS_AUTH_PLUGIN_UPGRADE = `Hint:
   * Upgrade AWS CLI by following https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
   * Update your kubeconfig by following https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html`
+	HINT_INSTALL_AWS_CLI = `Hint: 
+  * Install aws cli by following https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html`
 )
+
+var (
+	DefaultAwsCliVersionValidator = &AwsCliVersionValidator{
+		Regexp:                    regexp.MustCompile(`^aws-cli/(\d+\.\d+\.\d+)`),
+		MinimumSupportedV1Version: semver.Version{Major: 1, Minor: 23, Patch: 9},
+		MinimumSupportedV2Version: semver.Version{Major: 2, Minor: 7, Patch: 0},
+	}
+)
+
+type AwsCliVersionValidator struct {
+	Regexp                    *regexp.Regexp
+	MinimumSupportedV1Version semver.Version
+	MinimumSupportedV2Version semver.Version
+}
+
+func (validator *AwsCliVersionValidator) Fetch(ctx context.Context) (semver.Version, error) {
+	var err error
+	var version semver.Version
+
+	var versionByte []byte
+	if versionByte, err = exec.CommandContext(ctx, "aws", "--version").Output(); err != nil {
+		return version, err
+	}
+
+	return validator.Parse(string(versionByte))
+}
+
+func (validator *AwsCliVersionValidator) Parse(versionString string) (semver.Version, error) {
+	var err error
+	var version semver.Version
+
+	matches := validator.Regexp.FindStringSubmatch(versionString)
+	if len(matches) != 2 {
+		return version, err
+	}
+
+	return semver.Parse(matches[1])
+}
+
+func (validator *AwsCliVersionValidator) Validate(version semver.Version) error {
+	switch version.Major {
+	case 1:
+		if version.LT(validator.MinimumSupportedV1Version) {
+			return fmt.Errorf("aws-cli version is unsupported (%s < %s)", version, validator.MinimumSupportedV1Version)
+		}
+	case 2:
+		if version.LT(validator.MinimumSupportedV2Version) {
+			return fmt.Errorf("aws-cli version is unsupported (%s < %s)", version, validator.MinimumSupportedV2Version)
+		}
+	default:
+		return fmt.Errorf("aws-cli version %s is unsupported", version)
+	}
+
+	return nil
+}
 
 func OverrideDepartedAuthenticationApiVersion(restConfig *restclient.Config) {
 	if restConfig.ExecProvider == nil {

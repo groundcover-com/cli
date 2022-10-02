@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/blang/semver/v4"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"groundcover.com/pkg/k8s"
 	authv1 "k8s.io/api/authorization/v1"
@@ -70,10 +69,15 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
+	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
+		Major:      "1",
+		Minor:      "24",
+		GitVersion: "v1.24.0",
+	}
+
 	clusterSummary := &k8s.ClusterSummary{
-		ClusterName:   "test",
-		Namespace:     "default",
-		ServerVersion: semver.Version{Major: 1, Minor: 24},
+		ClusterName: "test",
+		Namespace:   "default",
 	}
 
 	// act
@@ -95,17 +99,17 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 		},
 		ServerVersionAllowed: k8s.Requirement{
 			IsCompatible:    true,
-			IsNonCompatible: true,
+			IsNonCompatible: false,
 			Message:         "K8s server version >= 1.24.0",
 		},
 		UserAuthorized: k8s.Requirement{
 			IsCompatible:    true,
-			IsNonCompatible: true,
+			IsNonCompatible: false,
 			Message:         "K8s user authorized for groundcover installation",
 		},
 		ClusterTypeAllowed: k8s.Requirement{
 			IsCompatible:    true,
-			IsNonCompatible: true,
+			IsNonCompatible: false,
 			Message:         "K8s cluster type supported",
 		},
 	}
@@ -138,9 +142,10 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible:  false,
-		Message:       "K8s user authorized for groundcover installation",
-		ErrorMessages: []string{"denied permissions on resource: pods"},
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s user authorized for groundcover installation",
+		ErrorMessages:   []string{"denied permissions on resource: pods"},
 	}
 
 	suite.Equal(expected, clusterReport.UserAuthorized)
@@ -175,8 +180,9 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible: false,
-		Message:      "K8s user authorized for groundcover installation",
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s user authorized for groundcover installation",
 		ErrorMessages: []string{
 			"denied permissions on resource: pods",
 			"api error on resource: services: selfsubjectaccessreviews.authorization.k8s.io \"\" already exists",
@@ -191,10 +197,15 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
+	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
+		Major:      "1",
+		Minor:      "23",
+		GitVersion: "v1.23.0",
+	}
+
 	clusterSummary := &k8s.ClusterSummary{
-		ClusterName:   "test",
-		Namespace:     "default",
-		ServerVersion: semver.Version{Major: 1, Minor: 23},
+		ClusterName: "test",
+		Namespace:   "default",
 	}
 
 	// act
@@ -207,9 +218,10 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible:  false,
-		Message:       "K8s server version >= 1.24.0",
-		ErrorMessages: []string{"1.23.0 is unsupported K8s version"},
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s server version >= 1.24.0",
+		ErrorMessages:   []string{"1.23.0 is unsupported K8s version"},
 	}
 
 	suite.Equal(expected, clusterReport.ServerVersionAllowed)
@@ -237,79 +249,11 @@ func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible:  false,
-		Message:       "K8s cluster type supported",
-		ErrorMessages: []string{"minikube is unsupported cluster type"},
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s cluster type supported",
+		ErrorMessages:   []string{"minikube is unsupported cluster type"},
 	}
 
 	suite.Equal(expected, clusterReport.ClusterTypeAllowed)
-}
-
-func TestValidateAwsCliVersionSupported(t *testing.T) {
-	testCases := []struct {
-		name     string
-		version  string
-		expected bool
-	}{
-		{
-			name:     "bad format version, no spaces",
-			version:  "bad",
-			expected: false,
-		},
-		{
-			name:     "bad format version, first path no slash",
-			version:  "bad version",
-			expected: false,
-		},
-		{
-			name:     "aws cli version 1.18.0",
-			version:  "aws-cli/1.18.0 Python/3.7.4 Darwin/19.4.0 botocore/1.17.0",
-			expected: false,
-		},
-		{
-			name:     "aws cli version 1.23.9",
-			version:  "aws-cli/1.23.9 Python/3.7.4 Darwin/19.4.0 botocore/1.23.9",
-			expected: true,
-		},
-		{
-			name:     "aws cli version 1.23.10",
-			version:  "aws-cli/1.23.10 Python/3.7.4 Darwin/19.4.0 botocore/1.23.10",
-			expected: true,
-		},
-		{
-			name:     "aws cli version 2.0.0",
-			version:  "aws-cli/2.0.0 Python/3.7.4 Darwin/19.4.0 botocore/2.0.0dev0",
-			expected: false,
-		},
-		{
-			name:     "aws cli version 2.7.0",
-			version:  "aws-cli/2.7.0 Python/3.7.4 Darwin/19.4.0 botocore/2.7.0",
-			expected: true,
-		},
-		{
-			name:     "aws cli version 2.7.1",
-			version:  "aws-cli/2.7.1 Python/3.7.4 Darwin/19.4.0 botocore/2.7.1",
-			expected: true,
-		},
-		{
-			name:     "aws cli version 3.0.0",
-			version:  "aws-cli/3.0.0 Python/3.7.4 Darwin/19.4.0 botocore/3.0.0",
-			expected: false,
-		},
-		{
-			name:     "aws cli version 0.9.0",
-			version:  "aws-cli/0.9.0 Python/3.7.4 Darwin/19.4.0 botocore/0.9.0",
-			expected: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// act
-			actual := k8s.ValidateAwsCliVersionSupported(tc.version)
-
-			// assert
-			assert.Equal(t, tc.expected, actual)
-		})
-	}
 }
