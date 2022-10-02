@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,10 +12,17 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/blang/semver/v4"
 	"github.com/google/go-github/github"
 	"github.com/minio/selfupdate"
+	"groundcover.com/pkg/ui"
+)
+
+const (
+	APPLY_POLLING_TIMEOUT  = time.Minute * 3
+	APPLY_POLLING_INTERVAL = time.Second
 )
 
 var (
@@ -95,19 +103,48 @@ func (selfUpdater *SelfUpdater) IsDevVersion(currentVersion semver.Version) bool
 
 func (selfUpdater *SelfUpdater) Apply() error {
 	var err error
-	var assetReader io.Reader
-	var assetResponse *http.Response
 
+	spinner := ui.NewSpinner(fmt.Sprintf("Downloading cli version: %s", selfUpdater.Version))
+	spinner.StopMessage("cli update was successfully")
+	spinner.StopFailMessage("cli update has failed")
+
+	spinner.Start()
+	defer spinner.Stop()
+
+	err = spinner.Poll(selfUpdater.apply, APPLY_POLLING_INTERVAL, APPLY_POLLING_TIMEOUT)
+
+	if err == nil {
+		return nil
+	}
+
+	spinner.StopFail()
+
+	if errors.Is(err, ui.ErrSpinnerTimeout) {
+		return fmt.Errorf("timeout waiting for cli download")
+	}
+
+	return err
+}
+
+func (selfUpdater *SelfUpdater) apply() (bool, error) {
+	var err error
+
+	var assetResponse *http.Response
 	if assetResponse, err = http.Get(selfUpdater.assetUrl); err != nil {
-		return err
+		return false, err
 	}
 	defer assetResponse.Body.Close()
 
+	var assetReader io.Reader
 	if assetReader, err = selfUpdater.untarAsset(assetResponse.Body); err != nil {
-		return err
+		return false, err
 	}
 
-	return selfupdate.Apply(assetReader, selfupdate.Options{})
+	if err = selfupdate.Apply(assetReader, selfupdate.Options{}); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (selfUpdater *SelfUpdater) untarAsset(assetReader io.ReadCloser) (*tar.Reader, error) {
