@@ -97,10 +97,8 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 		if !viper.GetBool(SKIP_CLI_UPDATE_FLAG) {
 			if shouldUpdate, selfUpdater := checkLatestVersionUpdate(cmd.Context()); shouldUpdate {
 				if err = selfUpdater.Apply(); err != nil {
-					fmt.Println("cli update has failed")
 					return err
 				}
-				fmt.Println("cli update was successfully")
 				sentry.CaptureMessage("cli-update executed successfully")
 				os.Exit(0)
 			}

@@ -86,12 +86,28 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 
 	// assert
 	expected := &k8s.ClusterReport{
-		ClusterSummary:       clusterSummary,
-		IsCompatible:         true,
-		UserAuthorized:       k8s.Requirement{IsCompatible: true, Message: "K8s user authorized for groundcover installation"},
-		CliAuthSupported:     k8s.Requirement{IsCompatible: true, Message: "K8s CLI auth supported"},
-		ServerVersionAllowed: k8s.Requirement{IsCompatible: true, Message: "K8s server version >= 1.24.0"},
-		ClusterTypeAllowed:   k8s.Requirement{IsCompatible: true, Message: "K8s cluster type supported"},
+		ClusterSummary: clusterSummary,
+		IsCompatible:   true,
+		CliAuthSupported: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: false,
+			Message:         "K8s CLI auth supported",
+		},
+		ServerVersionAllowed: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: true,
+			Message:         "K8s server version >= 1.24.0",
+		},
+		UserAuthorized: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: true,
+			Message:         "K8s user authorized for groundcover installation",
+		},
+		ClusterTypeAllowed: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: true,
+			Message:         "K8s cluster type supported",
+		},
 	}
 
 	suite.Equal(expected, clusterReport)
