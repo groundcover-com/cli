@@ -19,6 +19,7 @@ We use the following categories for changes:
 ### Added
 
 - add spinner to cli update [#sc-5038]
+- spinner handle interrupt signal [#sc-5092]
 
 ### Changed
 

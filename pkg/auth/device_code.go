@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,9 +43,12 @@ func (deviceCode *DeviceCode) Fetch() error {
 	return json.Unmarshal(body, &deviceCode)
 }
 
-func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
+func (deviceCode *DeviceCode) PollToken(ctx context.Context, auth0Token *Auth0Token) error {
+	var err error
+
 	spinner := ui.NewSpinner("Waiting for device confirmation")
 	spinner.StopMessage("Device authentication confirmed by auth0")
+	spinner.StopFailMessage("Device authentication failed")
 
 	spinner.Start()
 	defer spinner.Stop()
@@ -54,14 +58,29 @@ func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 	data.Set("device_code", deviceCode.DeviceCode)
 	data.Set("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
 
-	err := spinner.Poll(func() (bool, error) {
-		return fetchTokenFunc(auth0Token, data)
-	},
-		DEVICE_CODE_POLLING_INTERVAL,
-		DEVICE_CODE_POLLING_TIMEOUT)
+	fetchTokenFunc := func() (bool, error) {
+		err = auth0Token.Fetch(data)
+		if err == nil {
+			return true, nil
+		}
+
+		var auth0Err *Auth0Error
+		if errors.As(err, &auth0Err) {
+			if auth0Err.Type == "authorization_pending" {
+				return false, nil
+			}
+		}
+
+		return false, err
+	}
+
+	err = spinner.Poll(ctx, fetchTokenFunc, DEVICE_CODE_POLLING_INTERVAL, DEVICE_CODE_POLLING_TIMEOUT)
+
 	if err == nil {
 		return nil
 	}
+
+	spinner.StopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		spinner.StopFailMessage("timed out while waiting for your login in browser")
@@ -74,20 +93,4 @@ func (deviceCode *DeviceCode) PollToken(auth0Token *Auth0Token) error {
 	}
 
 	return err
-}
-
-func fetchTokenFunc(auth0Token *Auth0Token, data url.Values) (bool, error) {
-	err := auth0Token.Fetch(data)
-	if err == nil {
-		return true, nil
-	}
-
-	var auth0Err *Auth0Error
-	if errors.As(err, &auth0Err) {
-		if auth0Err.Type == "authorization_pending" {
-			return false, nil
-		}
-	}
-
-	return false, err
 }

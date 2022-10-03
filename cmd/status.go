@@ -142,7 +142,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, helmRelease *hel
 		return false, nil
 	}
 
-	err := spinner.Poll(isPortalRunningFunc, PODS_POLLING_INTERVAL, PORTAL_POLLING_TIMEOUT)
+	err := spinner.Poll(ctx, isPortalRunningFunc, PODS_POLLING_INTERVAL, PORTAL_POLLING_TIMEOUT)
 
 	if err == nil {
 		return nil
@@ -165,20 +165,19 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	defer spinner.Stop()
 
 	runningAlligators := 0
-	err := spinner.Poll(
-		func() (bool, error) {
-			var err error
-			runningAlligators, err = getRunningAlligators(ctx, kubeClient, helmRelease.Chart.AppVersion(), helmRelease.Namespace)
-			if err != nil {
-				return false, err
-			}
 
-			spinner.Message(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, runningAlligators, expectedAlligatorsCount))
-			return runningAlligators == expectedAlligatorsCount, nil
-		},
-		PODS_POLLING_INTERVAL,
-		ALLIGATORS_POLLING_TIMEOUT,
-	)
+	isAlligatorRunningFunc := func() (bool, error) {
+		var err error
+		runningAlligators, err = getRunningAlligators(ctx, kubeClient, helmRelease.Chart.AppVersion(), helmRelease.Namespace)
+		if err != nil {
+			return false, err
+		}
+
+		spinner.Message(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, runningAlligators, expectedAlligatorsCount))
+		return runningAlligators == expectedAlligatorsCount, nil
+	}
+
+	err := spinner.Poll(ctx, isAlligatorRunningFunc, PODS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT)
 
 	sentryHelmContext.RunningAlligators = fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
 	sentryHelmContext.SetOnCurrentScope()
@@ -271,7 +270,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.
 		return len(pvcs) == EXPECTED_BOUND_PVCS, nil
 	}
 
-	err := spinner.Poll(isPvcsReadyFunc, PODS_POLLING_INTERVAL, PVC_POLLING_TIMEOUT)
+	err := spinner.Poll(ctx, isPvcsReadyFunc, PODS_POLLING_INTERVAL, PVC_POLLING_TIMEOUT)
 
 	sentryHelmContext.BoundPvcs = maps.Keys(pvcs)
 	sentryHelmContext.SetOnCurrentScope()

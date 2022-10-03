@@ -101,7 +101,7 @@ func (selfUpdater *SelfUpdater) IsDevVersion(currentVersion semver.Version) bool
 	return currentVersion.Equals(devVersion)
 }
 
-func (selfUpdater *SelfUpdater) Apply() error {
+func (selfUpdater *SelfUpdater) Apply(ctx context.Context) error {
 	var err error
 
 	spinner := ui.NewSpinner(fmt.Sprintf("Downloading cli version: %s", selfUpdater.Version))
@@ -111,7 +111,7 @@ func (selfUpdater *SelfUpdater) Apply() error {
 	spinner.Start()
 	defer spinner.Stop()
 
-	err = spinner.Poll(selfUpdater.apply, APPLY_POLLING_INTERVAL, APPLY_POLLING_TIMEOUT)
+	err = spinner.Poll(ctx, selfUpdater.apply, APPLY_POLLING_INTERVAL, APPLY_POLLING_TIMEOUT)
 
 	if err == nil {
 		return nil
