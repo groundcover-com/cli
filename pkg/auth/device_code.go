@@ -83,8 +83,6 @@ func (deviceCode *DeviceCode) PollToken(ctx context.Context, auth0Token *Auth0To
 	spinner.StopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		spinner.StopFailMessage("timed out while waiting for your login in browser")
-		spinner.StopFail()
 		return fmt.Errorf("timed out while waiting for your login in browser")
 	}
 
