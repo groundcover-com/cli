@@ -106,7 +106,6 @@ var StatusCmd = &cobra.Command{
 			return err
 		}
 
-		sentry.CaptureMessage("status executed successfully")
 		return nil
 	},
 }

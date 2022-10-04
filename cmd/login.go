@@ -10,7 +10,6 @@ import (
 	"groundcover.com/pkg/utils"
 )
 
-
 func init() {
 	AuthCmd.AddCommand(LoginCmd)
 	RootCmd.AddCommand(LoginCmd)
@@ -37,7 +36,6 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "failed to fetch api key")
 	}
 
-	sentry.CaptureMessage("login executed successfully")
 	return nil
 }
 

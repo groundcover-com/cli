@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
@@ -64,11 +65,15 @@ func init() {
 	viper.BindPFlag(HELM_RELEASE_FLAG, RootCmd.PersistentFlags().Lookup(HELM_RELEASE_FLAG))
 }
 
-var skipAuthCommandNames = []string{
-	"help",
-	LoginCmd.Name(),
-	VersionCmd.Name(),
-}
+var (
+	skipAuthCommandNames = []string{
+		"help",
+		LoginCmd.Name(),
+		VersionCmd.Name(),
+	}
+
+	ErrExecutionAborted = fmt.Errorf("execution aborted")
+)
 
 var RootCmd = &cobra.Command{
 	SilenceUsage:      true,
@@ -100,6 +105,7 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 					return err
 				}
 				sentry.CaptureMessage("cli-update executed successfully")
+				sentry.Flush(sentry_utils.FLUSH_TIMEOUT)
 				os.Exit(0)
 			}
 		}
@@ -168,9 +174,19 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 }
 
 func ExecuteContext(ctx context.Context) error {
+	start := time.Now()
 	err := RootCmd.ExecuteContext(ctx)
 
+	sentryCommandContext := sentry_utils.NewCommandContext(start)
+	sentryCommandContext.SetOnCurrentScope()
+
 	if err == nil {
+		sentry.CaptureMessage(fmt.Sprintf("%s executed successfully", sentryCommandContext.Name))
+		return nil
+	}
+
+	if errors.Is(err, ErrExecutionAborted) {
+		sentry.CaptureMessage(fmt.Sprintf("%s execution aborted", sentryCommandContext.Name))
 		return nil
 	}
 

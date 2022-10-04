@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -109,8 +108,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if !shouldInstall {
-		sentry.CaptureMessage("deploy execution aborted")
-		return nil
+		return ErrExecutionAborted
 	}
 
 	var release *helm.Release
@@ -129,7 +127,6 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	utils.TryOpenBrowser("Check out:", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
 	fmt.Printf("\n%s\n", JOIN_SLACK_MESSAGE)
 
-	sentry.CaptureMessage("deploy executed successfully")
 	return nil
 }
 
