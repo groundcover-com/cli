@@ -1,6 +1,8 @@
 package sentry
 
 import (
+	"time"
+
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
 	"groundcover.com/pkg/k8s"
@@ -8,6 +10,7 @@ import (
 
 const (
 	MAX_NODE_REPORT_SAMPLES  = 10
+	COMMAND_CONTEXT_NAME     = "command"
 	HELM_CONTEXT_NAME        = "helm"
 	KUBE_CONTEXT_NAME        = "kubernetes"
 	SELF_UPDATE_CONTEXT_NAME = "cli-update"
@@ -15,6 +18,22 @@ const (
 
 type SentryContext interface {
 	SetOnCurrentScope()
+}
+
+type CommandContext struct {
+	Name string `json:",omitempty"`
+	Took string `json:",omitempty"`
+}
+
+func NewCommandContext(start time.Time) *CommandContext {
+	return &CommandContext{
+		Name: sentry.CurrentHub().Scope().Transaction(),
+		Took: time.Since(start).Round(time.Second).String(),
+	}
+}
+
+func (context CommandContext) SetOnCurrentScope() {
+	sentry.CurrentHub().Scope().SetContext(COMMAND_CONTEXT_NAME, &context)
 }
 
 type KubeContext struct {
