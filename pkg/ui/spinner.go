@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -48,12 +49,14 @@ func (s *Spinner) SetWarningSign() {
 	s.StopFailColors("fgYellow")
 }
 
-func (s *Spinner) Poll(function func() (bool, error), interval, duration time.Duration) error {
+func (s *Spinner) Poll(ctx context.Context, function func() (bool, error), interval, duration time.Duration) error {
 	timeout := time.After(duration)
 	ticker := time.NewTicker(interval)
 
 	for {
 		select {
+		case <-ctx.Done():
+			return ctx.Err()
 		case <-timeout:
 			return ErrSpinnerTimeout
 		case <-ticker.C:

@@ -19,6 +19,9 @@ We use the following categories for changes:
 ### Added
 
 - prompt taints for tolerations approval [#sc-5028]
+- command time took metric [#sc-4963]
+- add spinner to cli update [#sc-5038]
+- spinner handle interrupt signal [#sc-5092]
 
 ### Changed
 
