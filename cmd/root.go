@@ -93,6 +93,8 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		ctx := cmd.Context()
+
 		sentry_utils.SetTransactionOnCurrentScope(cmd.Name())
 
 		if err = validateAuthentication(cmd, args); err != nil {
@@ -101,7 +103,7 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 
 		if !viper.GetBool(SKIP_CLI_UPDATE_FLAG) {
 			if shouldUpdate, selfUpdater := checkLatestVersionUpdate(cmd.Context()); shouldUpdate {
-				if err = selfUpdater.Apply(); err != nil {
+				if err = selfUpdater.Apply(ctx); err != nil {
 					return err
 				}
 				sentry.CaptureMessage("cli-update executed successfully")

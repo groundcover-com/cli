@@ -260,7 +260,7 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.
 	}
 
 	apiClient := api.NewClient(auth0Token)
-	if err = apiClient.PollIsClusterExist(clusterName); err != nil {
+	if err = apiClient.PollIsClusterExist(ctx, clusterName); err != nil {
 		return err
 	}
 

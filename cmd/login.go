@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -24,8 +26,10 @@ var LoginCmd = &cobra.Command{
 func runLoginCmd(cmd *cobra.Command, args []string) error {
 	var err error
 
+	ctx := cmd.Context()
+
 	var auth0Token *auth.Auth0Token
-	if auth0Token, err = attemptAuth0Login(); err != nil {
+	if auth0Token, err = attemptAuth0Login(ctx); err != nil {
 		return errors.Wrap(err, "failed to login")
 	}
 
@@ -39,7 +43,7 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func attemptAuth0Login() (*auth.Auth0Token, error) {
+func attemptAuth0Login(ctx context.Context) (*auth.Auth0Token, error) {
 	var err error
 
 	var deviceCode auth.DeviceCode
@@ -50,7 +54,7 @@ func attemptAuth0Login() (*auth.Auth0Token, error) {
 	utils.TryOpenBrowser("Browse to:", deviceCode.VerificationURIComplete)
 
 	var auth0Token auth.Auth0Token
-	if err = deviceCode.PollToken(&auth0Token); err != nil {
+	if err = deviceCode.PollToken(ctx, &auth0Token); err != nil {
 		return nil, err
 	}
 
