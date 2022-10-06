@@ -43,7 +43,7 @@ type AwsCliVersionValidator struct {
 }
 
 func (validator *AwsCliVersionValidator) wrapError(err error) error {
-	return errors.Wrapf(err, "failed getting aws cli version v%s/v%s, got", validator.MinimumSupportedV1Version, validator.MinimumSupportedV2Version)
+	return errors.Wrapf(err, "failed getting aws cli version (required v%s+/v%s+), got", validator.MinimumSupportedV1Version, validator.MinimumSupportedV2Version)
 }
 
 func (validator *AwsCliVersionValidator) Fetch(ctx context.Context) (semver.Version, error) {

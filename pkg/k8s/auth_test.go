@@ -99,5 +99,5 @@ func (suite *KubeAuthTestSuite) TestAwsCliVersionValidatorParseError() {
 	}
 
 	// assert
-	suite.ErrorContains(err, "failed getting aws cli version v1.23.9/v2.7.0, got: unknown aws cli version: \"aws-cli-bad/5.4.2\"")
+	suite.ErrorContains(err, "failed getting aws cli version (required v1.23.9+/v2.7.0+), got: unknown aws cli version: \"aws-cli-bad/5.4.2\"")
 }
