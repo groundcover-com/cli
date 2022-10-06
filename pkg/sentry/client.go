@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	ERASE_DATA_TAG               = "erase"
 	UPGRADE_TAG                  = "upgrade"
 	ORGANIZATION_TAG             = "organization"
 	CHART_VERSION_TAG            = "chart.version"

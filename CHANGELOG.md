@@ -21,6 +21,7 @@ We use the following categories for changes:
 - command time took metric [#sc-4963]
 - add spinner to cli update [#sc-5038]
 - spinner handle interrupt signal [#sc-5092]
+- improved uninstall command [#sc-4839]
 
 ### Changed
 
