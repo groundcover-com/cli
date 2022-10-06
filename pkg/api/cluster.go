@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +16,7 @@ const (
 	CLUSTER_POLLING_INTERVAL = time.Second * 10
 )
 
-func (client *Client) PollIsClusterExist(clusterName string) error {
+func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string) error {
 	var err error
 
 	spinner := ui.NewSpinner("Waiting until groundcover is connected to cloud platform")
@@ -39,7 +40,7 @@ func (client *Client) PollIsClusterExist(clusterName string) error {
 		return false, nil
 	}
 
-	if err = spinner.Poll(isClusterExistInSassFunc, CLUSTER_POLLING_INTERVAL, CLUSTER_POLLING_TIMEOUT); err == nil {
+	if err = spinner.Poll(ctx, isClusterExistInSassFunc, CLUSTER_POLLING_INTERVAL, CLUSTER_POLLING_TIMEOUT); err == nil {
 		return nil
 	}
 
