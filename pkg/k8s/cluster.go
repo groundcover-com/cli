@@ -239,9 +239,10 @@ func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx cont
 
 	var awsCliVersion semver.Version
 	if awsCliVersion, err = DefaultAwsCliVersionValidator.Fetch(ctx); err != nil {
-		requirement.IsNonCompatible = true
+		requirement.IsCompatible = true
+		requirement.IsNonCompatible = false
 		requirement.ErrorMessages = []string{
-			"Failed getting aws cli version, make sure aws cli is installed",
+			err.Error(),
 			HINT_INSTALL_AWS_CLI,
 		}
 		return requirement

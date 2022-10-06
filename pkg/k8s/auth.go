@@ -42,13 +42,17 @@ type AwsCliVersionValidator struct {
 	MinimumSupportedV2Version semver.Version
 }
 
+func (validator *AwsCliVersionValidator) wrapError(err error) error {
+	return errors.Wrapf(err, "failed getting aws cli version v%s/v%s, got", validator.MinimumSupportedV1Version, validator.MinimumSupportedV2Version)
+}
+
 func (validator *AwsCliVersionValidator) Fetch(ctx context.Context) (semver.Version, error) {
 	var err error
 	var version semver.Version
 
 	var versionByte []byte
 	if versionByte, err = exec.CommandContext(ctx, "aws", "--version").Output(); err != nil {
-		return version, err
+		return version, validator.wrapError(err)
 	}
 
 	return validator.Parse(string(versionByte))
@@ -59,7 +63,7 @@ func (validator *AwsCliVersionValidator) Parse(versionString string) (semver.Ver
 
 	matches := validator.Regexp.FindStringSubmatch(versionString)
 	if len(matches) != 2 {
-		return version, fmt.Errorf("unknown aws cli version: %q", versionString)
+		return version, validator.wrapError(fmt.Errorf("unknown aws cli version: %q", versionString))
 	}
 
 	return semver.Parse(matches[1])

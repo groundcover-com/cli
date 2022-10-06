@@ -34,16 +34,6 @@ func TestValidateAwsCliVersionSupported(t *testing.T) {
 		expected error
 	}{
 		{
-			name:     "bad format version, no spaces",
-			version:  "bad",
-			expected: fmt.Errorf("unknown aws cli version: \"bad\""),
-		},
-		{
-			name:     "bad format version, first path no slash",
-			version:  "bad version",
-			expected: fmt.Errorf("unknown aws cli version: \"bad version\""),
-		},
-		{
 			name:     "aws cli version 1.18.0",
 			version:  "aws-cli/1.18.0 Python/3.7.4 Darwin/19.4.0 botocore/1.17.0",
 			expected: fmt.Errorf("aws-cli version is unsupported (1.18.0 < 1.23.9)"),
@@ -98,4 +88,16 @@ func TestValidateAwsCliVersionSupported(t *testing.T) {
 			assert.Equal(t, tc.expected, err)
 		})
 	}
+}
+
+func (suite *KubeAuthTestSuite) TestAwsCliVersionValidatorParseError() {
+	// act
+	version, err := k8s.DefaultAwsCliVersionValidator.Parse("aws-cli-bad/5.4.2")
+
+	if err == nil {
+		err = k8s.DefaultAwsCliVersionValidator.Validate(version)
+	}
+
+	// assert
+	suite.ErrorContains(err, "failed getting aws cli version v1.23.9/v2.7.0, got: unknown aws cli version: \"aws-cli-bad/5.4.2\"")
 }
