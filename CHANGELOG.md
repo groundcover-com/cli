@@ -20,6 +20,7 @@ We use the following categories for changes:
 
 - command time took metric [#sc-4963]
 - add spinner to cli update [#sc-5038]
+- add aws cli version validation [#sc-4942]
 - spinner handle interrupt signal [#sc-5092]
 
 ### Changed
