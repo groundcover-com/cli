@@ -16,3 +16,6 @@
 
 artifacts/*
 dist/
+
+# vscode files
+.vscode/

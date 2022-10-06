@@ -31,15 +31,14 @@ func TestKubeClusterTestSuite(t *testing.T) {
 }
 
 func (suite *KubeClusterTestSuite) TestGetServerVersionSuccess() {
-	//prepare
-
+	// arrange
 	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
 		Major:      "1",
 		Minor:      "24",
 		GitVersion: "v1.24.1",
 	}
 
-	//act
+	// act
 
 	serverVersion, err := suite.KubeClient.GetServerVersion()
 	suite.NoError(err)
@@ -51,14 +50,14 @@ func (suite *KubeClusterTestSuite) TestGetServerVersionSuccess() {
 }
 
 func (suite *KubeClusterTestSuite) TestServerVersionUnknown() {
-	//prepare
+	// arrange
 	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
 		Major:      "1",
 		Minor:      "23",
 		GitVersion: "v1.23+.4",
 	}
 
-	//act
+	// act
 	_, err := suite.KubeClient.GetServerVersion()
 
 	// assert
@@ -66,17 +65,22 @@ func (suite *KubeClusterTestSuite) TestServerVersionUnknown() {
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	clusterSummary := &k8s.ClusterSummary{
-		ClusterName:   "test",
-		Namespace:     "default",
-		ServerVersion: semver.Version{Major: 1, Minor: 24},
+	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
+		Major:      "1",
+		Minor:      "24",
+		GitVersion: "v1.24.0",
 	}
 
-	//act
+	clusterSummary := &k8s.ClusterSummary{
+		ClusterName: "test",
+		Namespace:   "default",
+	}
+
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions:       []*authv1.ResourceAttributes{},
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
@@ -88,19 +92,24 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 	expected := &k8s.ClusterReport{
 		ClusterSummary: clusterSummary,
 		IsCompatible:   true,
+		CliAuthSupported: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: false,
+			Message:         "K8s CLI auth supported",
+		},
 		ServerVersionAllowed: k8s.Requirement{
 			IsCompatible:    true,
-			IsNonCompatible: true,
+			IsNonCompatible: false,
 			Message:         "K8s server version >= 1.24.0",
 		},
 		UserAuthorized: k8s.Requirement{
 			IsCompatible:    true,
-			IsNonCompatible: true,
+			IsNonCompatible: false,
 			Message:         "K8s user authorized for groundcover installation",
 		},
 		ClusterTypeAllowed: k8s.Requirement{
 			IsCompatible:    true,
-			IsNonCompatible: true,
+			IsNonCompatible: false,
 			Message:         "K8s cluster type supported",
 		},
 	}
@@ -109,7 +118,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
@@ -119,7 +128,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
-	//act
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions: []*authv1.ResourceAttributes{
 			{
@@ -133,16 +142,17 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible:  false,
-		Message:       "K8s user authorized for groundcover installation",
-		ErrorMessages: []string{"denied permissions on resource: pods"},
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s user authorized for groundcover installation",
+		ErrorMessages:   []string{"denied permissions on resource: pods"},
 	}
 
 	suite.Equal(expected, clusterReport.UserAuthorized)
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
@@ -152,7 +162,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
 		ServerVersion: semver.Version{Major: 1, Minor: 23},
 	}
 
-	//act
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions: []*authv1.ResourceAttributes{
 			{
@@ -170,8 +180,9 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible: false,
-		Message:      "K8s user authorized for groundcover installation",
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s user authorized for groundcover installation",
 		ErrorMessages: []string{
 			"denied permissions on resource: pods",
 			"api error on resource: services: selfsubjectaccessreviews.authorization.k8s.io \"\" already exists",
@@ -182,17 +193,22 @@ func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedAPIError() {
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	clusterSummary := &k8s.ClusterSummary{
-		ClusterName:   "test",
-		Namespace:     "default",
-		ServerVersion: semver.Version{Major: 1, Minor: 23},
+	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
+		Major:      "1",
+		Minor:      "23",
+		GitVersion: "v1.23.0",
 	}
 
-	//act
+	clusterSummary := &k8s.ClusterSummary{
+		ClusterName: "test",
+		Namespace:   "default",
+	}
+
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		Actions:       []*authv1.ResourceAttributes{},
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
@@ -202,16 +218,17 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible:  false,
-		Message:       "K8s server version >= 1.24.0",
-		ErrorMessages: []string{"1.23.0 is unsupported K8s version"},
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s server version >= 1.24.0",
+		ErrorMessages:   []string{"1.23.0 is unsupported K8s version"},
 	}
 
 	suite.Equal(expected, clusterReport.ServerVersionAllowed)
 }
 
 func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
-	//prepare
+	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
@@ -221,7 +238,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
-	//act
+	// act
 	clusterRequirements := k8s.ClusterRequirements{
 		BlockedTypes:  []string{"minikube"},
 		Actions:       []*authv1.ResourceAttributes{},
@@ -232,9 +249,10 @@ func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
 
 	// assert
 	expected := k8s.Requirement{
-		IsCompatible:  false,
-		Message:       "K8s cluster type supported",
-		ErrorMessages: []string{"minikube is unsupported cluster type"},
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s cluster type supported",
+		ErrorMessages:   []string{"minikube is unsupported cluster type"},
 	}
 
 	suite.Equal(expected, clusterReport.ClusterTypeAllowed)
