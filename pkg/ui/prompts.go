@@ -24,6 +24,10 @@ func YesNoPrompt(message string, defaultValue bool) bool {
 }
 
 func MultiSelectPrompt(message string, options, defaults []string) []string {
+	if viper.GetBool(ASSUME_YES_FLAG) {
+		return defaults
+	}
+
 	prompt := &survey.MultiSelect{
 		Options: options,
 		Default: defaults,

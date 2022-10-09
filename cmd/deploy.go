@@ -183,9 +183,12 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 	}
 
 	if len(nodesReport.PendingNodes) > 0 {
-		taintKeys := nodesReport.GetTaintKeys()
-		allowedTaintKeys := ui.MultiSelectPrompt("Do you want set tolerations to allow scheduling groundcover on following taints:", taintKeys, taintKeys)
-		nodesReport.ResolvePendingNodes(allowedTaintKeys)
+		taints := nodesReport.GetTaints()
+		allowedTaints := ui.MultiSelectPrompt("Do you want set tolerations to allow scheduling groundcover on following taints:", taints, taints)
+
+		if err = nodesReport.ResolvePendingNodes(allowedTaints); err != nil {
+			return nil, err
+		}
 	}
 
 	return nodesReport, nil

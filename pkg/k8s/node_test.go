@@ -176,7 +176,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 			{
 				NodeSummary: nodesSummeries[2],
 				RequirementErrors: []string{
-					"NoSchedule taint is set",
+					"taints are set",
 				},
 			},
 		},
@@ -226,7 +226,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 		Schedulable: k8s.Requirement{
 			IsCompatible:  false,
 			Message:       "Node is schedulable (2/3 Nodes)",
-			ErrorMessages: []string{"node: pending - NoSchedule taint is set"},
+			ErrorMessages: []string{"node: pending - taints are set"},
 		},
 	}
 
@@ -315,16 +315,17 @@ func (suite *KubeNodeTestSuite) TestDeclinePendingNodesSuccess() {
 
 	// act
 	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries[2:])
-	nodesReport.ResolvePendingNodes([]string{"bad"})
+	nodesReport.ResolvePendingNodes([]string{"{\"key\":\"bad\", \"value\":\"bad\", \"effect\":\"NoSchedule\"}"})
 
 	// assert
 
 	expected := &k8s.NodesReport{
-		Tolerations: []map[string]string{
+		Tolerations: []v1.Toleration{
 			{
-				"key":      "bad",
-				"operator": "Exists",
-				"effect":   "NoSchedule",
+				Key:      "bad",
+				Value:    "bad",
+				Operator: "Equal",
+				Effect:   "NoSchedule",
 			},
 		},
 		PendingNodes: []*k8s.IncompatibleNode{},
@@ -332,7 +333,7 @@ func (suite *KubeNodeTestSuite) TestDeclinePendingNodesSuccess() {
 			{
 				NodeSummary: nodesSummeries[2],
 				RequirementErrors: []string{
-					"NoSchedule taint is set",
+					"taints are set",
 				},
 			},
 		},
@@ -364,7 +365,7 @@ func (suite *KubeNodeTestSuite) TestDeclinePendingNodesSuccess() {
 			IsCompatible:    false,
 			IsNonCompatible: true,
 			Message:         "Node is schedulable (0/1 Nodes)",
-			ErrorMessages:   []string{"node: pending - NoSchedule taint is set"},
+			ErrorMessages:   []string{"node: pending - taints are set"},
 		},
 	}
 
@@ -381,18 +382,20 @@ func (suite *KubeNodeTestSuite) TestApprovePendingNodesSuccess() {
 
 	// act
 	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries[2:])
-	nodesReport.ResolvePendingNodes([]string{"test"})
+	taints := nodesReport.GetTaints()
+	nodesReport.ResolvePendingNodes(taints)
 
 	// assert
 
 	expected := &k8s.NodesReport{
 		CompatibleNodes: nodesSummeries[2:],
 		PendingNodes:    []*k8s.IncompatibleNode{},
-		Tolerations: []map[string]string{
+		Tolerations: []v1.Toleration{
 			{
-				"key":      "test",
-				"operator": "Exists",
-				"effect":   "NoSchedule",
+				Key:      "test",
+				Operator: "Equal",
+				Effect:   "NoSchedule",
+				Value:    "test",
 			},
 		},
 		KernelVersionAllowed: k8s.Requirement{
@@ -423,7 +426,7 @@ func (suite *KubeNodeTestSuite) TestApprovePendingNodesSuccess() {
 			IsCompatible:    false,
 			IsNonCompatible: true,
 			Message:         "Node is schedulable (0/1 Nodes)",
-			ErrorMessages:   []string{"node: pending - NoSchedule taint is set"},
+			ErrorMessages:   []string{"node: pending - taints are set"},
 		},
 	}
 

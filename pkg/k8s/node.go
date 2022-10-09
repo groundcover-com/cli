@@ -28,7 +28,6 @@ const (
 var (
 	KERNEL_VERSION_REGEX = regexp.MustCompile("^(?P<major>[0-9]).(?P<minor>[0-9]+).(?P<patch>[0-9]+)")
 
-	taintKeysSet                = make(map[string]struct{})
 	NodeMinimumCpuRequired      = resource.MustParse(NODE_MINIUM_REQUIREMENTS_CPU)
 	NodeMinimumMemoryRequired   = resource.MustParse(NODE_MINIUM_REQUIREMENTS_MEMORY)
 	MinimumKernelVersionSupport = semver.Version{Major: 4, Minor: 14}
@@ -99,7 +98,7 @@ type NodesReport struct {
 	ProviderAllowed        Requirement
 	ArchitectureAllowed    Requirement
 	OperatingSystemAllowed Requirement
-	Tolerations            []map[string]string `json:"-"`
+	Tolerations            []v1.Toleration     `json:"-"`
 	CompatibleNodes        []*NodeSummary      `json:"-"`
 	PendingNodes           []*IncompatibleNode `json:"-"`
 	IncompatibleNodes      []*IncompatibleNode `json:"-"`
@@ -115,36 +114,41 @@ func (nodesReport *NodesReport) PrintStatus() {
 	nodesReport.Schedulable.PrintStatus()
 }
 
-func (nodesReport *NodesReport) GetTaintKeys() []string {
-	return maps.Keys(taintKeysSet)
+func (nodesReport *NodesReport) GetTaints() []string {
+	return maps.Keys(taintsSet)
 }
 
-func (nodesReport *NodesReport) ResolvePendingNodes(allowedTaintKeys []string) {
-	for _, allowedTaintKey := range allowedTaintKeys {
-		nodesReport.Tolerations = append(
-			nodesReport.Tolerations,
-			map[string]string{
-				"operator": "Exists",
-				"effect":   "NoSchedule",
-				"key":      allowedTaintKey,
-			},
-		)
+func (nodesReport *NodesReport) ResolvePendingNodes(allowedTaints []string) error {
+	var err error
+
+	for _, allowedTaint := range allowedTaints {
+		var toleration v1.Toleration
+		if toleration, err = unmarshalTaintToToleration(allowedTaint); err != nil {
+			return err
+		}
+
+		nodesReport.Tolerations = append(nodesReport.Tolerations, toleration)
 	}
 
 	for _, pendingNode := range nodesReport.PendingNodes {
-		if len(allowedTaintKeys) == 0 {
+		if len(allowedTaints) == 0 {
 			nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, pendingNode)
-			break
+			continue
 		}
 
 		var incompatibleNode bool
 		for _, taint := range pendingNode.NodeSummary.Taints {
-			if taint.Effect != "NoSchedule" {
+			if isBuildInTaint(taint) {
 				continue
 			}
 
-			for _, allowedTaintKey := range allowedTaintKeys {
-				if taint.Key != allowedTaintKey {
+			var taintString string
+			if taintString, err = marshalTaint(taint); err != nil {
+				return err
+			}
+
+			for _, allowedTaint := range allowedTaints {
+				if taintString != allowedTaint {
 					incompatibleNode = true
 					break
 				}
@@ -160,6 +164,8 @@ func (nodesReport *NodesReport) ResolvePendingNodes(allowedTaintKeys []string) {
 	}
 
 	nodesReport.PendingNodes = nodesReport.PendingNodes[:0]
+
+	return nil
 }
 
 type IncompatibleNode struct {
@@ -377,22 +383,28 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeOperatingSystem(nod
 }
 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeSchedulable(nodeSummary *NodeSummary) error {
-	var hasNoScheduleTaint bool
+	var err error
+	var hasTaint bool
 
 	for _, taint := range nodeSummary.Taints {
-		if taint.Effect != "NoSchedule" {
+		if isBuildInTaint(taint) {
 			continue
 		}
 
-		hasNoScheduleTaint = true
+		var taintString string
+		if taintString, err = marshalTaint(taint); err != nil {
+			return err
+		}
 
-		if _, exists := taintKeysSet[taint.Key]; !exists {
-			taintKeysSet[taint.Key] = struct{}{}
+		hasTaint = true
+
+		if _, exists := taintsSet[taintString]; !exists {
+			taintsSet[taintString] = struct{}{}
 		}
 	}
 
-	if hasNoScheduleTaint {
-		return fmt.Errorf("NoSchedule taint is set")
+	if hasTaint {
+		return fmt.Errorf("taints are set")
 	}
 
 	return nil
