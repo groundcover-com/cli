@@ -189,6 +189,10 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 		if err = nodesReport.ResolvePendingNodes(allowedTaints); err != nil {
 			return nil, err
 		}
+
+		sentryKubeContext.TolerationsAndTaintsRatio = fmt.Sprintf("%d/%d", len(nodesReport.Tolerations), len(taints))
+		sentryKubeContext.SetOnCurrentScope()
+		sentry_utils.SetTagOnCurrentScope("tainted", "true")
 	}
 
 	return nodesReport, nil
