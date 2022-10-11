@@ -98,9 +98,8 @@ type NodesReport struct {
 	ProviderAllowed        Requirement
 	ArchitectureAllowed    Requirement
 	OperatingSystemAllowed Requirement
-	Tolerations            []v1.Toleration     `json:"-"`
 	CompatibleNodes        []*NodeSummary      `json:"-"`
-	PendingNodes           []*IncompatibleNode `json:"-"`
+	TaintedNodes           []*IncompatibleNode `json:"-"`
 	IncompatibleNodes      []*IncompatibleNode `json:"-"`
 }
 
@@ -114,31 +113,43 @@ func (nodesReport *NodesReport) PrintStatus() {
 	nodesReport.Schedulable.PrintStatus()
 }
 
-func (nodesReport *NodesReport) GetTaints() []string {
-	return maps.Keys(taintsSet)
-}
-
-func (nodesReport *NodesReport) ResolvePendingNodes(allowedTaints []string) error {
+func (nodesReport *NodesReport) GetTaints() ([]string, error) {
 	var err error
 
-	for _, allowedTaint := range allowedTaints {
-		var toleration v1.Toleration
-		if toleration, err = unmarshalTaintToToleration(allowedTaint); err != nil {
-			return err
-		}
+	taintsSet := make(map[string]struct{})
 
-		nodesReport.Tolerations = append(nodesReport.Tolerations, toleration)
+	for _, taintedNode := range nodesReport.TaintedNodes {
+		for _, taint := range taintedNode.Taints {
+			if isBuiltinTaint(taint) {
+				continue
+			}
+
+			var taintMarshaled string
+			if taintMarshaled, err = marshalTaint(taint); err != nil {
+				return nil, err
+			}
+
+			if _, exists := taintsSet[taintMarshaled]; !exists {
+				taintsSet[taintMarshaled] = struct{}{}
+			}
+		}
 	}
 
-	for _, pendingNode := range nodesReport.PendingNodes {
-		if len(allowedTaints) == 0 {
-			nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, pendingNode)
-			continue
-		}
+	return maps.Keys(taintsSet), nil
+}
 
+func (nodesReport *NodesReport) IdentifyTolerableNodes(allowedTaints []string) error {
+	var err error
+
+	if len(allowedTaints) == 0 {
+		nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, nodesReport.TaintedNodes...)
+		return nil
+	}
+
+	for _, taintedNode := range nodesReport.TaintedNodes {
 		var incompatibleNode bool
-		for _, taint := range pendingNode.NodeSummary.Taints {
-			if isBuildInTaint(taint) {
+		for _, taint := range taintedNode.NodeSummary.Taints {
+			if isBuiltinTaint(taint) {
 				continue
 			}
 
@@ -156,14 +167,12 @@ func (nodesReport *NodesReport) ResolvePendingNodes(allowedTaints []string) erro
 		}
 
 		if incompatibleNode {
-			nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, pendingNode)
+			nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, taintedNode)
 			continue
 		}
 
-		nodesReport.CompatibleNodes = append(nodesReport.CompatibleNodes, pendingNode.NodeSummary)
+		nodesReport.CompatibleNodes = append(nodesReport.CompatibleNodes, taintedNode.NodeSummary)
 	}
-
-	nodesReport.PendingNodes = nodesReport.PendingNodes[:0]
 
 	return nil
 }
@@ -248,8 +257,8 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
 			)
 
-			nodesReport.PendingNodes = append(
-				nodesReport.PendingNodes,
+			nodesReport.TaintedNodes = append(
+				nodesReport.TaintedNodes,
 				&IncompatibleNode{
 					NodeSummary:       nodeSummary,
 					RequirementErrors: requirementErrors,
@@ -383,27 +392,11 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeOperatingSystem(nod
 }
 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeSchedulable(nodeSummary *NodeSummary) error {
-	var err error
-	var hasTaint bool
-
 	for _, taint := range nodeSummary.Taints {
-		if isBuildInTaint(taint) {
+		if isBuiltinTaint(taint) {
 			continue
 		}
 
-		var taintString string
-		if taintString, err = marshalTaint(taint); err != nil {
-			return err
-		}
-
-		hasTaint = true
-
-		if _, exists := taintsSet[taintString]; !exists {
-			taintsSet[taintString] = struct{}{}
-		}
-	}
-
-	if hasTaint {
 		return fmt.Errorf("taints are set")
 	}
 

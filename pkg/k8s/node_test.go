@@ -172,7 +172,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 
 	expected := &k8s.NodesReport{
 		CompatibleNodes: nodesSummeries[:1],
-		PendingNodes: []*k8s.IncompatibleNode{
+		TaintedNodes: []*k8s.IncompatibleNode{
 			{
 				NodeSummary: nodesSummeries[2],
 				RequirementErrors: []string{
@@ -305,7 +305,7 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 	suite.Equal(expected, nodesReport)
 }
 
-func (suite *KubeNodeTestSuite) TestDeclinePendingNodesSuccess() {
+func (suite *KubeNodeTestSuite) TestDeclineTaintedNodesSuccess() {
 	// prepare
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
@@ -315,20 +315,19 @@ func (suite *KubeNodeTestSuite) TestDeclinePendingNodesSuccess() {
 
 	// act
 	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries[2:])
-	nodesReport.ResolvePendingNodes([]string{"{\"key\":\"bad\", \"value\":\"bad\", \"effect\":\"NoSchedule\"}"})
+	nodesReport.IdentifyTolerableNodes([]string{"{\"key\":\"bad\", \"value\":\"bad\", \"effect\":\"NoSchedule\"}"})
 
 	// assert
 
 	expected := &k8s.NodesReport{
-		Tolerations: []v1.Toleration{
+		TaintedNodes: []*k8s.IncompatibleNode{
 			{
-				Key:      "bad",
-				Value:    "bad",
-				Operator: "Equal",
-				Effect:   "NoSchedule",
+				NodeSummary: nodesSummeries[2],
+				RequirementErrors: []string{
+					"taints are set",
+				},
 			},
 		},
-		PendingNodes: []*k8s.IncompatibleNode{},
 		IncompatibleNodes: []*k8s.IncompatibleNode{
 			{
 				NodeSummary: nodesSummeries[2],
@@ -372,7 +371,7 @@ func (suite *KubeNodeTestSuite) TestDeclinePendingNodesSuccess() {
 	suite.Equal(expected, nodesReport)
 }
 
-func (suite *KubeNodeTestSuite) TestApprovePendingNodesSuccess() {
+func (suite *KubeNodeTestSuite) TestApproveTaintedNodesSuccess() {
 	// prepare
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
@@ -382,20 +381,20 @@ func (suite *KubeNodeTestSuite) TestApprovePendingNodesSuccess() {
 
 	// act
 	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries[2:])
-	taints := nodesReport.GetTaints()
-	nodesReport.ResolvePendingNodes(taints)
+	taints, err := nodesReport.GetTaints()
+	suite.NoError(err)
+	nodesReport.IdentifyTolerableNodes(taints)
 
 	// assert
 
 	expected := &k8s.NodesReport{
 		CompatibleNodes: nodesSummeries[2:],
-		PendingNodes:    []*k8s.IncompatibleNode{},
-		Tolerations: []v1.Toleration{
+		TaintedNodes: []*k8s.IncompatibleNode{
 			{
-				Key:      "test",
-				Operator: "Equal",
-				Effect:   "NoSchedule",
-				Value:    "test",
+				NodeSummary: nodesSummeries[2],
+				RequirementErrors: []string{
+					"taints are set",
+				},
 			},
 		},
 		KernelVersionAllowed: k8s.Requirement{

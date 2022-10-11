@@ -11,11 +11,26 @@ const (
 	BUILD_IN_TAINTS_PREFIX = "node.kubernetes.io"
 )
 
-var (
-	taintsSet = make(map[string]struct{})
-)
+func GenerateTolerationsFromTaints(taintMarshaleds []string) ([]v1.Toleration, error) {
+	var err error
+	var tolerations []v1.Toleration
 
-func isBuildInTaint(taint v1.Taint) bool {
+	for _, taintMarshaled := range taintMarshaleds {
+		toleration := v1.Toleration{
+			Operator: "Equal",
+		}
+
+		if err = json.Unmarshal([]byte(taintMarshaled), &toleration); err != nil {
+			return nil, err
+		}
+
+		tolerations = append(tolerations, toleration)
+	}
+
+	return tolerations, nil
+}
+
+func isBuiltinTaint(taint v1.Taint) bool {
 	return strings.HasPrefix(taint.Key, BUILD_IN_TAINTS_PREFIX)
 }
 
@@ -28,18 +43,4 @@ func marshalTaint(taint v1.Taint) (string, error) {
 	}
 
 	return string(jsonByte), nil
-}
-
-func unmarshalTaintToToleration(taintString string) (v1.Toleration, error) {
-	var err error
-
-	toleration := v1.Toleration{
-		Operator: "Equal",
-	}
-
-	if err = json.Unmarshal([]byte(taintString), &toleration); err != nil {
-		return toleration, err
-	}
-
-	return toleration, nil
 }

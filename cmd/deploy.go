@@ -15,6 +15,7 @@ import (
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -97,8 +98,24 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	var tolerations []v1.Toleration
+	if len(nodesReport.TaintedNodes) > 0 {
+		var allowedTaints []string
+		if allowedTaints, err = promptTaints(nodesReport, sentryKubeContext); err != nil {
+			return err
+		}
+
+		if err = nodesReport.IdentifyTolerableNodes(allowedTaints); err != nil {
+			return err
+		}
+
+		if tolerations, err = k8s.GenerateTolerationsFromTaints(allowedTaints); err != nil {
+			return err
+		}
+	}
+
 	var chartValues map[string]interface{}
-	if chartValues, err = getChartValues(clusterName, nodesReport, sentryHelmContext); err != nil {
+	if chartValues, err = getChartValues(clusterName, nodesReport.CompatibleNodes, tolerations, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -182,20 +199,24 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 		return nil, fmt.Errorf("can't continue with installation, no compatible nodes for installation")
 	}
 
-	if len(nodesReport.PendingNodes) > 0 {
-		taints := nodesReport.GetTaints()
-		allowedTaints := ui.MultiSelectPrompt("Do you want set tolerations to allow scheduling groundcover on following taints:", taints, taints)
+	return nodesReport, nil
+}
 
-		if err = nodesReport.ResolvePendingNodes(allowedTaints); err != nil {
-			return nil, err
-		}
+func promptTaints(nodesReport *k8s.NodesReport, sentryKubeContext *sentry_utils.KubeContext) ([]string, error) {
+	var err error
 
-		sentryKubeContext.TolerationsAndTaintsRatio = fmt.Sprintf("%d/%d", len(nodesReport.Tolerations), len(taints))
-		sentryKubeContext.SetOnCurrentScope()
-		sentry_utils.SetTagOnCurrentScope(sentry_utils.TAINTED_TAG, "true")
+	var taints []string
+	if taints, err = nodesReport.GetTaints(); err != nil {
+		return nil, err
 	}
 
-	return nodesReport, nil
+	allowedTaints := ui.MultiSelectPrompt("Do you want set tolerations to allow scheduling groundcover on following taints:", taints, taints)
+
+	sentryKubeContext.TolerationsAndTaintsRatio = fmt.Sprintf("%d/%d", len(allowedTaints), len(taints))
+	sentryKubeContext.SetOnCurrentScope()
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.TAINTED_TAG, "true")
+
+	return allowedTaints, nil
 }
 
 func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterName string, namespace string, chart *helm.Chart, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
@@ -314,7 +335,7 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	return chart, nil
 }
 
-func getChartValues(clusterName string, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func getChartValues(clusterName string, compatibleNodes []*k8s.NodeSummary, tolerations []v1.Toleration, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey api.ApiKey
@@ -328,12 +349,12 @@ func getChartValues(clusterName string, nodesReport *k8s.NodesReport, sentryHelm
 	chartValues["global"] = map[string]interface{}{"groundcover_token": apiKey.ApiKey}
 	chartValues["commitHashKeyName"] = viper.GetString(COMMIT_HASH_KEY_NAME_FLAG)
 	chartValues["repositoryUrlKeyName"] = viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG)
-	chartValues["agent"] = map[string]interface{}{"tolerations": nodesReport.Tolerations}
+	chartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
 
 	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
 
 	var resourcesTunerPresetPaths []string
-	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(nodesReport.CompatibleNodes); err != nil {
+	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(compatibleNodes); err != nil {
 		return nil, err
 	}
 
