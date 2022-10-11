@@ -85,7 +85,7 @@ var UninstallCmd = &cobra.Command{
 		shouldDeleteNamespace := viper.GetBool(DELETE_NAMESPACE_FLAG)
 
 		if !shouldUninstall && !shouldEraseData && !shouldDeleteNamespace {
-			ui.PrintWarningMessage(fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?\n", releaseName, namespace))
+			ui.PrintWarningMessage(fmt.Sprintf("could not find release %s in namespace %s, maybe groundcover is installed elsewhere?\n (use --%s flag)", releaseName, namespace, HELM_RELEASE_FLAG))
 			return ErrSilentExecutionAbort
 		}
 
@@ -126,7 +126,7 @@ func promptUninstallSummary(ctx context.Context, kubeClient *k8s.Client, helmCli
 	}
 
 	if len(namespaceList.Items) == 0 {
-		ui.PrintWarningMessage(fmt.Sprintf("could not find namespace %s, maybe groundcover is installed elsewhere?\n", namespace))
+		ui.PrintWarningMessage(fmt.Sprintf("could not find namespace %s, maybe groundcover is installed elsewhere?\n (use --%s flag)", namespace, NAMESPACE_FLAG))
 		return false, false, ErrSilentExecutionAbort
 	}
 
