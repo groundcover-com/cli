@@ -18,9 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- command time took metric [#sc-4963]
-- add spinner to cli update [#sc-5038]
-- spinner handle interrupt signal [#sc-5092]
 - improved uninstall command [#sc-4839]
 
 ### Changed
@@ -32,6 +29,15 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.3.11] 2022-10-06
+
+### Added
+
+- command time took metric [#sc-4963]
+- add spinner to cli update [#sc-5038]
+- add aws cli version validation [#sc-4942]
+- spinner handle interrupt signal [#sc-5092]
 
 ## [0.3.10] 2022-09-21
 

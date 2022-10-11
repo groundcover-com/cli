@@ -17,11 +17,12 @@ const (
 	CLUSTER_TYPE_REPORT_MESSAGE_FORMAT          = "K8s cluster type supported"
 	CLUSTER_VERSION_REPORT_MESSAGE_FORMAT       = "K8s server version >= %s"
 	CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT = "K8s user authorized for groundcover installation"
+	CLUSTER_CLI_AUTH_SUPPORTED                  = "K8s CLI auth supported"
 )
 
 var (
-	GKE_CLUSTER_REGEX = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
-	EKS_CLUSTER_REGEX = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
+	gkeClusterRegex = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
+	eksClusterRegex = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
 
 	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 12}
 	DefaultClusterRequirements  = &ClusterRequirements{
@@ -111,10 +112,6 @@ func (kubeClient *Client) GetClusterSummary(namespace string) (*ClusterSummary, 
 		return clusterSummary, err
 	}
 
-	if clusterSummary.ServerVersion, err = kubeClient.GetServerVersion(); err != nil {
-		return clusterSummary, err
-	}
-
 	return clusterSummary, nil
 }
 
@@ -122,41 +119,53 @@ type ClusterReport struct {
 	*ClusterSummary
 	IsCompatible         bool
 	UserAuthorized       Requirement
+	CliAuthSupported     Requirement
 	ServerVersionAllowed Requirement
 	ClusterTypeAllowed   Requirement
 }
 
 func (clusterReport *ClusterReport) PrintStatus() {
 	clusterReport.ClusterTypeAllowed.PrintStatus()
-	if !clusterReport.ClusterTypeAllowed.IsCompatible {
+	if clusterReport.ClusterTypeAllowed.IsNonCompatible {
+		return
+	}
+
+	clusterReport.CliAuthSupported.PrintStatus()
+	if clusterReport.CliAuthSupported.IsNonCompatible {
 		return
 	}
 
 	clusterReport.ServerVersionAllowed.PrintStatus()
-	if !clusterReport.ServerVersionAllowed.IsCompatible {
+	if clusterReport.ServerVersionAllowed.IsNonCompatible {
 		return
 	}
 
 	clusterReport.UserAuthorized.PrintStatus()
+	if !clusterReport.UserAuthorized.IsNonCompatible {
+		return
+	}
 }
 
 func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, client *Client, clusterSummary *ClusterSummary) *ClusterReport {
 	clusterReport := &ClusterReport{
 		ClusterSummary:       clusterSummary,
-		ClusterTypeAllowed:   clusterRequirements.validateClusterType(clusterSummary.ClusterName),
-		ServerVersionAllowed: clusterRequirements.validateServerVersion(clusterSummary.ServerVersion),
 		UserAuthorized:       clusterRequirements.validateAuthorization(ctx, client, clusterSummary.Namespace),
+		CliAuthSupported:     clusterRequirements.validateCliAuthSupported(ctx, clusterSummary.ClusterName),
+		ServerVersionAllowed: clusterRequirements.validateServerVersion(client, clusterSummary),
+		ClusterTypeAllowed:   clusterRequirements.validateClusterType(clusterSummary.ClusterName),
 	}
 
 	clusterReport.IsCompatible = clusterReport.ServerVersionAllowed.IsCompatible &&
 		clusterReport.UserAuthorized.IsCompatible &&
-		clusterReport.ClusterTypeAllowed.IsCompatible
+		clusterReport.ClusterTypeAllowed.IsCompatible &&
+		clusterReport.CliAuthSupported.IsCompatible
 
 	return clusterReport
 }
 
 func (clusterRequirements ClusterRequirements) validateClusterType(clusterName string) Requirement {
 	var requirement Requirement
+	requirement.Message = CLUSTER_TYPE_REPORT_MESSAGE_FORMAT
 
 	for _, blockedType := range clusterRequirements.BlockedTypes {
 		if strings.HasPrefix(clusterName, blockedType) {
@@ -165,22 +174,29 @@ func (clusterRequirements ClusterRequirements) validateClusterType(clusterName s
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
-	requirement.IsNonCompatible = requirement.IsCompatible
-	requirement.Message = CLUSTER_TYPE_REPORT_MESSAGE_FORMAT
+	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
 
 	return requirement
 }
 
-func (clusterRequirements ClusterRequirements) validateServerVersion(serverVersion semver.Version) Requirement {
-	var requirement Requirement
+func (clusterRequirements ClusterRequirements) validateServerVersion(client *Client, clusterSummary *ClusterSummary) Requirement {
+	var err error
 
-	if serverVersion.LT(clusterRequirements.ServerVersion) {
-		requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("%s is unsupported K8s version", serverVersion))
+	var requirement Requirement
+	requirement.Message = fmt.Sprintf(CLUSTER_VERSION_REPORT_MESSAGE_FORMAT, clusterRequirements.ServerVersion)
+
+	if clusterSummary.ServerVersion, err = client.GetServerVersion(); err != nil {
+		requirement.IsNonCompatible = true
+		requirement.ErrorMessages = append(requirement.ErrorMessages, err.Error())
+		return requirement
+	}
+
+	if clusterSummary.ServerVersion.LT(clusterRequirements.ServerVersion) {
+		requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("%s is unsupported K8s version", clusterSummary.ServerVersion))
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
-	requirement.IsNonCompatible = requirement.IsCompatible
-	requirement.Message = fmt.Sprintf(CLUSTER_VERSION_REPORT_MESSAGE_FORMAT, clusterRequirements.ServerVersion)
+	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
 
 	return requirement
 }
@@ -188,7 +204,9 @@ func (clusterRequirements ClusterRequirements) validateServerVersion(serverVersi
 func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context.Context, client *Client, namespace string) Requirement {
 	var err error
 	var permitted bool
+
 	var requirement Requirement
+	requirement.Message = CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT
 
 	for _, action := range clusterRequirements.Actions {
 		action.Namespace = namespace
@@ -203,8 +221,42 @@ func (clusterRequirements ClusterRequirements) validateAuthorization(ctx context
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
-	requirement.IsNonCompatible = requirement.IsCompatible
-	requirement.Message = CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT
+	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
+
+	return requirement
+}
+
+func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx context.Context, clusterName string) Requirement {
+	var err error
+
+	var requirement Requirement
+	requirement.Message = CLUSTER_CLI_AUTH_SUPPORTED
+
+	if !eksClusterRegex.MatchString(clusterName) {
+		requirement.IsCompatible = true
+		return requirement
+	}
+
+	var awsCliVersion semver.Version
+	if awsCliVersion, err = DefaultAwsCliVersionValidator.Fetch(ctx); err != nil {
+		requirement.IsCompatible = true
+		requirement.IsNonCompatible = false
+		requirement.ErrorMessages = []string{
+			err.Error(),
+			HINT_INSTALL_AWS_CLI,
+		}
+		return requirement
+	}
+
+	if err = DefaultAwsCliVersionValidator.Validate(awsCliVersion); err != nil {
+		requirement.ErrorMessages = []string{
+			err.Error(),
+			HINT_EKS_AUTH_PLUGIN_UPGRADE,
+		}
+	}
+
+	requirement.IsCompatible = len(requirement.ErrorMessages) == 0
+	requirement.IsNonCompatible = len(requirement.ErrorMessages) > 0
 
 	return requirement
 }
@@ -229,10 +281,10 @@ func (kubeClient *Client) GetClusterShortName() (string, error) {
 	}
 
 	switch {
-	case EKS_CLUSTER_REGEX.MatchString(clusterName):
-		return extractRegexClusterName(EKS_CLUSTER_REGEX, clusterName)
-	case GKE_CLUSTER_REGEX.MatchString(clusterName):
-		return extractRegexClusterName(GKE_CLUSTER_REGEX, clusterName)
+	case eksClusterRegex.MatchString(clusterName):
+		return extractRegexClusterName(eksClusterRegex, clusterName)
+	case gkeClusterRegex.MatchString(clusterName):
+		return extractRegexClusterName(gkeClusterRegex, clusterName)
 	default:
 		return clusterName, nil
 	}
