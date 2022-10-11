@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- klog use dedicated flagset [#sc-5172]
+
 ### Removed
 
 ### Deprecated
