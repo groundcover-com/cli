@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- improved uninstall command [#sc-4839]
+
 ### Changed
 
 ### Fixed
