@@ -19,10 +19,13 @@ We use the following categories for changes:
 ### Added
 
 - prompt taints for tolerations approval [#sc-5028]
+- improved uninstall command [#sc-4839]
 
 ### Changed
 
 ### Fixed
+
+- klog use dedicated flagset [#sc-5172]
 
 ### Removed
 

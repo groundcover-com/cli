@@ -72,7 +72,8 @@ var (
 		VersionCmd.Name(),
 	}
 
-	ErrExecutionAborted = fmt.Errorf("execution aborted")
+	ErrExecutionAborted     = fmt.Errorf("execution aborted")
+	ErrSilentExecutionAbort = fmt.Errorf("silent execution abort")
 )
 
 var RootCmd = &cobra.Command{
@@ -107,8 +108,7 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 					return err
 				}
 				sentry.CaptureMessage("cli-update executed successfully")
-				sentry.Flush(sentry_utils.FLUSH_TIMEOUT)
-				os.Exit(0)
+				return ErrSilentExecutionAbort
 			}
 		}
 
@@ -159,7 +159,7 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 	err = validateAuth0Token()
 
 	if err == nil {
-		ui.PrintSuccessMessage("Device authentication is valid")
+		ui.PrintSuccessMessage("Device authentication is valid\n")
 		return nil
 	}
 
@@ -184,6 +184,10 @@ func ExecuteContext(ctx context.Context) error {
 
 	if err == nil {
 		sentry.CaptureMessage(fmt.Sprintf("%s executed successfully", sentryCommandContext.Name))
+		return nil
+	}
+
+	if errors.Is(err, ErrSilentExecutionAbort) {
 		return nil
 	}
 
