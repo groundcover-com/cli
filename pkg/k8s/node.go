@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -103,6 +102,10 @@ type NodesReport struct {
 	IncompatibleNodes      []*IncompatibleNode `json:"-"`
 }
 
+func (nodesReport *NodesReport) NodesCount() int {
+	return len(nodesReport.CompatibleNodes) + len(nodesReport.IncompatibleNodes) + len(nodesReport.TaintedNodes)
+}
+
 func (nodesReport *NodesReport) PrintStatus() {
 	nodesReport.CpuSufficient.PrintStatus()
 	nodesReport.MemorySufficient.PrintStatus()
@@ -111,70 +114,6 @@ func (nodesReport *NodesReport) PrintStatus() {
 	nodesReport.OperatingSystemAllowed.PrintStatus()
 	nodesReport.ProviderAllowed.PrintStatus()
 	nodesReport.Schedulable.PrintStatus()
-}
-
-func (nodesReport *NodesReport) GetTaints() ([]string, error) {
-	var err error
-
-	taintsSet := make(map[string]struct{})
-
-	for _, taintedNode := range nodesReport.TaintedNodes {
-		for _, taint := range taintedNode.Taints {
-			if isBuiltinTaint(taint) {
-				continue
-			}
-
-			var taintMarshaled string
-			if taintMarshaled, err = marshalTaint(taint); err != nil {
-				return nil, err
-			}
-
-			if _, exists := taintsSet[taintMarshaled]; !exists {
-				taintsSet[taintMarshaled] = struct{}{}
-			}
-		}
-	}
-
-	return maps.Keys(taintsSet), nil
-}
-
-func (nodesReport *NodesReport) IdentifyTolerableNodes(allowedTaints []string) error {
-	var err error
-
-	if len(allowedTaints) == 0 {
-		nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, nodesReport.TaintedNodes...)
-		return nil
-	}
-
-	for _, taintedNode := range nodesReport.TaintedNodes {
-		var incompatibleNode bool
-		for _, taint := range taintedNode.NodeSummary.Taints {
-			if isBuiltinTaint(taint) {
-				continue
-			}
-
-			var taintString string
-			if taintString, err = marshalTaint(taint); err != nil {
-				return err
-			}
-
-			for _, allowedTaint := range allowedTaints {
-				if taintString != allowedTaint {
-					incompatibleNode = true
-					break
-				}
-			}
-		}
-
-		if incompatibleNode {
-			nodesReport.IncompatibleNodes = append(nodesReport.IncompatibleNodes, taintedNode)
-			continue
-		}
-
-		nodesReport.CompatibleNodes = append(nodesReport.CompatibleNodes, taintedNode.NodeSummary)
-	}
-
-	return nil
 }
 
 type IncompatibleNode struct {

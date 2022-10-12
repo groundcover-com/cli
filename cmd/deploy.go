@@ -99,28 +99,18 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	var tolerations []v1.Toleration
-	if len(nodesReport.TaintedNodes) > 0 {
-		var allowedTaints []string
-		if allowedTaints, err = promptTaints(nodesReport, sentryKubeContext); err != nil {
-			return err
-		}
-
-		if err = nodesReport.IdentifyTolerableNodes(allowedTaints); err != nil {
-			return err
-		}
-
-		if tolerations, err = k8s.GenerateTolerationsFromTaints(allowedTaints); err != nil {
-			return err
-		}
+	var compatibleNodes []*k8s.NodeSummary
+	if compatibleNodes, tolerations, err = getCompatibleNodesAndTolerations(nodesReport, sentryKubeContext); err != nil {
+		return err
 	}
 
 	var chartValues map[string]interface{}
-	if chartValues, err = getChartValues(clusterName, nodesReport.CompatibleNodes, tolerations, sentryHelmContext); err != nil {
+	if chartValues, err = getChartValues(clusterName, compatibleNodes, tolerations, sentryHelmContext); err != nil {
 		return err
 	}
 
 	var shouldInstall bool
-	if shouldInstall, err = promptInstallSummary(helmClient, releaseName, clusterName, namespace, chart, nodesReport, sentryHelmContext); err != nil {
+	if shouldInstall, err = promptInstallSummary(helmClient, releaseName, clusterName, namespace, chart, len(compatibleNodes), nodesReport.NodesCount(), sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -133,7 +123,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(nodesReport.CompatibleNodes), sentryHelmContext)
+	err = validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(compatibleNodes), sentryHelmContext)
 	reportPodsStatus(ctx, kubeClient, release.Chart.AppVersion(), release.Namespace, sentryHelmContext)
 
 	if err != nil {
@@ -202,11 +192,42 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 	return nodesReport, nil
 }
 
-func promptTaints(nodesReport *k8s.NodesReport, sentryKubeContext *sentry_utils.KubeContext) ([]string, error) {
+func getCompatibleNodesAndTolerations(nodesReport *k8s.NodesReport, sentryKubeContext *sentry_utils.KubeContext) ([]*k8s.NodeSummary, []v1.Toleration, error) {
+	var err error
+
+	var tolerations []v1.Toleration
+	compatibleNodes := nodesReport.CompatibleNodes
+
+	if len(nodesReport.TaintedNodes) > 0 {
+		tolerationManager := &k8s.TolerationManager{
+			TaintedNodes: nodesReport.TaintedNodes,
+		}
+
+		var allowedTaints []string
+		if allowedTaints, err = promptTaints(tolerationManager, sentryKubeContext); err != nil {
+			return nil, nil, err
+		}
+
+		if tolerations, err = tolerationManager.GetTolerations(allowedTaints); err != nil {
+			return nil, nil, err
+		}
+
+		var tolerableNodes []*k8s.NodeSummary
+		if tolerableNodes, err = tolerationManager.GetTolerableNodes(allowedTaints); err != nil {
+			return nil, nil, err
+		}
+
+		compatibleNodes = append(compatibleNodes, tolerableNodes...)
+	}
+
+	return compatibleNodes, tolerations, nil
+}
+
+func promptTaints(tolerationManager *k8s.TolerationManager, sentryKubeContext *sentry_utils.KubeContext) ([]string, error) {
 	var err error
 
 	var taints []string
-	if taints, err = nodesReport.GetTaints(); err != nil {
+	if taints, err = tolerationManager.GetTaints(); err != nil {
 		return nil, err
 	}
 
@@ -219,7 +240,7 @@ func promptTaints(nodesReport *k8s.NodesReport, sentryKubeContext *sentry_utils.
 	return allowedTaints, nil
 }
 
-func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterName string, namespace string, chart *helm.Chart, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
+func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterName string, namespace string, chart *helm.Chart, compatibleNodesCount, nodesCount int, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	var err error
 
 	fmt.Println("\nInstalling groundcover:")
@@ -251,7 +272,7 @@ func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterNa
 	} else {
 		promptMessage = fmt.Sprintf(
 			"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
-			clusterName, namespace, len(nodesReport.CompatibleNodes), len(nodesReport.IncompatibleNodes)+len(nodesReport.CompatibleNodes), chart.Version(),
+			clusterName, namespace, compatibleNodesCount, nodesCount, chart.Version(),
 		)
 	}
 

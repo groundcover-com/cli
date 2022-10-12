@@ -4,18 +4,48 @@ import (
 	"encoding/json"
 	"strings"
 
+	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/core/v1"
 )
 
 const (
-	BUILD_IN_TAINTS_PREFIX = "node.kubernetes.io"
+	BUILTIN_TAINTS_PREFIX = "node.kubernetes.io"
 )
 
-func GenerateTolerationsFromTaints(taintMarshaleds []string) ([]v1.Toleration, error) {
+type TolerationManager struct {
+	TaintedNodes []*IncompatibleNode
+}
+
+func (manager TolerationManager) GetTaints() ([]string, error) {
+	var err error
+
+	taintsSet := make(map[string]struct{})
+
+	for _, taintedNode := range manager.TaintedNodes {
+		for _, taint := range taintedNode.Taints {
+			if isBuiltinTaint(taint) {
+				continue
+			}
+
+			var taintMarshaled string
+			if taintMarshaled, err = manager.marshalTaint(taint); err != nil {
+				return nil, err
+			}
+
+			if _, exists := taintsSet[taintMarshaled]; !exists {
+				taintsSet[taintMarshaled] = struct{}{}
+			}
+		}
+	}
+
+	return maps.Keys(taintsSet), nil
+}
+
+func (manager TolerationManager) GetTolerations(allowedTaints []string) ([]v1.Toleration, error) {
 	var err error
 	var tolerations []v1.Toleration
 
-	for _, taintMarshaled := range taintMarshaleds {
+	for _, taintMarshaled := range allowedTaints {
 		toleration := v1.Toleration{
 			Operator: "Equal",
 		}
@@ -30,11 +60,45 @@ func GenerateTolerationsFromTaints(taintMarshaleds []string) ([]v1.Toleration, e
 	return tolerations, nil
 }
 
-func isBuiltinTaint(taint v1.Taint) bool {
-	return strings.HasPrefix(taint.Key, BUILD_IN_TAINTS_PREFIX)
+func (manager TolerationManager) GetTolerableNodes(allowedTaints []string) ([]*NodeSummary, error) {
+	var err error
+	var tolerableNodes []*NodeSummary
+
+	if len(allowedTaints) == 0 {
+		return tolerableNodes, nil
+	}
+
+	for _, taintedNode := range manager.TaintedNodes {
+		var incompatibleNode bool
+		for _, taint := range taintedNode.Taints {
+			if isBuiltinTaint(taint) {
+				continue
+			}
+
+			var taintMarshaled string
+			if taintMarshaled, err = manager.marshalTaint(taint); err != nil {
+				return nil, err
+			}
+
+			for _, allowedTaint := range allowedTaints {
+				if taintMarshaled != allowedTaint {
+					incompatibleNode = true
+					break
+				}
+			}
+		}
+
+		if incompatibleNode {
+			continue
+		}
+
+		tolerableNodes = append(tolerableNodes, taintedNode.NodeSummary)
+	}
+
+	return tolerableNodes, nil
 }
 
-func marshalTaint(taint v1.Taint) (string, error) {
+func (validator TolerationManager) marshalTaint(taint v1.Taint) (string, error) {
 	var err error
 
 	var jsonByte []byte
@@ -43,4 +107,8 @@ func marshalTaint(taint v1.Taint) (string, error) {
 	}
 
 	return string(jsonByte), nil
+}
+
+func isBuiltinTaint(taint v1.Taint) bool {
+	return strings.HasPrefix(taint.Key, BUILTIN_TAINTS_PREFIX)
 }
