@@ -18,9 +18,9 @@ import (
 func main() {
 	var err error
 
-	klog.InitFlags(nil)
-	flag.Set("logtostderr", "false")
-	flag.Parse()
+	klogFlagSet := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	klog.InitFlags(klogFlagSet)
+	klogFlagSet.Set("logtostderr", "false")
 
 	rest.SetDefaultWarningHandler(rest.NoWarnings{})
 
