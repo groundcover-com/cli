@@ -18,19 +18,25 @@ We use the following categories for changes:
 
 ### Added
 
-- improved uninstall command [#sc-4839]
-
 ### Changed
 
 ### Fixed
-
-- klog use dedicated flagset [#sc-5172]
 
 ### Removed
 
 ### Deprecated
 
 ### Security
+
+## [0.3.12] 2022-10-12
+
+### Added
+
+- improved uninstall command [#sc-4839]
+
+### Fixed
+
+- klog use dedicated flagset [#sc-5172]
 
 ## [0.3.11] 2022-10-06
 
