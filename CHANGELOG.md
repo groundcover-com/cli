@@ -18,8 +18,6 @@ We use the following categories for changes:
 
 ### Added
 
-- prompt taints for tolerations approval [#sc-5028]
-
 ### Changed
 
 ### Fixed
@@ -29,6 +27,12 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.3.13] 2022-10-13
+
+### Added
+
+- prompt taints for tolerations approval [#sc-5028]
 
 ## [0.3.12] 2022-10-12
 
