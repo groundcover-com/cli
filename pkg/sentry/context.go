@@ -37,12 +37,13 @@ func (context CommandContext) SetOnCurrentScope() {
 }
 
 type KubeContext struct {
-	NodesCount              int                     `json:",omitempty"`
-	Kubeconfig              string                  `json:",omitempty"`
-	Kubecontext             string                  `json:",omitempty"`
-	ClusterReport           *k8s.ClusterReport      `json:",omitempty"`
-	CompatibleNodeSamples   []*k8s.NodeSummary      `json:",omitempty"`
-	IncompatibleNodeSamples []*k8s.IncompatibleNode `json:",omitempty"`
+	NodesCount                int                     `json:",omitempty"`
+	Kubeconfig                string                  `json:",omitempty"`
+	Kubecontext               string                  `json:",omitempty"`
+	TolerationsAndTaintsRatio string                  `json:",omitempty"`
+	ClusterReport             *k8s.ClusterReport      `json:",omitempty"`
+	CompatibleNodeSamples     []*k8s.NodeSummary      `json:",omitempty"`
+	IncompatibleNodeSamples   []*k8s.IncompatibleNode `json:",omitempty"`
 }
 
 func NewKubeContext(kubeconfig, kubecontext string) *KubeContext {

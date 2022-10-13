@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	TAINTED_TAG                  = "tainted"
 	ERASE_DATA_TAG               = "erase"
 	UPGRADE_TAG                  = "upgrade"
 	ORGANIZATION_TAG             = "organization"

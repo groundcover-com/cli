@@ -50,7 +50,7 @@ type NodeSummary struct {
 	OSImage         string             `json:",omitempty"`
 	Architecture    string             `json:",omitempty"`
 	OperatingSystem string             `json:",omitempty"`
-	Taints          []v1.Taint         `json:",omitempty"`
+	Taints          []v1.Taint         `json:"-"`
 }
 
 func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary, error) {
@@ -98,7 +98,12 @@ type NodesReport struct {
 	ArchitectureAllowed    Requirement
 	OperatingSystemAllowed Requirement
 	CompatibleNodes        []*NodeSummary      `json:"-"`
-	IncompatibleNodes      []*IncompatibleNode `json:",omitempty"`
+	TaintedNodes           []*IncompatibleNode `json:"-"`
+	IncompatibleNodes      []*IncompatibleNode `json:"-"`
+}
+
+func (nodesReport *NodesReport) NodesCount() int {
+	return len(nodesReport.CompatibleNodes) + len(nodesReport.IncompatibleNodes) + len(nodesReport.TaintedNodes)
 }
 
 func (nodesReport *NodesReport) PrintStatus() {
@@ -173,17 +178,26 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 			)
 		}
 
+		if len(requirementErrors) > 0 {
+			nodesReport.IncompatibleNodes = append(
+				nodesReport.IncompatibleNodes,
+				&IncompatibleNode{
+					NodeSummary:       nodeSummary,
+					RequirementErrors: requirementErrors,
+				},
+			)
+			continue
+		}
+
 		if err = nodeRequirements.validateNodeSchedulable(nodeSummary); err != nil {
 			requirementErrors = append(requirementErrors, err.Error())
 			nodesReport.Schedulable.ErrorMessages = append(
 				nodesReport.Schedulable.ErrorMessages,
 				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
 			)
-		}
 
-		if len(requirementErrors) > 0 {
-			nodesReport.IncompatibleNodes = append(
-				nodesReport.IncompatibleNodes,
+			nodesReport.TaintedNodes = append(
+				nodesReport.TaintedNodes,
 				&IncompatibleNode{
 					NodeSummary:       nodeSummary,
 					RequirementErrors: requirementErrors,
@@ -318,9 +332,11 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeOperatingSystem(nod
 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeSchedulable(nodeSummary *NodeSummary) error {
 	for _, taint := range nodeSummary.Taints {
-		if taint.Effect == "NoSchedule" {
-			return fmt.Errorf("NoSchedule taint is set")
+		if isBuiltinTaint(taint) {
+			continue
 		}
+
+		return fmt.Errorf("taints are set")
 	}
 
 	return nil

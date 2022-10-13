@@ -55,9 +55,11 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 	nodesCount := 2
 	kubeconfig := uuid.New().String()
 	kubecontext := uuid.New().String()
+	tolerationsAndTaintsRatio := "1/1"
 
 	sentryContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 	sentryContext.NodesCount = nodesCount
+	sentryContext.TolerationsAndTaintsRatio = tolerationsAndTaintsRatio
 
 	// act
 	sentryContext.SetOnCurrentScope()
@@ -66,12 +68,13 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 	// assert
 	expect := map[string]interface{}{
 		"kubernetes": &sentry_utils.KubeContext{
-			NodesCount:              nodesCount,
-			Kubeconfig:              kubeconfig,
-			Kubecontext:             kubecontext,
-			CompatibleNodeSamples:   nil,
-			IncompatibleNodeSamples: nil,
-			ClusterReport:           nil,
+			NodesCount:                nodesCount,
+			Kubeconfig:                kubeconfig,
+			Kubecontext:               kubecontext,
+			TolerationsAndTaintsRatio: tolerationsAndTaintsRatio,
+			CompatibleNodeSamples:     nil,
+			IncompatibleNodeSamples:   nil,
+			ClusterReport:             nil,
 		},
 	}
 

@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- prompt taints for tolerations approval [#sc-5028]
+
 ### Changed
 
 ### Fixed

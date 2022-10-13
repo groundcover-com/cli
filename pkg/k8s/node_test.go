@@ -49,13 +49,6 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 				},
 				Spec: v1.NodeSpec{
 					ProviderID: "aws://eu-west-3/fargate-i-53df4efedd",
-					Taints: []v1.Taint{
-						{
-							Key:    "test",
-							Value:  "test",
-							Effect: "NoSchedule",
-						},
-					},
 				},
 				Status: v1.NodeStatus{
 					Allocatable: v1.ResourceList{
@@ -66,6 +59,33 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 						Architecture:    "arm64",
 						OperatingSystem: "windows",
 						KernelVersion:   "4.13.0",
+						OSImage:         "amazon linux",
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "pending",
+				},
+				Spec: v1.NodeSpec{
+					ProviderID: "aws://eu-west-3/i-53df4efedg",
+					Taints: []v1.Taint{
+						{
+							Key:    "test",
+							Value:  "test",
+							Effect: "NoSchedule",
+						},
+					},
+				},
+				Status: v1.NodeStatus{
+					Allocatable: v1.ResourceList{
+						v1.ResourceCPU:    *resource.NewScaledQuantity(2000, resource.Milli),
+						v1.ResourceMemory: *resource.NewScaledQuantity(4000, resource.Mega),
+					},
+					NodeInfo: v1.NodeSystemInfo{
+						Architecture:    "amd64",
+						OperatingSystem: "linux",
+						KernelVersion:   "4.14.0",
 						OSImage:         "amazon linux",
 					},
 				},
@@ -114,6 +134,16 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 			Kernel:          "4.13.0",
 			OSImage:         "amazon linux",
 			Provider:        "aws://eu-west-3/fargate-i-53df4efedd",
+		},
+		{
+			CPU:             resource.NewScaledQuantity(2000, resource.Milli),
+			Memory:          resource.NewScaledQuantity(4000, resource.Mega),
+			Name:            "pending",
+			Architecture:    "amd64",
+			OperatingSystem: "linux",
+			Kernel:          "4.14.0",
+			OSImage:         "amazon linux",
+			Provider:        "aws://eu-west-3/i-53df4efedg",
 			Taints: []v1.Taint{
 				{
 					Key:    "test",
@@ -142,6 +172,14 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 
 	expected := &k8s.NodesReport{
 		CompatibleNodes: nodesSummeries[:1],
+		TaintedNodes: []*k8s.IncompatibleNode{
+			{
+				NodeSummary: nodesSummeries[2],
+				RequirementErrors: []string{
+					"taints are set",
+				},
+			},
+		},
 		IncompatibleNodes: []*k8s.IncompatibleNode{
 			{
 				NodeSummary: nodesSummeries[1],
@@ -152,44 +190,115 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 					"4.13.0 is unsupported kernel version",
 					"arm64 is unspported architecture",
 					"windows is unspported operating system",
-					"NoSchedule taint is set",
 				},
 			},
 		},
 		KernelVersionAllowed: k8s.Requirement{
 			IsCompatible:  false,
-			Message:       "Kernel version >= 4.14.0 (1/2 Nodes)",
+			Message:       "Kernel version >= 4.14.0 (2/3 Nodes)",
 			ErrorMessages: []string{"node: incompatible - 4.13.0 is unsupported kernel version"},
 		},
 		CpuSufficient: k8s.Requirement{
 			IsCompatible:  false,
-			Message:       "Sufficient node CPU (1/2 Nodes)",
+			Message:       "Sufficient node CPU (2/3 Nodes)",
 			ErrorMessages: []string{"node: incompatible - insufficient cpu 500m < 1500m"},
 		},
 		MemorySufficient: k8s.Requirement{
 			IsCompatible:  false,
-			Message:       "Sufficient node memory (1/2 Nodes)",
+			Message:       "Sufficient node memory (2/3 Nodes)",
 			ErrorMessages: []string{"node: incompatible - insufficient memory 1G < 1500Mi"},
 		},
 		ProviderAllowed: k8s.Requirement{
 			IsCompatible:  false,
-			Message:       "Cloud provider supported (1/2 Nodes)",
+			Message:       "Cloud provider supported (2/3 Nodes)",
 			ErrorMessages: []string{"node: incompatible - fargate is unsupported provider"},
 		},
 		ArchitectureAllowed: k8s.Requirement{
 			IsCompatible:  false,
-			Message:       "Node architecture supported (1/2 Nodes)",
+			Message:       "Node architecture supported (2/3 Nodes)",
 			ErrorMessages: []string{"node: incompatible - arm64 is unspported architecture"},
 		},
 		OperatingSystemAllowed: k8s.Requirement{
 			IsCompatible:  false,
-			Message:       "Node operating system supported (1/2 Nodes)",
+			Message:       "Node operating system supported (2/3 Nodes)",
 			ErrorMessages: []string{"node: incompatible - windows is unspported operating system"},
 		},
 		Schedulable: k8s.Requirement{
 			IsCompatible:  false,
-			Message:       "Node is schedulable (1/2 Nodes)",
-			ErrorMessages: []string{"node: incompatible - NoSchedule taint is set"},
+			Message:       "Node is schedulable (2/3 Nodes)",
+			ErrorMessages: []string{"node: pending - taints are set"},
+		},
+	}
+
+	suite.Equal(expected, nodesReport)
+}
+
+func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
+	// prepare
+	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
+	defer cancel()
+
+	nodesSummeries, err := suite.KubeClient.GetNodesSummeries(ctx)
+	suite.NoError(err)
+
+	// act
+	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries[1:2])
+
+	// assert
+
+	expected := &k8s.NodesReport{
+		IncompatibleNodes: []*k8s.IncompatibleNode{
+			{
+				NodeSummary: nodesSummeries[1],
+				RequirementErrors: []string{
+					"insufficient cpu 500m < 1500m",
+					"insufficient memory 1G < 1500Mi",
+					"fargate is unsupported provider",
+					"4.13.0 is unsupported kernel version",
+					"arm64 is unspported architecture",
+					"windows is unspported operating system",
+				},
+			},
+		},
+		KernelVersionAllowed: k8s.Requirement{
+			IsCompatible:    false,
+			IsNonCompatible: true,
+			Message:         "Kernel version >= 4.14.0 (0/1 Nodes)",
+			ErrorMessages:   []string{"node: incompatible - 4.13.0 is unsupported kernel version"},
+		},
+		CpuSufficient: k8s.Requirement{
+			IsCompatible:    false,
+			IsNonCompatible: true,
+			Message:         "Sufficient node CPU (0/1 Nodes)",
+			ErrorMessages:   []string{"node: incompatible - insufficient cpu 500m < 1500m"},
+		},
+		MemorySufficient: k8s.Requirement{
+			IsCompatible:    false,
+			IsNonCompatible: true,
+			Message:         "Sufficient node memory (0/1 Nodes)",
+			ErrorMessages:   []string{"node: incompatible - insufficient memory 1G < 1500Mi"},
+		},
+		ProviderAllowed: k8s.Requirement{
+			IsCompatible:    false,
+			IsNonCompatible: true,
+			Message:         "Cloud provider supported (0/1 Nodes)",
+			ErrorMessages:   []string{"node: incompatible - fargate is unsupported provider"},
+		},
+		ArchitectureAllowed: k8s.Requirement{
+			IsCompatible:    false,
+			IsNonCompatible: true,
+			Message:         "Node architecture supported (0/1 Nodes)",
+			ErrorMessages:   []string{"node: incompatible - arm64 is unspported architecture"},
+		},
+		OperatingSystemAllowed: k8s.Requirement{
+			IsCompatible:    false,
+			IsNonCompatible: true,
+			Message:         "Node operating system supported (0/1 Nodes)",
+			ErrorMessages:   []string{"node: incompatible - windows is unspported operating system"},
+		},
+		Schedulable: k8s.Requirement{
+			IsCompatible: true,
+			Message:      "Node is schedulable (1/1 Nodes)",
 		},
 	}
 

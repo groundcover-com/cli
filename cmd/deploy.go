@@ -15,6 +15,7 @@ import (
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -97,13 +98,19 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	var tolerations []v1.Toleration
+	var deployableNodes []*k8s.NodeSummary
+	if deployableNodes, tolerations, err = getDeployableNodesAndTolerations(nodesReport, sentryKubeContext); err != nil {
+		return err
+	}
+
 	var chartValues map[string]interface{}
-	if chartValues, err = getChartValues(clusterName, nodesReport.CompatibleNodes, sentryHelmContext); err != nil {
+	if chartValues, err = getChartValues(clusterName, deployableNodes, tolerations, sentryHelmContext); err != nil {
 		return err
 	}
 
 	var shouldInstall bool
-	if shouldInstall, err = promptInstallSummary(helmClient, releaseName, clusterName, namespace, chart, nodesReport, sentryHelmContext); err != nil {
+	if shouldInstall, err = promptInstallSummary(helmClient, releaseName, clusterName, namespace, chart, len(deployableNodes), nodesReport.NodesCount(), sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -116,7 +123,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(nodesReport.CompatibleNodes), sentryHelmContext)
+	err = validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(deployableNodes), sentryHelmContext)
 	reportPodsStatus(ctx, kubeClient, release.Chart.AppVersion(), release.Namespace, sentryHelmContext)
 
 	if err != nil {
@@ -178,14 +185,62 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 
 	nodesReport.PrintStatus()
 
-	if len(nodesReport.CompatibleNodes) == 0 {
+	if len(nodesReport.CompatibleNodes) == 0 || nodesReport.Schedulable.IsNonCompatible {
 		return nil, fmt.Errorf("can't continue with installation, no compatible nodes for installation")
 	}
 
 	return nodesReport, nil
 }
 
-func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterName string, namespace string, chart *helm.Chart, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
+func getDeployableNodesAndTolerations(nodesReport *k8s.NodesReport, sentryKubeContext *sentry_utils.KubeContext) ([]*k8s.NodeSummary, []v1.Toleration, error) {
+	var err error
+
+	var tolerations []v1.Toleration
+	deployableNodes := nodesReport.CompatibleNodes
+
+	if len(nodesReport.TaintedNodes) > 0 {
+		tolerationManager := &k8s.TolerationManager{
+			TaintedNodes: nodesReport.TaintedNodes,
+		}
+
+		var allowedTaints []string
+		if allowedTaints, err = promptTaints(tolerationManager, sentryKubeContext); err != nil {
+			return nil, nil, err
+		}
+
+		if tolerations, err = tolerationManager.GetTolerations(allowedTaints); err != nil {
+			return nil, nil, err
+		}
+
+		var tolerableNodes []*k8s.NodeSummary
+		if tolerableNodes, err = tolerationManager.GetTolerableNodes(allowedTaints); err != nil {
+			return nil, nil, err
+		}
+
+		deployableNodes = append(deployableNodes, tolerableNodes...)
+	}
+
+	return deployableNodes, tolerations, nil
+}
+
+func promptTaints(tolerationManager *k8s.TolerationManager, sentryKubeContext *sentry_utils.KubeContext) ([]string, error) {
+	var err error
+
+	var taints []string
+	if taints, err = tolerationManager.GetTaints(); err != nil {
+		return nil, err
+	}
+
+	allowedTaints := ui.MultiSelectPrompt("Do you want set tolerations to allow scheduling groundcover on following taints:", taints, taints)
+
+	sentryKubeContext.TolerationsAndTaintsRatio = fmt.Sprintf("%d/%d", len(allowedTaints), len(taints))
+	sentryKubeContext.SetOnCurrentScope()
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.TAINTED_TAG, "true")
+
+	return allowedTaints, nil
+}
+
+func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterName string, namespace string, chart *helm.Chart, deployableNodesCount, nodesCount int, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	var err error
 
 	fmt.Println("\nInstalling groundcover:")
@@ -217,7 +272,7 @@ func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterNa
 	} else {
 		promptMessage = fmt.Sprintf(
 			"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
-			clusterName, namespace, len(nodesReport.CompatibleNodes), len(nodesReport.IncompatibleNodes)+len(nodesReport.CompatibleNodes), chart.Version(),
+			clusterName, namespace, deployableNodesCount, nodesCount, chart.Version(),
 		)
 	}
 
@@ -242,7 +297,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return release, nil
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.Release, auth0Token *auth.Auth0Token, clusterName string, compatibleNodes int, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.Release, auth0Token *auth.Auth0Token, clusterName string, deployableNodesCount int, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	fmt.Println("\nValidating groundcover installation:")
@@ -255,7 +310,7 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.
 		return err
 	}
 
-	if err = waitForAlligators(ctx, kubeClient, release, compatibleNodes, sentryHelmContext); err != nil {
+	if err = waitForAlligators(ctx, kubeClient, release, deployableNodesCount, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -301,7 +356,7 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	return chart, nil
 }
 
-func getChartValues(clusterName string, compatibleNodes []*k8s.NodeSummary, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func getChartValues(clusterName string, deployableNodes []*k8s.NodeSummary, tolerations []v1.Toleration, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey api.ApiKey
@@ -315,11 +370,12 @@ func getChartValues(clusterName string, compatibleNodes []*k8s.NodeSummary, sent
 	chartValues["global"] = map[string]interface{}{"groundcover_token": apiKey.ApiKey}
 	chartValues["commitHashKeyName"] = viper.GetString(COMMIT_HASH_KEY_NAME_FLAG)
 	chartValues["repositoryUrlKeyName"] = viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG)
+	chartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
 
 	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
 
 	var resourcesTunerPresetPaths []string
-	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(compatibleNodes); err != nil {
+	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(deployableNodes); err != nil {
 		return nil, err
 	}
 
