@@ -377,17 +377,18 @@ func getChartValues(clusterName string, deployableNodes []*k8s.NodeSummary, tole
 	chartValues["repositoryUrlKeyName"] = viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG)
 	chartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
 
-	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
+	var overridePaths []string
 
 	useExperimental := viper.GetBool(EXPERIMENTAL_FLAG)
 	if useExperimental {
-		userValuesOverridePaths = append(userValuesOverridePaths, EXPERIMENTAL_PRESET_PATH)
+		overridePaths = append(overridePaths, EXPERIMENTAL_PRESET_PATH)
 	}
 
 	var resourcesTunerPresetPaths []string
 	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(deployableNodes); err != nil {
 		return nil, err
 	}
+	overridePaths = append(overridePaths, resourcesTunerPresetPaths...)
 
 	if len(resourcesTunerPresetPaths) > 0 {
 		sentryHelmContext.ResourcesPresets = resourcesTunerPresetPaths
@@ -397,8 +398,11 @@ func getChartValues(clusterName string, deployableNodes []*k8s.NodeSummary, tole
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.DEFAULT_RESOURCES_PRESET_TAG, "true")
 	}
 
+	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
+	overridePaths = append(overridePaths, userValuesOverridePaths...)
+
 	var valuesOverride map[string]interface{}
-	if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, append(resourcesTunerPresetPaths, userValuesOverridePaths...)); err != nil {
+	if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, overridePaths); err != nil {
 		return nil, err
 	}
 
