@@ -20,6 +20,7 @@ import (
 
 const (
 	VALUES_FLAG                   = "values"
+	EXPERIMENTAL_FLAG             = "experimental"
 	CHART_NAME                    = "groundcover/groundcover"
 	HELM_REPO_NAME                = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
@@ -28,6 +29,7 @@ const (
 	REPOSITORY_URL_KEY_NAME_FLAG  = "git-repository-url-key-name"
 	GROUNDCOVER_URL               = "https://app.groundcover.com"
 	HELM_REPO_URL                 = "https://helm.groundcover.com"
+	EXPERIMENTAL_PRESET_PATH      = "presets/agent/experimental.yaml"
 )
 
 func init() {
@@ -35,6 +37,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().StringSliceP(VALUES_FLAG, "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
 	viper.BindPFlag(VALUES_FLAG, DeployCmd.PersistentFlags().Lookup(VALUES_FLAG))
+
+	DeployCmd.PersistentFlags().Bool(EXPERIMENTAL_FLAG, false, "enable groundcover experimental features")
+	viper.BindPFlag(EXPERIMENTAL_FLAG, DeployCmd.PersistentFlags().Lookup(EXPERIMENTAL_FLAG))
 
 	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
 	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
@@ -372,12 +377,18 @@ func getChartValues(clusterName string, deployableNodes []*k8s.NodeSummary, tole
 	chartValues["repositoryUrlKeyName"] = viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG)
 	chartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
 
-	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
+	var overridePaths []string
+
+	useExperimental := viper.GetBool(EXPERIMENTAL_FLAG)
+	if useExperimental {
+		overridePaths = append(overridePaths, EXPERIMENTAL_PRESET_PATH)
+	}
 
 	var resourcesTunerPresetPaths []string
 	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(deployableNodes); err != nil {
 		return nil, err
 	}
+	overridePaths = append(overridePaths, resourcesTunerPresetPaths...)
 
 	if len(resourcesTunerPresetPaths) > 0 {
 		sentryHelmContext.ResourcesPresets = resourcesTunerPresetPaths
@@ -387,8 +398,11 @@ func getChartValues(clusterName string, deployableNodes []*k8s.NodeSummary, tole
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.DEFAULT_RESOURCES_PRESET_TAG, "true")
 	}
 
+	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
+	overridePaths = append(overridePaths, userValuesOverridePaths...)
+
 	var valuesOverride map[string]interface{}
-	if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, append(resourcesTunerPresetPaths, userValuesOverridePaths...)); err != nil {
+	if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, overridePaths); err != nil {
 		return nil, err
 	}
 
