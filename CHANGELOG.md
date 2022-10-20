@@ -28,6 +28,12 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.3.14] 2022-10-20
+
+### Added
+
+- add experimental flag to `deploy` [#sc-5250]
+
 ## [0.3.13] 2022-10-13
 
 ### Added
