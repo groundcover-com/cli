@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -19,6 +20,9 @@ import (
 )
 
 const (
+	HELM_DEPLOY_POLLING_RETIRES   = 2
+	HELM_DEPLOY_POLLING_INTERVAL  = time.Second * 1
+	HELM_DEPLOY_POLLING_TIMEOUT   = time.Minute * 5
 	VALUES_FLAG                   = "values"
 	EXPERIMENTAL_FLAG             = "experimental"
 	CHART_NAME                    = "groundcover/groundcover"
@@ -290,11 +294,19 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	spinner := ui.NewSpinner("Installing groundcover helm release")
 	spinner.Start()
 	spinner.StopMessage("groundcover helm release is installed")
+	spinner.StopFailMessage("groundcover helm release installation failed")
 	defer spinner.Stop()
 
 	var release *helm.Release
-	if release, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
-		spinner.StopFailMessage("groundcover helm release installation failed")
+	helmUpgradeFunc := func() error {
+		if release, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
+			return ui.RetryableError(err)
+		}
+
+		return nil
+	}
+
+	if err = spinner.Poll(ctx, helmUpgradeFunc, HELM_DEPLOY_POLLING_INTERVAL, HELM_DEPLOY_POLLING_TIMEOUT, HELM_DEPLOY_POLLING_RETIRES); err != nil {
 		spinner.StopFail()
 		return nil, err
 	}

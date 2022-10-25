@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -17,6 +18,14 @@ const (
 )
 
 var ErrSpinnerTimeout = fmt.Errorf("spinner timeout")
+
+type retryableError struct {
+	error
+}
+
+func RetryableError(err error) error {
+	return &retryableError{err}
+}
 
 type Spinner struct {
 	*yacspin.Spinner
@@ -49,7 +58,9 @@ func (s *Spinner) SetWarningSign() {
 	s.StopFailColors("fgYellow")
 }
 
-func (s *Spinner) Poll(ctx context.Context, function func() (bool, error), interval, duration time.Duration) error {
+func (s *Spinner) Poll(ctx context.Context, function func() error, interval, duration time.Duration, maxRetries int) error {
+	var attempts int
+
 	timeout := time.After(duration)
 	ticker := time.NewTicker(interval)
 
@@ -60,13 +71,22 @@ func (s *Spinner) Poll(ctx context.Context, function func() (bool, error), inter
 		case <-timeout:
 			return ErrSpinnerTimeout
 		case <-ticker.C:
-			success, err := function()
-			if err != nil {
-				return err
-			}
-			if success {
+			err := function()
+
+			if err == nil {
 				return nil
 			}
+
+			var rerr *retryableError
+			if !errors.As(err, &rerr) {
+				return err
+			}
+
+			if attempts >= maxRetries {
+				return rerr
+			}
+
+			attempts++
 		}
 	}
 }

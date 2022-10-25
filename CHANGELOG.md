@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- add retry mechanism [#sc-5170]
+
 ### Changed
 
 ### Fixed
