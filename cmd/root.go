@@ -167,12 +167,7 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 		os.Exit(0)
 	}
 
-	sentry.WithScope(func(scope *sentry.Scope) {
-		scope.SetTransaction(LoginCmd.Name())
-		err = runLoginCmd(cmd, args)
-	})
-
-	return err
+	return runLoginCmd(cmd, args)
 }
 
 func ExecuteContext(ctx context.Context) error {

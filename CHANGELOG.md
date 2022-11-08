@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- merge values override recursive [#sc-5644]
+
 ### Removed
 
 ### Deprecated
