@@ -32,7 +32,7 @@ func GetChartValuesOverrides(paths []string) (map[string]interface{}, error) {
 			return nil, err
 		}
 
-		if err = mergo.Merge(&valuesOverride, currentValuesOverrides); err != nil {
+		if err = mergo.Merge(&valuesOverride, currentValuesOverrides, mergo.WithOverride); err != nil {
 			return nil, err
 		}
 	}
