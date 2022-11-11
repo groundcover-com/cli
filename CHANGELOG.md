@@ -22,13 +22,17 @@ We use the following categories for changes:
 
 ### Fixed
 
-- merge values override recursive [#sc-5644]
-
 ### Removed
 
 ### Deprecated
 
 ### Security
+
+## [0.3.15] 2022-11-11
+
+### Fixed
+
+- merge values override recursive [#sc-5644]
 
 ## [0.3.14] 2022-10-20
 
