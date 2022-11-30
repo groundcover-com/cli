@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
+
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -80,11 +82,9 @@ func (manager TolerationManager) GetTolerableNodes(allowedTaints []string) ([]*N
 				return nil, err
 			}
 
-			for _, allowedTaint := range allowedTaints {
-				if taintMarshaled != allowedTaint {
-					incompatibleNode = true
-					break
-				}
+			if !slices.Contains(allowedTaints, taintMarshaled) {
+				incompatibleNode = true
+				break
 			}
 		}
 

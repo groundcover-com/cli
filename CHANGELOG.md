@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- use slice contains in GetTolerableNodes [#sc-6056]
+
 ### Removed
 
 ### Deprecated
