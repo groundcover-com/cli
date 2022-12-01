@@ -23,6 +23,11 @@ func (suite *KubeTaintTestSuite) SetupSuite() {
 						Value:  "test",
 						Effect: "NoSchedule",
 					},
+					{
+						Key:    "good",
+						Value:  "good",
+						Effect: "NoSchedule",
+					},
 				},
 			},
 		},
@@ -71,6 +76,7 @@ func (suite *KubeTaintTestSuite) TestGetTaintsSuccess() {
 
 	expected := []string{
 		"{\"key\":\"test\",\"value\":\"test\",\"effect\":\"NoSchedule\"}",
+		"{\"key\":\"good\",\"value\":\"good\",\"effect\":\"NoSchedule\"}",
 		"{\"key\":\"bad\",\"value\":\"bad\",\"effect\":\"NoSchedule\"}",
 	}
 
@@ -108,7 +114,12 @@ func (suite *KubeTaintTestSuite) TestGetTolerableNodesSuccess() {
 	}
 
 	// act
-	nodes, err := tolerationManager.GetTolerableNodes([]string{"{\"key\":\"test\",\"value\":\"test\",\"effect\":\"NoSchedule\"}"})
+	allowedTaints := []string{
+		"{\"key\":\"test\",\"value\":\"test\",\"effect\":\"NoSchedule\"}",
+		"{\"key\":\"good\",\"value\":\"good\",\"effect\":\"NoSchedule\"}",
+	}
+
+	nodes, err := tolerationManager.GetTolerableNodes(allowedTaints)
 	suite.NoError(err)
 
 	// assert
