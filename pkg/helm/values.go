@@ -8,10 +8,11 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/yaml"
+	"github.com/imdario/mergo"
+	"gopkg.in/yaml.v3"
 )
 
-func SetChartValuesOverrides(chartValues *map[string]interface{}, paths []string) (map[string]interface{}, error) {
+func GetChartValuesOverrides(paths []string) (map[string]interface{}, error) {
 	var err error
 
 	valuesOverride := make(map[string]interface{})
@@ -26,11 +27,12 @@ func SetChartValuesOverrides(chartValues *map[string]interface{}, paths []string
 			return nil, err
 		}
 
-		if err = yaml.Unmarshal(data, &valuesOverride); err != nil {
+		var currentValuesOverrides map[string]interface{}
+		if err = yaml.Unmarshal(data, &currentValuesOverrides); err != nil {
 			return nil, err
 		}
 
-		if err = yaml.Unmarshal(data, chartValues); err != nil {
+		if err = mergo.Merge(&valuesOverride, currentValuesOverrides, mergo.WithOverride); err != nil {
 			return nil, err
 		}
 	}

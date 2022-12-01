@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -391,13 +392,13 @@ func getChartValues(clusterName string, deployableNodes []*k8s.NodeSummary, tole
 		return nil, err
 	}
 
-	chartValues := make(map[string]interface{})
-	chartValues["clusterId"] = clusterName
-	chartValues["origin"] = map[string]interface{}{"tag": ""}
-	chartValues["global"] = map[string]interface{}{"groundcover_token": apiKey.ApiKey}
-	chartValues["commitHashKeyName"] = viper.GetString(COMMIT_HASH_KEY_NAME_FLAG)
-	chartValues["repositoryUrlKeyName"] = viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG)
-	chartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
+	chartValues := map[string]interface{}{
+		"clusterId":            clusterName,
+		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
+		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
+		"agent":                map[string]interface{}{"tolerations": tolerations},
+		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
+	}
 
 	var overridePaths []string
 
@@ -424,7 +425,11 @@ func getChartValues(clusterName string, deployableNodes []*k8s.NodeSummary, tole
 	overridePaths = append(overridePaths, userValuesOverridePaths...)
 
 	var valuesOverride map[string]interface{}
-	if valuesOverride, err = helm.SetChartValuesOverrides(&chartValues, overridePaths); err != nil {
+	if valuesOverride, err = helm.GetChartValuesOverrides(overridePaths); err != nil {
+		return nil, err
+	}
+
+	if err = mergo.Merge(&chartValues, valuesOverride); err != nil {
 		return nil, err
 	}
 

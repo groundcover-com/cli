@@ -78,12 +78,10 @@ func (suite *HelmValuesTestSuite) TestOrderChartValuesOverrideSuccess() {
 	_, err = file.Write(fileData)
 	suite.NoError(err)
 
-	chartValues := make(map[string]interface{})
 	overridePaths := []string{suite.ValuesFile, file.Name()}
 
 	//act
-
-	valuesOverride, err := helm.SetChartValuesOverrides(&chartValues, overridePaths)
+	chartValues, err := helm.GetChartValuesOverrides(overridePaths)
 	suite.NoError(err)
 
 	// assert
@@ -93,18 +91,14 @@ func (suite *HelmValuesTestSuite) TestOrderChartValuesOverrideSuccess() {
 	}
 
 	suite.Equal(expected, chartValues)
-	suite.Equal(expected, valuesOverride)
 }
 
 func (suite *HelmValuesTestSuite) TestMultiPathsChartValuesOverrideSuccess() {
 	//prepare
-
-	chartValues := make(map[string]interface{})
 	overridePaths := []string{suite.ValuesUrl, suite.ValuesFile}
 
 	//act
-
-	valuesOverride, err := helm.SetChartValuesOverrides(&chartValues, overridePaths)
+	chartValues, err := helm.GetChartValuesOverrides(overridePaths)
 	suite.NoError(err)
 
 	// assert
@@ -115,17 +109,14 @@ func (suite *HelmValuesTestSuite) TestMultiPathsChartValuesOverrideSuccess() {
 	}
 
 	suite.Equal(expected, chartValues)
-	suite.Equal(expected, valuesOverride)
 }
 
 func (suite *HelmValuesTestSuite) TestUrlChartValuesOverrideSuccess() {
 	//prepare
-	chartValues := make(map[string]interface{})
 	overridePaths := []string{suite.ValuesUrl}
 
 	//act
-
-	valuesOverride, err := helm.SetChartValuesOverrides(&chartValues, overridePaths)
+	chartValues, err := helm.GetChartValuesOverrides(overridePaths)
 	suite.NoError(err)
 
 	// assert
@@ -135,26 +126,20 @@ func (suite *HelmValuesTestSuite) TestUrlChartValuesOverrideSuccess() {
 	}
 
 	suite.Equal(expected, chartValues)
-	suite.Equal(expected, valuesOverride)
 }
 
 func (suite *HelmValuesTestSuite) TestFileChartValuesOverrideSuccess() {
 	//prepare
-
-	chartValues := make(map[string]interface{})
 	overridePaths := []string{suite.ValuesFile}
 
 	//act
-
-	valuesOverride, err := helm.SetChartValuesOverrides(&chartValues, overridePaths)
+	chartValues, err := helm.GetChartValuesOverrides(overridePaths)
 	suite.NoError(err)
 
 	// assert
-
 	expected := map[string]interface{}{
 		"file": "value",
 	}
 
 	suite.Equal(expected, chartValues)
-	suite.Equal(expected, valuesOverride)
 }
