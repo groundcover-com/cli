@@ -103,7 +103,7 @@ var StatusCmd = &cobra.Command{
 		}
 		nodesCount := len(nodeList.Items)
 
-		if err = waitForAlligators(ctx, kubeClient, release, nodesCount, sentryHelmContext); err != nil {
+		if err = waitForAlligators(ctx, kubeClient, namespace, chart.AppVersion(), nodesCount, sentryHelmContext); err != nil {
 			return err
 		}
 
@@ -111,7 +111,7 @@ var StatusCmd = &cobra.Command{
 	},
 }
 
-func waitForPortal(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, sentryHelmContext *sentry_utils.HelmContext) error {
+func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, sentryHelmContext *sentry_utils.HelmContext) error {
 	spinner := ui.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
 	spinner.StopMessage("Cluster established connectivity")
 	spinner.StopFailMessage("Cluster failed to establish connectivity")
@@ -119,10 +119,8 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, helmRelease *hel
 	spinner.Start()
 	defer spinner.Stop()
 
-	appVersion := helmRelease.Chart.AppVersion()
-
 	isPortalRunningFunc := func() error {
-		podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
+		podClient := kubeClient.CoreV1().Pods(namespace)
 		listOptions := metav1.ListOptions{
 			LabelSelector: PORTAL_LABEL_SELECTOR,
 			FieldSelector: RUNNING_FIELD_SELECTOR,
@@ -158,7 +156,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, helmRelease *hel
 	return err
 }
 
-func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
+func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
 	spinner := ui.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
 	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
 
@@ -170,7 +168,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	isAlligatorRunningFunc := func() error {
 		var err error
 
-		if runningAlligators, err = getRunningAlligators(ctx, kubeClient, helmRelease.Chart.AppVersion(), helmRelease.Namespace); err != nil {
+		if runningAlligators, err = getRunningAlligators(ctx, kubeClient, appVersion, namespace); err != nil {
 			return err
 		}
 
@@ -207,7 +205,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 	return err
 }
 
-func getRunningAlligators(ctx context.Context, kubeClient *k8s.Client, helmVersion string, namespace string) (int, error) {
+func getRunningAlligators(ctx context.Context, kubeClient *k8s.Client, appVersion string, namespace string) (int, error) {
 	podClient := kubeClient.CoreV1().Pods(namespace)
 	listOptions := metav1.ListOptions{
 		LabelSelector: ALLIGATOR_LABEL_SELECTOR,
@@ -222,7 +220,7 @@ func getRunningAlligators(ctx context.Context, kubeClient *k8s.Client, helmVersi
 	}
 
 	for _, pod := range podList.Items {
-		if pod.Annotations["groundcover_version"] == helmVersion {
+		if pod.Annotations["groundcover_version"] == appVersion {
 			runningAlligators++
 		}
 	}
@@ -230,7 +228,7 @@ func getRunningAlligators(ctx context.Context, kubeClient *k8s.Client, helmVersi
 	return runningAlligators, nil
 }
 
-func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, helmVersion string, namespace string, sentryHelmContext *sentry_utils.HelmContext) {
+func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) {
 	podClient := kubeClient.CoreV1().Pods(namespace)
 
 	podList, err := podClient.List(ctx, metav1.ListOptions{})
@@ -247,7 +245,7 @@ func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, helmVersion s
 	sentryHelmContext.SetOnCurrentScope()
 }
 
-func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.Release, sentryHelmContext *sentry_utils.HelmContext) error {
+func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {
 	spinner := ui.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
 
 	spinner.StopMessage("Persistent Volumes are ready")
@@ -259,7 +257,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.
 	pvcs := make(map[string]bool, 0)
 
 	isPvcsReadyFunc := func() error {
-		pvcClient := kubeClient.CoreV1().PersistentVolumeClaims(helmRelease.Namespace)
+		pvcClient := kubeClient.CoreV1().PersistentVolumeClaims(namespace)
 		listOptions := metav1.ListOptions{}
 
 		pvcList, err := pvcClient.List(ctx, listOptions)

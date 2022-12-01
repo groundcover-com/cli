@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -128,13 +129,12 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return ErrExecutionAborted
 	}
 
-	var release *helm.Release
-	if release, err = installHelmRelease(ctx, helmClient, releaseName, chart, chartValues); err != nil {
+	if err = installHelmRelease(ctx, helmClient, releaseName, chart, chartValues); err != nil {
 		return err
 	}
 
-	err = validateInstall(ctx, kubeClient, release, &auth0Token, clusterName, len(deployableNodes), sentryHelmContext)
-	reportPodsStatus(ctx, kubeClient, release.Chart.AppVersion(), release.Namespace, sentryHelmContext)
+	err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), &auth0Token, clusterName, len(deployableNodes), sentryHelmContext)
+	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
 	if err != nil {
 		return errors.Wrap(err, "Helm installation validation failed")
@@ -289,7 +289,7 @@ func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterNa
 	return ui.YesNoPrompt(promptMessage, !isUpgrade), nil
 }
 
-func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseName string, chart *helm.Chart, chartValues map[string]interface{}) (*helm.Release, error) {
+func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseName string, chart *helm.Chart, chartValues map[string]interface{}) error {
 	var err error
 
 	spinner := ui.NewSpinner("Installing groundcover helm release")
@@ -298,37 +298,47 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	spinner.StopFailMessage("groundcover helm release installation failed")
 	defer spinner.Stop()
 
-	var release *helm.Release
 	helmUpgradeFunc := func() error {
-		if release, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
+		if _, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
 			return ui.RetryableError(err)
 		}
 
 		return nil
 	}
 
-	if err = spinner.Poll(ctx, helmUpgradeFunc, HELM_DEPLOY_POLLING_INTERVAL, HELM_DEPLOY_POLLING_TIMEOUT, HELM_DEPLOY_POLLING_RETIRES); err != nil {
-		spinner.StopFail()
-		return nil, err
+	err = spinner.Poll(ctx, helmUpgradeFunc, HELM_DEPLOY_POLLING_INTERVAL, HELM_DEPLOY_POLLING_TIMEOUT, HELM_DEPLOY_POLLING_RETIRES)
+
+	if err == nil {
+		return nil
 	}
 
-	return release, nil
+	if errors.Is(err, ui.ErrSpinnerTimeout) {
+		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
+		spinner.SetWarningSign()
+		spinner.StopFailMessage("Timeout waiting for helm release installation")
+		spinner.StopFail()
+		return nil
+	}
+
+	spinner.StopFail()
+
+	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, release *helm.Release, auth0Token *auth.Auth0Token, clusterName string, deployableNodesCount int, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, auth0Token *auth.Auth0Token, clusterName string, deployableNodesCount int, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	fmt.Println("\nValidating groundcover installation:")
 
-	if err = waitForPvcs(ctx, kubeClient, release, sentryHelmContext); err != nil {
+	if err = waitForPvcs(ctx, kubeClient, namespace, sentryHelmContext); err != nil {
 		return err
 	}
 
-	if err = waitForPortal(ctx, kubeClient, release, sentryHelmContext); err != nil {
+	if err = waitForPortal(ctx, kubeClient, namespace, appVersion, sentryHelmContext); err != nil {
 		return err
 	}
 
-	if err = waitForAlligators(ctx, kubeClient, release, deployableNodesCount, sentryHelmContext); err != nil {
+	if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
 		return err
 	}
 
