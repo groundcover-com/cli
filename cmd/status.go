@@ -19,6 +19,7 @@ import (
 )
 
 const (
+	PODS_POLLING_RETIRES       = 20
 	PORTAL_POLLING_TIMEOUT     = time.Minute * 7
 	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 3
 	PODS_POLLING_INTERVAL      = time.Second * 10
@@ -120,7 +121,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, helmRelease *hel
 
 	appVersion := helmRelease.Chart.AppVersion()
 
-	isPortalRunningFunc := func() (bool, error) {
+	isPortalRunningFunc := func() error {
 		podClient := kubeClient.CoreV1().Pods(helmRelease.Namespace)
 		listOptions := metav1.ListOptions{
 			LabelSelector: PORTAL_LABEL_SELECTOR,
@@ -129,19 +130,20 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, helmRelease *hel
 
 		podList, err := podClient.List(ctx, listOptions)
 		if err != nil {
-			return false, err
+			return err
 		}
 
 		for _, pod := range podList.Items {
 			if pod.Annotations["groundcover_version"] == appVersion {
-				return true, nil
+				return nil
 			}
 		}
 
-		return false, nil
+		err = fmt.Errorf("portal pod is not running")
+		return ui.RetryableError(err)
 	}
 
-	err := spinner.Poll(ctx, isPortalRunningFunc, PODS_POLLING_INTERVAL, PORTAL_POLLING_TIMEOUT)
+	err := spinner.Poll(ctx, isPortalRunningFunc, PODS_POLLING_INTERVAL, PORTAL_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
 
 	if err == nil {
 		return nil
@@ -165,18 +167,24 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, helmRelease 
 
 	runningAlligators := 0
 
-	isAlligatorRunningFunc := func() (bool, error) {
+	isAlligatorRunningFunc := func() error {
 		var err error
-		runningAlligators, err = getRunningAlligators(ctx, kubeClient, helmRelease.Chart.AppVersion(), helmRelease.Namespace)
-		if err != nil {
-			return false, err
+
+		if runningAlligators, err = getRunningAlligators(ctx, kubeClient, helmRelease.Chart.AppVersion(), helmRelease.Namespace); err != nil {
+			return err
 		}
 
 		spinner.Message(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, runningAlligators, expectedAlligatorsCount))
-		return runningAlligators == expectedAlligatorsCount, nil
+
+		if runningAlligators == expectedAlligatorsCount {
+			return nil
+		}
+
+		err = fmt.Errorf("not all expected alligators are running")
+		return ui.RetryableError(err)
 	}
 
-	err := spinner.Poll(ctx, isAlligatorRunningFunc, PODS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT)
+	err := spinner.Poll(ctx, isAlligatorRunningFunc, PODS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
 
 	sentryHelmContext.RunningAlligators = fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
 	sentryHelmContext.SetOnCurrentScope()
@@ -250,13 +258,13 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.
 
 	pvcs := make(map[string]bool, 0)
 
-	isPvcsReadyFunc := func() (bool, error) {
+	isPvcsReadyFunc := func() error {
 		pvcClient := kubeClient.CoreV1().PersistentVolumeClaims(helmRelease.Namespace)
 		listOptions := metav1.ListOptions{}
 
 		pvcList, err := pvcClient.List(ctx, listOptions)
 		if err != nil {
-			return false, err
+			return err
 		}
 
 		for _, pvc := range pvcList.Items {
@@ -266,10 +274,16 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, helmRelease *helm.
 		}
 
 		spinner.Message(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, len(pvcs), EXPECTED_BOUND_PVCS))
-		return len(pvcs) == EXPECTED_BOUND_PVCS, nil
+
+		if len(pvcs) == EXPECTED_BOUND_PVCS {
+			return nil
+		}
+
+		err = fmt.Errorf("not all expected pvcs are bound")
+		return ui.RetryableError(err)
 	}
 
-	err := spinner.Poll(ctx, isPvcsReadyFunc, PODS_POLLING_INTERVAL, PVC_POLLING_TIMEOUT)
+	err := spinner.Poll(ctx, isPvcsReadyFunc, PODS_POLLING_INTERVAL, PVC_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
 
 	sentryHelmContext.BoundPvcs = maps.Keys(pvcs)
 	sentryHelmContext.SetOnCurrentScope()

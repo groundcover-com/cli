@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	APPLY_POLLING_RETRIES  = 1
 	APPLY_POLLING_TIMEOUT  = time.Minute * 3
 	APPLY_POLLING_INTERVAL = time.Second
 )
@@ -111,7 +112,7 @@ func (selfUpdater *SelfUpdater) Apply(ctx context.Context) error {
 	spinner.Start()
 	defer spinner.Stop()
 
-	err = spinner.Poll(ctx, selfUpdater.apply, APPLY_POLLING_INTERVAL, APPLY_POLLING_TIMEOUT)
+	err = spinner.Poll(ctx, selfUpdater.apply, APPLY_POLLING_INTERVAL, APPLY_POLLING_TIMEOUT, APPLY_POLLING_RETRIES)
 
 	if err == nil {
 		return nil
@@ -126,25 +127,25 @@ func (selfUpdater *SelfUpdater) Apply(ctx context.Context) error {
 	return err
 }
 
-func (selfUpdater *SelfUpdater) apply() (bool, error) {
+func (selfUpdater *SelfUpdater) apply() error {
 	var err error
 
 	var assetResponse *http.Response
 	if assetResponse, err = http.Get(selfUpdater.assetUrl); err != nil {
-		return false, err
+		return ui.RetryableError(err)
 	}
 	defer assetResponse.Body.Close()
 
 	var assetReader io.Reader
 	if assetReader, err = selfUpdater.untarAsset(assetResponse.Body); err != nil {
-		return false, err
+		return ui.RetryableError(err)
 	}
 
 	if err = selfupdate.Apply(assetReader, selfupdate.Options{}); err != nil {
-		return false, err
+		return ui.RetryableError(err)
 	}
 
-	return true, nil
+	return nil
 }
 
 func (selfUpdater *SelfUpdater) untarAsset(assetReader io.ReadCloser) (*tar.Reader, error) {
