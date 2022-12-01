@@ -18,19 +18,25 @@ We use the following categories for changes:
 
 ### Added
 
-- add retry mechanism [#sc-5170]
-
 ### Changed
 
 ### Fixed
-
-- use slice contains in GetTolerableNodes [#sc-6056]
 
 ### Removed
 
 ### Deprecated
 
 ### Security
+
+## [0.3.16] 2022-12-01
+
+### Added
+
+- add retry mechanism [#sc-5170]
+
+### Fixed
+
+- use slice contains in GetTolerableNodes [#sc-6056]
 
 ## [0.3.15] 2022-11-11
 
