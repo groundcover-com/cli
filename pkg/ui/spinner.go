@@ -77,13 +77,13 @@ func (s *Spinner) Poll(ctx context.Context, function func() error, interval, dur
 				return nil
 			}
 
-			var rerr *retryableError
-			if !errors.As(err, &rerr) {
+			var retryableErr *retryableError
+			if !errors.As(err, &retryableErr) {
 				return err
 			}
 
 			if attempts >= maxRetries {
-				return rerr
+				return retryableErr
 			}
 
 			attempts++
