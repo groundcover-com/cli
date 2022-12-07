@@ -28,6 +28,13 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.3.17] 2022-12-07
+
+### Added
+
+- helm reuse only user supplied values [#sc-6189]
+- increase pvc bound timeout [#sc-6188]
+
 ## [0.3.16] 2022-12-01
 
 ### Added
