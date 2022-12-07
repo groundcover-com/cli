@@ -72,7 +72,7 @@ func (helmClient *Client) Upgrade(ctx context.Context, name string, chart *Chart
 
 	client := action.NewUpgrade(helmClient.cfg)
 	client.Wait = false
-	client.ReuseValues = true
+	client.ReuseValues = false
 	client.Namespace = helmClient.settings.Namespace()
 
 	var release Release
