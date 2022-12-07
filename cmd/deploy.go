@@ -115,13 +115,23 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	var isUpgrade bool
+	var release *helm.Release
+	if release, isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
+		return err
+	}
+
 	var chartValues map[string]interface{}
-	if chartValues, err = getChartValues(clusterName, deployableNodes, tolerations, sentryHelmContext); err != nil {
+	if isUpgrade {
+		chartValues = release.Config
+	}
+
+	if chartValues, err = getChartValues(chartValues, clusterName, deployableNodes, tolerations, sentryHelmContext); err != nil {
 		return err
 	}
 
 	var shouldInstall bool
-	if shouldInstall, err = promptInstallSummary(helmClient, releaseName, clusterName, namespace, chart, len(deployableNodes), nodesReport.NodesCount(), sentryHelmContext); err != nil {
+	if shouldInstall, err = promptInstallSummary(isUpgrade, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -250,16 +260,8 @@ func promptTaints(tolerationManager *k8s.TolerationManager, sentryKubeContext *s
 	return allowedTaints, nil
 }
 
-func promptInstallSummary(helmClient *helm.Client, releaseName string, clusterName string, namespace string, chart *helm.Chart, deployableNodesCount, nodesCount int, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
-	var err error
-
+func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string, namespace string, release *helm.Release, chart *helm.Chart, deployableNodesCount, nodesCount int, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	fmt.Println("\nInstalling groundcover:")
-
-	var isUpgrade bool
-	var release *helm.Release
-	if release, isUpgrade, err = helmClient.IsReleaseInstalled(releaseName); err != nil {
-		return false, err
-	}
 
 	var promptMessage string
 	if isUpgrade {
@@ -384,7 +386,7 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	return chart, nil
 }
 
-func getChartValues(clusterName string, deployableNodes []*k8s.NodeSummary, tolerations []v1.Toleration, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func getChartValues(chartValues map[string]interface{}, clusterName string, deployableNodes []*k8s.NodeSummary, tolerations []v1.Toleration, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey api.ApiKey
@@ -392,12 +394,16 @@ func getChartValues(clusterName string, deployableNodes []*k8s.NodeSummary, tole
 		return nil, err
 	}
 
-	chartValues := map[string]interface{}{
+	defaultChartValues := map[string]interface{}{
 		"clusterId":            clusterName,
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
 		"agent":                map[string]interface{}{"tolerations": tolerations},
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
+	}
+
+	if err = mergo.Merge(&chartValues, defaultChartValues); err != nil {
+		return nil, err
 	}
 
 	var overridePaths []string

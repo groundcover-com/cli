@@ -80,7 +80,7 @@ func (suite *KubeTaintTestSuite) TestGetTaintsSuccess() {
 		"{\"key\":\"bad\",\"value\":\"bad\",\"effect\":\"NoSchedule\"}",
 	}
 
-	suite.Equal(expected, taints)
+	suite.ElementsMatch(expected, taints)
 }
 
 func (suite *KubeTaintTestSuite) TestGetTolerationsSuccess() {
