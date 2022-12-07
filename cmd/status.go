@@ -23,7 +23,7 @@ const (
 	PORTAL_POLLING_TIMEOUT     = time.Minute * 7
 	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 3
 	PODS_POLLING_INTERVAL      = time.Second * 10
-	PVC_POLLING_TIMEOUT        = time.Minute * 2
+	PVC_POLLING_TIMEOUT        = time.Minute * 5
 	WAIT_FOR_PORTAL_FORMAT     = "Waiting until cluster establish connectivity"
 	WAIT_FOR_ALLIGATORS_FORMAT = "Waiting until all nodes are monitored (%d/%d Nodes)"
 	ALLIGATOR_LABEL_SELECTOR   = "app=alligator"
