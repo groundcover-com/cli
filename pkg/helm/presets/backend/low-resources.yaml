@@ -1,0 +1,82 @@
+---
+k8sWatcher:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      cpu: 100m
+      memory: 100Mi
+
+portal:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+loki:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 500Mi
+    limits:
+      cpu: 100m
+      memory: 500Mi
+
+grafana:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+timescaledb-single:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 750Mi
+    limits:
+      cpu: 300m
+      memory: 750Mi
+
+victoria-metrics-agent:
+  resources: 
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      cpu: 100m
+      memory: 100Mi
+
+victoria-metrics-single:
+  server:
+    resources:            
+      requests:
+        cpu: 50m
+        memory: 750Mi
+      limits:
+        cpu: 300m
+        memory: 750Mi
+
+promscale:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      cpu: 300m
+      memory: 100Mi
+
+vmagent-backend:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      cpu: 100m
+      memory: 100Mi

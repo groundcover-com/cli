@@ -27,6 +27,7 @@ const (
 	HELM_DEPLOY_POLLING_TIMEOUT   = time.Minute * 5
 	VALUES_FLAG                   = "values"
 	EXPERIMENTAL_FLAG             = "experimental"
+	LOW_RESOURCES_FLAG            = "low-resources"
 	CHART_NAME                    = "groundcover/groundcover"
 	HELM_REPO_NAME                = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
@@ -46,6 +47,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().Bool(EXPERIMENTAL_FLAG, false, "enable groundcover experimental features")
 	viper.BindPFlag(EXPERIMENTAL_FLAG, DeployCmd.PersistentFlags().Lookup(EXPERIMENTAL_FLAG))
+
+	DeployCmd.PersistentFlags().Bool(LOW_RESOURCES_FLAG, false, "set low resources limits")
+	viper.BindPFlag(LOW_RESOURCES_FLAG, DeployCmd.PersistentFlags().Lookup(LOW_RESOURCES_FLAG))
 
 	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
 	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
@@ -417,6 +421,15 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(deployableNodes); err != nil {
 		return nil, err
 	}
+
+	useLowResources := viper.GetBool(LOW_RESOURCES_FLAG)
+	if useLowResources {
+		resourcesTunerPresetPaths = []string{
+			helm.AGENT_LOW_RESOURCES_PATH,
+			helm.BACKEND_LOW_RESOURCES_PATH,
+		}
+	}
+
 	overridePaths = append(overridePaths, resourcesTunerPresetPaths...)
 
 	if len(resourcesTunerPresetPaths) > 0 {
