@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- print re-run message after cli upgrade [#sc-6361]
+
 ### Changed
 
 ### Fixed
