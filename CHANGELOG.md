@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- values override deep copy [#sc-6358]
+
 ### Removed
 
 ### Deprecated
