@@ -107,6 +107,8 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 				if err = selfUpdater.Apply(ctx); err != nil {
 					return err
 				}
+				command := strings.Join(os.Args, " ")
+				ui.PrintWarningMessage(fmt.Sprintf("Please re-run %s\n", command))
 				sentry.CaptureMessage("cli-update executed successfully")
 				return ErrSilentExecutionAbort
 			}
