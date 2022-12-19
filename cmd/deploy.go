@@ -439,7 +439,7 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		return nil, err
 	}
 
-	if err = mergo.Merge(&chartValues, valuesOverride); err != nil {
+	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
 	}
 
