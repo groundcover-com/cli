@@ -147,10 +147,9 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
 	if err != nil {
-		fmt.Printf("\nHelm installation validation failed with error: %v\n", err.Error())
-		fmt.Println("Installation might succeed in the next moments")
-		fmt.Printf("Check out: %s\n", ui.UrlLink(fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName)))
-		fmt.Printf("\n%s\n", JOIN_SLACK_MESSAGE)
+		fmt.Printf("\nInstallation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"\n", namespace)
+		fmt.Printf("If pods in %q namespce are running, Check out: %s\n", namespace, ui.UrlLink(fmt.Sprintf("%s/?clusterId=%s&viewType=Overview\n", GROUNDCOVER_URL, clusterName)))
+		fmt.Printf("%s\n", SUPPORT_SLACK_MESSAGE)
 		return nil
 	}
 
