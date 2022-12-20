@@ -22,7 +22,7 @@ We use the following categories for changes:
 - add low-resources flag to `deploy` [#sc-5895]
 
 ### Changed
-
+- added a SaaS link on helm validation error [#sc-6297]
 ### Fixed
 
 ### Removed
@@ -30,6 +30,16 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.3.18] 2022-12-18
+
+### Added
+
+- print re-run message after cli upgrade [#sc-6361]
+
+### Fixed
+
+- values override deep copy [#sc-6358]
 
 ## [0.3.17] 2022-12-07
 
