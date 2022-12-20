@@ -1,7 +1,8 @@
 ---
 agent:
   experimental: true
-  tracyEnabled: false
+  tracy:
+    enabled: false
   alligator:
     resources:
       requests:

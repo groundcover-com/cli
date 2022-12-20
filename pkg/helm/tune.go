@@ -21,7 +21,7 @@ const (
 	BACKEND_HIGH_TOTAL_CPU_THRESHOLD      = "4000m"
 	BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD = "6000Mi"
 	BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD   = "9000Mi"
-	BACKEND_LOW_RESOURCES_PATH            = "presets/backend/medium-resources.yaml"
+	BACKEND_LOW_RESOURCES_PATH            = "presets/backend/low-resources.yaml"
 	BACKEND_MEDIUM_RESOURCES_PATH         = "presets/backend/medium-resources.yaml"
 )
 
