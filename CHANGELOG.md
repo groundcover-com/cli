@@ -19,7 +19,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
-
+- added a SaaS link on helm validation error [#sc-6297]
 ### Fixed
 
 ### Removed

@@ -147,7 +147,10 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
 	if err != nil {
-		return errors.Wrap(err, "Helm installation validation failed")
+		fmt.Printf("\nInstallation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"\n", namespace)
+		fmt.Printf("If pods in %q namespce are running, Check out: %s\n", namespace, ui.UrlLink(fmt.Sprintf("%s/?clusterId=%s&viewType=Overview\n", GROUNDCOVER_URL, clusterName)))
+		fmt.Printf("%s\n", SUPPORT_SLACK_MESSAGE)
+		return nil
 	}
 
 	fmt.Println("\nThat was easy. groundcover installed!")
