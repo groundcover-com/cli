@@ -44,14 +44,14 @@ timescaledb-single:
       cpu: 300m
       memory: 1024Mi
 
-shepherd:
-  resources:
+victoria-metrics-agent:
+  resources: 
     requests:
-      cpu: 100m
+      cpu: 50m
       memory: 128Mi
     limits:
-      cpu: 500m
-      memory: 500Mi
+      cpu: 100m
+      memory: 128Mi
 
 victoria-metrics-single:
   server:
@@ -72,11 +72,11 @@ promscale:
       cpu: 300m
       memory: 128Mi
 
-vmagent-backend:
+shepherd:
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
       cpu: 100m
       memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 500Mi
