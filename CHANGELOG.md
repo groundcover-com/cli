@@ -20,6 +20,7 @@ We use the following categories for changes:
 
 - add low-resources preset [#sc-5895]
 - add low-resources flag to `deploy` [#sc-5895]
+- support minikube and kind clusters [#sc-5895]
 
 ### Changed
 - added a SaaS link on helm validation error [#sc-6297]

@@ -28,8 +28,6 @@ var (
 	DefaultClusterRequirements  = &ClusterRequirements{
 		ServerVersion: MinimumServerVersionSupport,
 		BlockedTypes: []string{
-			"kind",
-			"minikube",
 			"docker-desktop",
 		},
 		Actions: []*authv1.ResourceAttributes{
