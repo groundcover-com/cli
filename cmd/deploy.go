@@ -416,7 +416,7 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
 	}
 
-	if err = mergo.Merge(&chartValues, defaultChartValues, mergo.WithSliceDeepCopy); err != nil {
+	if err = mergo.Merge(&chartValues, defaultChartValues); err != nil {
 		return nil, err
 	}
 
