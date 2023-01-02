@@ -24,6 +24,12 @@ var (
 	gkeClusterRegex = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
 	eksClusterRegex = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
 
+	LocalClusterTypes = []string{
+		"kind",
+		"docker-desktop",
+		"minikube",
+	}
+
 	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 12}
 	DefaultClusterRequirements  = &ClusterRequirements{
 		ServerVersion: MinimumServerVersionSupport,

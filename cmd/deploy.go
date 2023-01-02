@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -425,7 +426,7 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		return nil, err
 	}
 
-	useLowResources := viper.GetBool(LOW_RESOURCES_FLAG)
+	useLowResources := shouldUseLowResources(clusterName)
 	if useLowResources {
 		resourcesTunerPresetPaths = []string{
 			helm.AGENT_LOW_RESOURCES_PATH,
@@ -459,4 +460,14 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 	sentryHelmContext.SetOnCurrentScope()
 
 	return chartValues, nil
+}
+
+func shouldUseLowResources(clusterName string) bool {
+	for _, localCluster := range k8s.LocalClusterTypes {
+		if strings.HasPrefix(clusterName, localCluster) {
+			return true
+		}
+	}
+
+	return viper.GetBool(LOW_RESOURCES_FLAG)
 }
