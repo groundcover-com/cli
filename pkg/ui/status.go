@@ -27,6 +27,10 @@ func PrintWarningMessage(message string) {
 	fmt.Printf("%s %s", statusWarning, message)
 }
 
+func PrintNoticeMessage(message string) {
+	fmt.Printf("🚨 %s", message)
+}
+
 func UrlLink(url string) string {
 	return color.New(color.FgBlue).Add(color.Underline).Sprint(url)
 }

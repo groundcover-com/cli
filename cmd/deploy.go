@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/getsentry/sentry-go"
 	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
@@ -20,6 +21,7 @@ import (
 	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/utils/strings/slices"
 )
 
 const (
@@ -185,6 +187,10 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	sentryKubeContext.SetOnCurrentScope()
 
 	clusterReport.PrintStatus()
+
+	if clusterReport.IsLocalCluster() {
+		viper.Set(LOW_RESOURCES_FLAG, true)
+	}
 
 	if !clusterReport.IsCompatible {
 		return fmt.Errorf("can't continue with installation, cluster is not compatible for installation. Check solutions suggested by the CLI")
@@ -410,7 +416,7 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
 	}
 
-	if err = mergo.Merge(&chartValues, defaultChartValues); err != nil {
+	if err = mergo.Merge(&chartValues, defaultChartValues, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
 	}
 
@@ -426,12 +432,25 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		return nil, err
 	}
 
-	useLowResources := shouldUseLowResources(clusterName)
-	if useLowResources {
+	if viper.GetBool(LOW_RESOURCES_FLAG) {
 		resourcesTunerPresetPaths = []string{
 			helm.AGENT_LOW_RESOURCES_PATH,
 			helm.BACKEND_LOW_RESOURCES_PATH,
 		}
+	}
+
+	if slices.Contains(resourcesTunerPresetPaths, helm.AGENT_LOW_RESOURCES_PATH) {
+		clusterType := "low resources"
+		messageFormat := "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
+
+		for _, localClusterType := range k8s.LocalClusterTypes {
+			if strings.HasPrefix(clusterName, localClusterType) {
+				clusterType = localClusterType
+			}
+		}
+
+		fmt.Println()
+		ui.PrintNoticeMessage(fmt.Sprintf(messageFormat, color.New().Add(color.Bold).Sprintf("%s cluster", clusterType)))
 	}
 
 	overridePaths = append(overridePaths, resourcesTunerPresetPaths...)
@@ -460,14 +479,4 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 	sentryHelmContext.SetOnCurrentScope()
 
 	return chartValues, nil
-}
-
-func shouldUseLowResources(clusterName string) bool {
-	for _, localCluster := range k8s.LocalClusterTypes {
-		if strings.HasPrefix(clusterName, localCluster) {
-			return true
-		}
-	}
-
-	return viper.GetBool(LOW_RESOURCES_FLAG)
 }

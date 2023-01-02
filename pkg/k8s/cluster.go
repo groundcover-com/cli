@@ -128,6 +128,16 @@ type ClusterReport struct {
 	ClusterTypeAllowed   Requirement
 }
 
+func (clusterReport *ClusterReport) IsLocalCluster() bool {
+	for _, localCluster := range LocalClusterTypes {
+		if strings.HasPrefix(clusterReport.ClusterName, localCluster) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (clusterReport *ClusterReport) PrintStatus() {
 	clusterReport.ClusterTypeAllowed.PrintStatus()
 	if clusterReport.ClusterTypeAllowed.IsNonCompatible {
