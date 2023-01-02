@@ -3,10 +3,10 @@ k8sWatcher:
   resources:
     requests:
       cpu: 50m
-      memory: 100Mi
+      memory: 128Mi
     limits:
       cpu: 100m
-      memory: 100Mi
+      memory: 128Mi
 
 portal:
   resources:
@@ -21,10 +21,10 @@ loki:
   resources:
     requests:
       cpu: 50m
-      memory: 500Mi
+      memory: 256Mi
     limits:
       cpu: 100m
-      memory: 500Mi
+      memory: 512Mi
 
 grafana:
   resources:
@@ -33,50 +33,50 @@ grafana:
       memory: 64Mi
     limits:
       cpu: 100m
-      memory: 64Mi
+      memory: 128Mi
 
 timescaledb-single:
   resources:
     requests:
       cpu: 50m
-      memory: 750Mi
+      memory: 512Mi
     limits:
       cpu: 300m
-      memory: 750Mi
+      memory: 768Mi
 
 victoria-metrics-agent:
   resources: 
     requests:
       cpu: 50m
-      memory: 100Mi
+      memory: 64Mi
     limits:
       cpu: 100m
-      memory: 100Mi
+      memory: 128Mi
 
 victoria-metrics-single:
   server:
     resources:            
       requests:
         cpu: 50m
-        memory: 750Mi
+        memory: 256Mi
       limits:
         cpu: 300m
-        memory: 750Mi
+        memory: 256Mi
 
 promscale:
   resources:
     requests:
       cpu: 50m
-      memory: 100Mi
+      memory: 64Mi
     limits:
       cpu: 300m
-      memory: 100Mi
+      memory: 128Mi
 
 shepherd:
   resources:
     requests:
       cpu: 50m
-      memory: 100Mi
+      memory: 64Mi
     limits:
       cpu: 100m
-      memory: 100Mi
+      memory: 128Mi

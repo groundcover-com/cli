@@ -25,9 +25,10 @@ var (
 	eksClusterRegex = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
 
 	LocalClusterTypes = []string{
+		"k3d",
 		"kind",
-		"docker-desktop",
 		"minikube",
+		"docker-desktop",
 	}
 
 	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 12}

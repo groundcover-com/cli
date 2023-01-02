@@ -7,7 +7,7 @@ agent:
     resources:
       requests:
         cpu: 200m
-        memory: 250Mi
+        memory: 256Mi
       limits:
-        cpu: 200m
-        memory: 250Mi
+        cpu: 500m
+        memory: 512Mi
