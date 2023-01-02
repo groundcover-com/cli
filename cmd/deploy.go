@@ -25,21 +25,22 @@ import (
 )
 
 const (
-	HELM_DEPLOY_POLLING_RETIRES   = 2
-	HELM_DEPLOY_POLLING_INTERVAL  = time.Second * 1
-	HELM_DEPLOY_POLLING_TIMEOUT   = time.Minute * 5
-	VALUES_FLAG                   = "values"
-	EXPERIMENTAL_FLAG             = "experimental"
-	LOW_RESOURCES_FLAG            = "low-resources"
-	CHART_NAME                    = "groundcover/groundcover"
-	HELM_REPO_NAME                = "groundcover"
-	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
-	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
-	COMMIT_HASH_KEY_NAME_FLAG     = "git-commit-hash-key-name"
-	REPOSITORY_URL_KEY_NAME_FLAG  = "git-repository-url-key-name"
-	GROUNDCOVER_URL               = "https://app.groundcover.com"
-	HELM_REPO_URL                 = "https://helm.groundcover.com"
-	EXPERIMENTAL_PRESET_PATH      = "presets/agent/experimental.yaml"
+	HELM_DEPLOY_POLLING_RETIRES         = 2
+	HELM_DEPLOY_POLLING_INTERVAL        = time.Second * 1
+	HELM_DEPLOY_POLLING_TIMEOUT         = time.Minute * 5
+	VALUES_FLAG                         = "values"
+	EXPERIMENTAL_FLAG                   = "experimental"
+	LOW_RESOURCES_FLAG                  = "low-resources"
+	CHART_NAME                          = "groundcover/groundcover"
+	HELM_REPO_NAME                      = "groundcover"
+	DEFAULT_GROUNDCOVER_RELEASE         = "groundcover"
+	DEFAULT_GROUNDCOVER_NAMESPACE       = "groundcover"
+	COMMIT_HASH_KEY_NAME_FLAG           = "git-commit-hash-key-name"
+	REPOSITORY_URL_KEY_NAME_FLAG        = "git-repository-url-key-name"
+	GROUNDCOVER_URL                     = "https://app.groundcover.com"
+	HELM_REPO_URL                       = "https://helm.groundcover.com"
+	EXPERIMENTAL_PRESET_PATH            = "presets/agent/experimental.yaml"
+	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
 )
 
 func init() {
@@ -441,16 +442,16 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 
 	if slices.Contains(resourcesTunerPresetPaths, helm.AGENT_LOW_RESOURCES_PATH) {
 		clusterType := "low resources"
-		messageFormat := "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
 
 		for _, localClusterType := range k8s.LocalClusterTypes {
 			if strings.HasPrefix(clusterName, localClusterType) {
 				clusterType = localClusterType
+				break
 			}
 		}
 
 		fmt.Println()
-		ui.PrintNoticeMessage(fmt.Sprintf(messageFormat, color.New().Add(color.Bold).Sprintf("%s cluster", clusterType)))
+		ui.PrintNoticeMessage(fmt.Sprintf(LOW_RESOURCES_NOTICE_MESSAGE_FORMAT, color.New().Add(color.Bold).Sprintf("%s cluster", clusterType)))
 	}
 
 	overridePaths = append(overridePaths, resourcesTunerPresetPaths...)
