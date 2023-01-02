@@ -18,14 +18,7 @@ We use the following categories for changes:
 
 ### Added
 
-- add low-resources preset [#sc-5895]
-- add low-resources flag to `deploy` [#sc-5895]
-- support minikube and kind clusters [#sc-5895]
-- add shepherd resources tune [#sc-6617]
-
 ### Changed
-
-- added a SaaS link on helm validation error [#sc-6297]
 
 ### Fixed
 
@@ -34,6 +27,19 @@ We use the following categories for changes:
 ### Deprecated
 
 ### Security
+
+## [0.4.0] 2023-01-02
+
+### Added
+
+- add low-resources preset [#sc-5895]
+- add low-resources flag to `deploy` [#sc-5895]
+- support minikube and kind clusters [#sc-5895]
+- add shepherd resources tune [#sc-6617]
+
+### Changed
+
+- added a SaaS link on helm validation error [#sc-6297]
 
 ## [0.3.18] 2022-12-18
 
