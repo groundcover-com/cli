@@ -18,8 +18,12 @@ We use the following categories for changes:
 
 ### Added
 
+- add shepherd resources tune [#sc-6617]
+
 ### Changed
+
 - added a SaaS link on helm validation error [#sc-6297]
+
 ### Fixed
 
 ### Removed
