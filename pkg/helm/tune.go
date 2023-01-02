@@ -14,14 +14,14 @@ const (
 	AGENT_HIGH_CPU_THRESHOLD      = "1500m"
 	AGENT_MEDIUM_MEMORY_THRESHOLD = "2500Mi"
 	AGENT_HIGH_MEMORY_THRESHOLD   = "3000Mi"
-	AGENT_LOW_RESOURCES_PATH      = "presets/agent/medium-resources.yaml"
+	AGENT_LOW_RESOURCES_PATH      = "presets/agent/low-resources.yaml"
 	AGENT_MEDIUM_RESOURCES_PATH   = "presets/agent/medium-resources.yaml"
 
 	BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD    = "3000m"
 	BACKEND_HIGH_TOTAL_CPU_THRESHOLD      = "4000m"
 	BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD = "6000Mi"
 	BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD   = "9000Mi"
-	BACKEND_LOW_RESOURCES_PATH            = "presets/backend/medium-resources.yaml"
+	BACKEND_LOW_RESOURCES_PATH            = "presets/backend/low-resources.yaml"
 	BACKEND_MEDIUM_RESOURCES_PATH         = "presets/backend/medium-resources.yaml"
 )
 

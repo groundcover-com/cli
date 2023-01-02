@@ -162,7 +162,7 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesMediumSuccess() {
 	// assert
 
 	expected := make(map[string]interface{})
-	expectedPresetPaths := []string{helm.AGENT_LOW_RESOURCES_PATH, helm.BACKEND_LOW_RESOURCES_PATH}
+	expectedPresetPaths := []string{helm.AGENT_MEDIUM_RESOURCES_PATH, helm.BACKEND_MEDIUM_RESOURCES_PATH}
 
 	var data []byte
 	data, err = os.ReadFile(helm.AGENT_MEDIUM_RESOURCES_PATH)

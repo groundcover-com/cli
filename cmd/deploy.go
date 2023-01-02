@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/getsentry/sentry-go"
 	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
@@ -19,23 +21,26 @@ import (
 	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/utils/strings/slices"
 )
 
 const (
-	HELM_DEPLOY_POLLING_RETIRES   = 2
-	HELM_DEPLOY_POLLING_INTERVAL  = time.Second * 1
-	HELM_DEPLOY_POLLING_TIMEOUT   = time.Minute * 5
-	VALUES_FLAG                   = "values"
-	EXPERIMENTAL_FLAG             = "experimental"
-	CHART_NAME                    = "groundcover/groundcover"
-	HELM_REPO_NAME                = "groundcover"
-	DEFAULT_GROUNDCOVER_RELEASE   = "groundcover"
-	DEFAULT_GROUNDCOVER_NAMESPACE = "groundcover"
-	COMMIT_HASH_KEY_NAME_FLAG     = "git-commit-hash-key-name"
-	REPOSITORY_URL_KEY_NAME_FLAG  = "git-repository-url-key-name"
-	GROUNDCOVER_URL               = "https://app.groundcover.com"
-	HELM_REPO_URL                 = "https://helm.groundcover.com"
-	EXPERIMENTAL_PRESET_PATH      = "presets/agent/experimental.yaml"
+	HELM_DEPLOY_POLLING_RETIRES         = 2
+	HELM_DEPLOY_POLLING_INTERVAL        = time.Second * 1
+	HELM_DEPLOY_POLLING_TIMEOUT         = time.Minute * 5
+	VALUES_FLAG                         = "values"
+	EXPERIMENTAL_FLAG                   = "experimental"
+	LOW_RESOURCES_FLAG                  = "low-resources"
+	CHART_NAME                          = "groundcover/groundcover"
+	HELM_REPO_NAME                      = "groundcover"
+	DEFAULT_GROUNDCOVER_RELEASE         = "groundcover"
+	DEFAULT_GROUNDCOVER_NAMESPACE       = "groundcover"
+	COMMIT_HASH_KEY_NAME_FLAG           = "git-commit-hash-key-name"
+	REPOSITORY_URL_KEY_NAME_FLAG        = "git-repository-url-key-name"
+	GROUNDCOVER_URL                     = "https://app.groundcover.com"
+	HELM_REPO_URL                       = "https://helm.groundcover.com"
+	EXPERIMENTAL_PRESET_PATH            = "presets/agent/experimental.yaml"
+	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
 )
 
 func init() {
@@ -46,6 +51,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().Bool(EXPERIMENTAL_FLAG, false, "enable groundcover experimental features")
 	viper.BindPFlag(EXPERIMENTAL_FLAG, DeployCmd.PersistentFlags().Lookup(EXPERIMENTAL_FLAG))
+
+	DeployCmd.PersistentFlags().Bool(LOW_RESOURCES_FLAG, false, "set low resources limits")
+	viper.BindPFlag(LOW_RESOURCES_FLAG, DeployCmd.PersistentFlags().Lookup(LOW_RESOURCES_FLAG))
 
 	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
 	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
@@ -180,6 +188,10 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	sentryKubeContext.SetOnCurrentScope()
 
 	clusterReport.PrintStatus()
+
+	if clusterReport.IsLocalCluster() {
+		viper.Set(LOW_RESOURCES_FLAG, true)
+	}
 
 	if !clusterReport.IsCompatible {
 		return fmt.Errorf("can't continue with installation, cluster is not compatible for installation. Check solutions suggested by the CLI")
@@ -420,6 +432,28 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(deployableNodes); err != nil {
 		return nil, err
 	}
+
+	if viper.GetBool(LOW_RESOURCES_FLAG) {
+		resourcesTunerPresetPaths = []string{
+			helm.AGENT_LOW_RESOURCES_PATH,
+			helm.BACKEND_LOW_RESOURCES_PATH,
+		}
+	}
+
+	if slices.Contains(resourcesTunerPresetPaths, helm.AGENT_LOW_RESOURCES_PATH) {
+		clusterType := "low resources"
+
+		for _, localClusterType := range k8s.LocalClusterTypes {
+			if strings.HasPrefix(clusterName, localClusterType) {
+				clusterType = localClusterType
+				break
+			}
+		}
+
+		fmt.Println()
+		ui.PrintNoticeMessage(fmt.Sprintf(LOW_RESOURCES_NOTICE_MESSAGE_FORMAT, color.New().Add(color.Bold).Sprintf("%s cluster", clusterType)))
+	}
+
 	overridePaths = append(overridePaths, resourcesTunerPresetPaths...)
 
 	if len(resourcesTunerPresetPaths) > 0 {

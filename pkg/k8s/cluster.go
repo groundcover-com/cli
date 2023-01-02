@@ -24,12 +24,17 @@ var (
 	gkeClusterRegex = regexp.MustCompile("^gke_(?P<project>.+)_(?P<zone>.+)_(?P<name>.+)$")
 	eksClusterRegex = regexp.MustCompile("^arn:aws:eks:(?P<region>.+):(?P<account>.+):cluster/(?P<name>.+)$")
 
+	LocalClusterTypes = []string{
+		"k3d",
+		"kind",
+		"minikube",
+		"docker-desktop",
+	}
+
 	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 12}
 	DefaultClusterRequirements  = &ClusterRequirements{
 		ServerVersion: MinimumServerVersionSupport,
 		BlockedTypes: []string{
-			"kind",
-			"minikube",
 			"docker-desktop",
 		},
 		Actions: []*authv1.ResourceAttributes{
@@ -122,6 +127,16 @@ type ClusterReport struct {
 	CliAuthSupported     Requirement
 	ServerVersionAllowed Requirement
 	ClusterTypeAllowed   Requirement
+}
+
+func (clusterReport *ClusterReport) IsLocalCluster() bool {
+	for _, localCluster := range LocalClusterTypes {
+		if strings.HasPrefix(clusterReport.ClusterName, localCluster) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (clusterReport *ClusterReport) PrintStatus() {

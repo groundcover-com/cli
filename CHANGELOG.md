@@ -18,6 +18,9 @@ We use the following categories for changes:
 
 ### Added
 
+- add low-resources preset [#sc-5895]
+- add low-resources flag to `deploy` [#sc-5895]
+- support minikube and kind clusters [#sc-5895]
 - add shepherd resources tune [#sc-6617]
 
 ### Changed
