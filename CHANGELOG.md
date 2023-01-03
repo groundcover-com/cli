@@ -18,20 +18,26 @@ We use the following categories for changes:
 
 ### Added
 
-- remove cpu and memory requirements [#sc-6682]
-
 ### Changed
 
 ### Fixed
-
-- resources limit threshold optimaztions [#sc-6682]
-- deep merge default chart values [#sc-6686]
 
 ### Removed
 
 ### Deprecated
 
 ### Security
+
+## [0.4.1] 2023-01-03
+
+### Added
+
+- remove cpu and memory requirements [#sc-6682]
+
+### Fixed
+
+- resources limit threshold optimaztions [#sc-6682]
+- deep merge default chart values [#sc-6686]
 
 ## [0.4.0] 2023-01-02
 
