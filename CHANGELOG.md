@@ -25,6 +25,7 @@ We use the following categories for changes:
 ### Fixed
 
 - resources limit threshold optimaztions [#sc-6682]
+- deep merge default chart values [#sc-6686]
 
 ### Removed
 

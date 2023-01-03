@@ -174,7 +174,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 
 		spinner.Message(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, runningAlligators, expectedAlligatorsCount))
 
-		if runningAlligators == expectedAlligatorsCount {
+		if runningAlligators >= expectedAlligatorsCount {
 			return nil
 		}
 
