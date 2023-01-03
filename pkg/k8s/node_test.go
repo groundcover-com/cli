@@ -184,8 +184,6 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 			{
 				NodeSummary: nodesSummeries[1],
 				RequirementErrors: []string{
-					"insufficient cpu 500m < 1500m",
-					"insufficient memory 1G < 1500Mi",
 					"fargate is unsupported provider",
 					"4.13.0 is unsupported kernel version",
 					"arm64 is unspported architecture",
@@ -197,16 +195,6 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 			IsCompatible:  false,
 			Message:       "Kernel version >= 4.14.0 (2/3 Nodes)",
 			ErrorMessages: []string{"node: incompatible - 4.13.0 is unsupported kernel version"},
-		},
-		CpuSufficient: k8s.Requirement{
-			IsCompatible:  false,
-			Message:       "Sufficient node CPU (2/3 Nodes)",
-			ErrorMessages: []string{"node: incompatible - insufficient cpu 500m < 1500m"},
-		},
-		MemorySufficient: k8s.Requirement{
-			IsCompatible:  false,
-			Message:       "Sufficient node memory (2/3 Nodes)",
-			ErrorMessages: []string{"node: incompatible - insufficient memory 1G < 1500Mi"},
 		},
 		ProviderAllowed: k8s.Requirement{
 			IsCompatible:  false,
@@ -251,8 +239,6 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 			{
 				NodeSummary: nodesSummeries[1],
 				RequirementErrors: []string{
-					"insufficient cpu 500m < 1500m",
-					"insufficient memory 1G < 1500Mi",
 					"fargate is unsupported provider",
 					"4.13.0 is unsupported kernel version",
 					"arm64 is unspported architecture",
@@ -265,18 +251,6 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 			IsNonCompatible: true,
 			Message:         "Kernel version >= 4.14.0 (0/1 Nodes)",
 			ErrorMessages:   []string{"node: incompatible - 4.13.0 is unsupported kernel version"},
-		},
-		CpuSufficient: k8s.Requirement{
-			IsCompatible:    false,
-			IsNonCompatible: true,
-			Message:         "Sufficient node CPU (0/1 Nodes)",
-			ErrorMessages:   []string{"node: incompatible - insufficient cpu 500m < 1500m"},
-		},
-		MemorySufficient: k8s.Requirement{
-			IsCompatible:    false,
-			IsNonCompatible: true,
-			Message:         "Sufficient node memory (0/1 Nodes)",
-			ErrorMessages:   []string{"node: incompatible - insufficient memory 1G < 1500Mi"},
 		},
 		ProviderAllowed: k8s.Requirement{
 			IsCompatible:    false,

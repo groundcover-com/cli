@@ -29,20 +29,12 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesLowSuccess() {
 	var cpuChartValues map[string]interface{}
 	var memoryChartValues map[string]interface{}
 
-	lowerThenThresholdCpu := resource.MustParse("2000m")
-	higherThenThresholdCpu := resource.MustParse("6000m")
-	lowerThenThresholdMemory := resource.MustParse("4000Mi")
-	higherThenThresholdMemory := resource.MustParse("3000Mi")
+	lowerThenThresholdCpu := resource.MustParse("500m")
+	higherThenThresholdCpu := resource.MustParse("4000m")
+	lowerThenThresholdMemory := resource.MustParse("128Mi")
+	higherThenThresholdMemory := resource.MustParse("4000Mi")
 
 	lowerCpuNodeReports := []*k8s.NodeSummary{
-		{
-			CPU:    &lowerThenThresholdCpu,
-			Memory: &higherThenThresholdMemory,
-		},
-		{
-			CPU:    &lowerThenThresholdCpu,
-			Memory: &higherThenThresholdMemory,
-		},
 		{
 			CPU:    &lowerThenThresholdCpu,
 			Memory: &higherThenThresholdMemory,
@@ -50,14 +42,6 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesLowSuccess() {
 	}
 
 	lowerMemoryNodeReports := []*k8s.NodeSummary{
-		{
-			CPU:    &higherThenThresholdCpu,
-			Memory: &lowerThenThresholdMemory,
-		},
-		{
-			CPU:    &higherThenThresholdCpu,
-			Memory: &lowerThenThresholdMemory,
-		},
 		{
 			CPU:    &higherThenThresholdCpu,
 			Memory: &lowerThenThresholdMemory,
@@ -109,10 +93,10 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesMediumSuccess() {
 	var cpuChartValues map[string]interface{}
 	var memoryChartValues map[string]interface{}
 
-	lowerThenThresholdCpu := resource.MustParse("8000m")
-	higherThenThresholdCpu := resource.MustParse("6000m")
-	lowerThenThresholdMemory := resource.MustParse("18000Mi")
-	higherThenThresholdMemory := resource.MustParse("3000Mi")
+	lowerThenThresholdCpu := resource.MustParse("1750m")
+	higherThenThresholdCpu := resource.MustParse("4000m")
+	lowerThenThresholdMemory := resource.MustParse("2048Mi")
+	higherThenThresholdMemory := resource.MustParse("4096Mi")
 
 	lowerCpuNodeReports := []*k8s.NodeSummary{
 		{
@@ -188,8 +172,8 @@ func (suite *HelmTuneTestSuite) TestTuneResourcesValuesHighSuccess() {
 	var err error
 	var chartValues map[string]interface{}
 
-	cpu := resource.MustParse("12000m")
-	memory := resource.MustParse("36000Mi")
+	cpu := resource.MustParse("4000m")
+	memory := resource.MustParse("4096Mi")
 
 	nodeReports := []*k8s.NodeSummary{
 		{

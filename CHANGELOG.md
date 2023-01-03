@@ -18,9 +18,13 @@ We use the following categories for changes:
 
 ### Added
 
+- remove cpu and memory requirements [#sc-6682]
+
 ### Changed
 
 ### Fixed
+
+- resources limit threshold optimaztions [#sc-6682]
 
 ### Removed
 

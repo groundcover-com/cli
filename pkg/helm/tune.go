@@ -8,19 +8,17 @@ import (
 )
 
 const (
-	MAX_USAGE_RATIO = 15.0 / 100
-
-	AGENT_MEDIUM_CPU_THRESHOLD    = "1000m"
-	AGENT_HIGH_CPU_THRESHOLD      = "1500m"
-	AGENT_MEDIUM_MEMORY_THRESHOLD = "2500Mi"
-	AGENT_HIGH_MEMORY_THRESHOLD   = "3000Mi"
+	AGENT_MEDIUM_CPU_THRESHOLD    = "1500m"
+	AGENT_HIGH_CPU_THRESHOLD      = "3000m"
+	AGENT_MEDIUM_MEMORY_THRESHOLD = "1024Mi"
+	AGENT_HIGH_MEMORY_THRESHOLD   = "3072Mi"
 	AGENT_LOW_RESOURCES_PATH      = "presets/agent/low-resources.yaml"
 	AGENT_MEDIUM_RESOURCES_PATH   = "presets/agent/medium-resources.yaml"
 
-	BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD    = "3000m"
-	BACKEND_HIGH_TOTAL_CPU_THRESHOLD      = "4000m"
-	BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD = "6000Mi"
-	BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD   = "9000Mi"
+	BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD    = "4000m"
+	BACKEND_HIGH_TOTAL_CPU_THRESHOLD      = "8000m"
+	BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD = "3072Mi"
+	BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD   = "6144Mi"
 	BACKEND_LOW_RESOURCES_PATH            = "presets/backend/low-resources.yaml"
 	BACKEND_MEDIUM_RESOURCES_PATH         = "presets/backend/medium-resources.yaml"
 )
@@ -68,17 +66,17 @@ func tuneAgentResourcesValues(allocatableResources *AllocatableResources) (strin
 	highCpuThreshold := resource.MustParse(AGENT_HIGH_CPU_THRESHOLD)
 	highMemoryThreshold := resource.MustParse(AGENT_HIGH_MEMORY_THRESHOLD)
 
-	maxCpuUsage := allocatableResources.MinCpu.AsApproximateFloat64() * MAX_USAGE_RATIO
-	maxMemoryUsage := allocatableResources.MinMemory.AsApproximateFloat64() * MAX_USAGE_RATIO
+	minAllocatableCpu := allocatableResources.MinCpu.AsApproximateFloat64()
+	minAllocatableMemory := allocatableResources.MinMemory.AsApproximateFloat64()
 
 	var presetPath string
 	switch {
-	case maxCpuUsage >= highCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= highMemoryThreshold.AsApproximateFloat64():
-		return "", nil
-	case maxCpuUsage >= mediumCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= mediumMemoryThreshold.AsApproximateFloat64():
+	case minAllocatableCpu <= mediumCpuThreshold.AsApproximateFloat64(), minAllocatableMemory <= mediumMemoryThreshold.AsApproximateFloat64():
+		presetPath = AGENT_LOW_RESOURCES_PATH
+	case minAllocatableCpu <= highCpuThreshold.AsApproximateFloat64(), minAllocatableMemory <= highMemoryThreshold.AsApproximateFloat64():
 		presetPath = AGENT_MEDIUM_RESOURCES_PATH
 	default:
-		presetPath = AGENT_LOW_RESOURCES_PATH
+		return "", nil
 	}
 
 	return presetPath, nil
@@ -90,17 +88,17 @@ func tuneBackendResourcesValues(allocatableResources *AllocatableResources) (str
 	highCpuThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_CPU_THRESHOLD)
 	highMemoryThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD)
 
-	maxCpuUsage := allocatableResources.TotalCpu.AsApproximateFloat64() * MAX_USAGE_RATIO
-	maxMemoryUsage := allocatableResources.TotalMemory.AsApproximateFloat64() * MAX_USAGE_RATIO
+	totalAllocatableCpu := allocatableResources.TotalCpu.AsApproximateFloat64()
+	totalAllocatableMemory := allocatableResources.TotalMemory.AsApproximateFloat64()
 
 	var presetPath string
 	switch {
-	case maxCpuUsage >= highCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= highMemoryThreshold.AsApproximateFloat64():
-		return "", nil
-	case maxCpuUsage >= mediumCpuThreshold.AsApproximateFloat64(), maxMemoryUsage >= mediumMemoryThreshold.AsApproximateFloat64():
+	case totalAllocatableCpu <= mediumCpuThreshold.AsApproximateFloat64(), totalAllocatableMemory <= mediumMemoryThreshold.AsApproximateFloat64():
+		presetPath = BACKEND_LOW_RESOURCES_PATH
+	case totalAllocatableCpu <= highCpuThreshold.AsApproximateFloat64(), totalAllocatableMemory <= highMemoryThreshold.AsApproximateFloat64():
 		presetPath = BACKEND_MEDIUM_RESOURCES_PATH
 	default:
-		presetPath = BACKEND_LOW_RESOURCES_PATH
+		return "", nil
 	}
 
 	return presetPath, nil
