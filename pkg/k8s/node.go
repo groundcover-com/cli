@@ -13,8 +13,6 @@ import (
 )
 
 const (
-	NODE_MINIUM_REQUIREMENTS_CPU           = "1500m"
-	NODE_MINIUM_REQUIREMENTS_MEMORY        = "1500Mi"
 	SCHEDULABLE_REPORT_MESSAGE_FORMAT      = "Node is schedulable (%d/%d Nodes)"
 	CPU_REPORT_MESSAGE_FORMAT              = "Sufficient node CPU (%d/%d Nodes)"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "Kernel version >= %s (%d/%d Nodes)"
@@ -27,13 +25,9 @@ const (
 var (
 	KERNEL_VERSION_REGEX = regexp.MustCompile("^(?P<major>[0-9]).(?P<minor>[0-9]+).(?P<patch>[0-9]+)")
 
-	NodeMinimumCpuRequired      = resource.MustParse(NODE_MINIUM_REQUIREMENTS_CPU)
-	NodeMinimumMemoryRequired   = resource.MustParse(NODE_MINIUM_REQUIREMENTS_MEMORY)
 	MinimumKernelVersionSupport = semver.Version{Major: 4, Minor: 14}
 
 	DefaultNodeRequirements = &NodeMinimumRequirements{
-		CPUAmount:               &NodeMinimumCpuRequired,
-		MemoryAmount:            &NodeMinimumMemoryRequired,
 		AllowedOperatingSystems: []string{"linux"},
 		AllowedArchitectures:    []string{"amd64"},
 		BlockedProviders:        []string{"fargate"},
@@ -92,8 +86,6 @@ type NodeMinimumRequirements struct {
 type NodesReport struct {
 	Schedulable            Requirement
 	KernelVersionAllowed   Requirement
-	CpuSufficient          Requirement
-	MemorySufficient       Requirement
 	ProviderAllowed        Requirement
 	ArchitectureAllowed    Requirement
 	OperatingSystemAllowed Requirement
@@ -107,8 +99,6 @@ func (nodesReport *NodesReport) NodesCount() int {
 }
 
 func (nodesReport *NodesReport) PrintStatus() {
-	nodesReport.CpuSufficient.PrintStatus()
-	nodesReport.MemorySufficient.PrintStatus()
 	nodesReport.KernelVersionAllowed.PrintStatus()
 	nodesReport.ArchitectureAllowed.PrintStatus()
 	nodesReport.OperatingSystemAllowed.PrintStatus()
@@ -129,22 +119,6 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 
 	for _, nodeSummary := range nodesSummeries {
 		var requirementErrors []string
-
-		if err = nodeRequirements.validateNodeCPU(nodeSummary); err != nil {
-			requirementErrors = append(requirementErrors, err.Error())
-			nodesReport.CpuSufficient.ErrorMessages = append(
-				nodesReport.CpuSufficient.ErrorMessages,
-				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
-			)
-		}
-
-		if err = nodeRequirements.validateNodeMemory(nodeSummary); err != nil {
-			requirementErrors = append(requirementErrors, err.Error())
-			nodesReport.MemorySufficient.ErrorMessages = append(
-				nodesReport.MemorySufficient.ErrorMessages,
-				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
-			)
-		}
 
 		if err = nodeRequirements.validateNodeProvider(nodeSummary); err != nil {
 			requirementErrors = append(requirementErrors, err.Error())
@@ -209,22 +183,6 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 		nodesReport.CompatibleNodes = append(nodesReport.CompatibleNodes, nodeSummary)
 	}
 
-	nodesReport.CpuSufficient.IsCompatible = len(nodesReport.CpuSufficient.ErrorMessages) == 0
-	nodesReport.CpuSufficient.IsNonCompatible = len(nodesReport.CpuSufficient.ErrorMessages) == nodesCount
-	nodesReport.CpuSufficient.Message = fmt.Sprintf(
-		CPU_REPORT_MESSAGE_FORMAT,
-		len(nodesSummeries)-len(nodesReport.CpuSufficient.ErrorMessages),
-		len(nodesSummeries),
-	)
-
-	nodesReport.MemorySufficient.IsCompatible = len(nodesReport.MemorySufficient.ErrorMessages) == 0
-	nodesReport.MemorySufficient.IsNonCompatible = len(nodesReport.MemorySufficient.ErrorMessages) == nodesCount
-	nodesReport.MemorySufficient.Message = fmt.Sprintf(
-		MEMORY_REPORT_MESSAGE_FORMAT,
-		len(nodesSummeries)-len(nodesReport.MemorySufficient.ErrorMessages),
-		len(nodesSummeries),
-	)
-
 	nodesReport.ProviderAllowed.IsCompatible = len(nodesReport.ProviderAllowed.ErrorMessages) == 0
 	nodesReport.ProviderAllowed.IsNonCompatible = len(nodesReport.ProviderAllowed.ErrorMessages) == nodesCount
 	nodesReport.ProviderAllowed.Message = fmt.Sprintf(
@@ -267,22 +225,6 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	)
 
 	return &nodesReport
-}
-
-func (nodeRequirements *NodeMinimumRequirements) validateNodeCPU(nodeSummary *NodeSummary) error {
-	if nodeRequirements.CPUAmount.Cmp(*nodeSummary.CPU) > 0 {
-		return fmt.Errorf("insufficient cpu %s < %s", nodeSummary.CPU, nodeRequirements.CPUAmount)
-	}
-
-	return nil
-}
-
-func (nodeRequirements *NodeMinimumRequirements) validateNodeMemory(nodeSummary *NodeSummary) error {
-	if nodeRequirements.MemoryAmount.Cmp(*nodeSummary.Memory) > 0 {
-		return fmt.Errorf("insufficient memory %s < %s", nodeSummary.Memory, nodeRequirements.MemoryAmount)
-	}
-
-	return nil
 }
 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeProvider(nodeSummary *NodeSummary) error {
