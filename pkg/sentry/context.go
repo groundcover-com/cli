@@ -5,6 +5,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
+	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 )
 
@@ -76,17 +77,18 @@ func (context KubeContext) SetOnCurrentScope() {
 }
 
 type HelmContext struct {
-	Upgrade              bool                     `json:",omitempty"`
-	RepoUrl              string                   `json:",omitempty"`
-	ChartName            string                   `json:",omitempty"`
-	ReleaseName          string                   `json:",omitempty"`
-	ChartVersion         string                   `json:",omitempty"`
-	RunningAlligators    string                   `json:",omitempty"`
-	PreviousChartVersion string                   `json:",omitempty"`
-	ResourcesPresets     []string                 `json:",omitempty"`
-	ValuesOverride       map[string]interface{}   `json:",omitempty"`
-	PodsStatus           map[string]k8s.PodStatus `json:",omitempty"`
-	BoundPvcs            []string                 `json:",omitempty"`
+	Upgrade              bool                      `json:",omitempty"`
+	RepoUrl              string                    `json:",omitempty"`
+	ChartName            string                    `json:",omitempty"`
+	ReleaseName          string                    `json:",omitempty"`
+	ChartVersion         string                    `json:",omitempty"`
+	RunningAlligators    string                    `json:",omitempty"`
+	PreviousChartVersion string                    `json:",omitempty"`
+	ResourcesPresets     []string                  `json:",omitempty"`
+	ValuesOverride       map[string]interface{}    `json:",omitempty"`
+	PodsStatus           map[string]k8s.PodStatus  `json:",omitempty"`
+	BoundPvcs            []string                  `json:",omitempty"`
+	AllocatableResources *helm.AllocatableResources `json:",omitempty"`
 }
 
 func NewHelmContext(releaseName, chartName, repoUrl string) *HelmContext {

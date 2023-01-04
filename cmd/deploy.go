@@ -422,25 +422,32 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 	}
 
 	var overridePaths []string
-
 	useExperimental := viper.GetBool(EXPERIMENTAL_FLAG)
 	if useExperimental {
 		overridePaths = append(overridePaths, EXPERIMENTAL_PRESET_PATH)
 	}
 
-	var resourcesTunerPresetPaths []string
-	if resourcesTunerPresetPaths, err = helm.GetResourcesTunerPresetPaths(deployableNodes); err != nil {
-		return nil, err
+	allocatableResources := helm.CalcAllocatableResources(deployableNodes)
+	sentryHelmContext.AllocatableResources = allocatableResources
+
+	agentPresetPath, overrideAgentPreset := helm.GetAgentResourcePresetPath(allocatableResources)
+	if overrideAgentPreset {
+		overridePaths = append(overridePaths, agentPresetPath)
+	}
+
+	backendPresetPath, overrideBackendPreset := helm.GetBackendResourcePresetPath(allocatableResources)
+	if overrideBackendPreset {
+		overridePaths = append(overridePaths, backendPresetPath)
 	}
 
 	if viper.GetBool(LOW_RESOURCES_FLAG) {
-		resourcesTunerPresetPaths = []string{
+		overridePaths = []string{
 			helm.AGENT_LOW_RESOURCES_PATH,
 			helm.BACKEND_LOW_RESOURCES_PATH,
 		}
 	}
 
-	if slices.Contains(resourcesTunerPresetPaths, helm.AGENT_LOW_RESOURCES_PATH) {
+	if slices.Contains(overridePaths, helm.AGENT_LOW_RESOURCES_PATH) {
 		clusterType := "low resources"
 
 		for _, localClusterType := range k8s.LocalClusterTypes {
@@ -454,10 +461,8 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		ui.PrintNoticeMessage(fmt.Sprintf(LOW_RESOURCES_NOTICE_MESSAGE_FORMAT, color.New().Add(color.Bold).Sprintf("%s cluster", clusterType)))
 	}
 
-	overridePaths = append(overridePaths, resourcesTunerPresetPaths...)
-
-	if len(resourcesTunerPresetPaths) > 0 {
-		sentryHelmContext.ResourcesPresets = resourcesTunerPresetPaths
+	if len(overridePaths) > 0 {
+		sentryHelmContext.ResourcesPresets = overridePaths
 		sentryHelmContext.SetOnCurrentScope()
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.DEFAULT_RESOURCES_PRESET_TAG, "false")
 	} else {
