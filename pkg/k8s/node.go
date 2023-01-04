@@ -40,7 +40,7 @@ type NodeSummary struct {
 	Memory          *resource.Quantity `json:",omitempty"`
 	Name            string             `json:"-"`
 	Kernel          string             `json:",omitempty"`
-	Provider        string             `json:",omitempty"`
+	Provider        string             `json:"-"`
 	OSImage         string             `json:",omitempty"`
 	Architecture    string             `json:",omitempty"`
 	OperatingSystem string             `json:",omitempty"`
