@@ -44,7 +44,7 @@ type NodeSummary struct {
 	OSImage         string             `json:",omitempty"`
 	Architecture    string             `json:",omitempty"`
 	OperatingSystem string             `json:",omitempty"`
-	Taints          []v1.Taint         `json:"-"`
+	Taints          []v1.Taint         `json:",omitempty"`
 }
 
 func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary, error) {
