@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
+	v1 "k8s.io/api/core/v1"
 )
 
 type SentryContextTestSuite struct {
@@ -84,7 +85,7 @@ func (suite *SentryContextTestSuite) TestKubeContextSetOnCurrentScopeSuccess() {
 	suite.Equal(expect, event.Contexts)
 }
 
-func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesSuccess() {
+func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesDoesNotExceedMaxLenght() {
 	// prepare
 	kubeconfig := uuid.New().String()
 	kubecontext := uuid.New().String()
@@ -106,6 +107,37 @@ func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesSuccess(
 
 	suite.Equal(expectCompatibleNodes, sentryContext.CompatibleNodeSamples)
 	suite.Equal(expectInCompatibleNodes, sentryContext.IncompatibleNodeSamples)
+}
+
+func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesWithTaints() {
+	// prepare
+	kubeconfig := uuid.New().String()
+	kubecontext := uuid.New().String()
+
+	nodesReport := &k8s.NodesReport{
+		TaintedNodes: []*k8s.IncompatibleNode{
+			{
+				NodeSummary: &k8s.NodeSummary{
+					Name: "node",
+					Taints: []v1.Taint{
+						{
+							Key:    "key",
+							Value:  "value",
+							Effect: "effect",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	sentryContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
+
+	// act
+	sentryContext.SetNodesSamples(nodesReport)
+
+	// assert
+	suite.Equal(nodesReport.TaintedNodes, sentryContext.TaintedNodeSamples)
 }
 
 func (suite *SentryContextTestSuite) TestHelmContexJsonOmitEmpty() {

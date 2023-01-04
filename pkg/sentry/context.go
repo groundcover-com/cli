@@ -44,6 +44,7 @@ type KubeContext struct {
 	ClusterReport             *k8s.ClusterReport      `json:",omitempty"`
 	CompatibleNodeSamples     []*k8s.NodeSummary      `json:",omitempty"`
 	IncompatibleNodeSamples   []*k8s.IncompatibleNode `json:",omitempty"`
+	TaintedNodeSamples        []*k8s.IncompatibleNode `json:",omitempty"`
 }
 
 func NewKubeContext(kubeconfig, kubecontext string) *KubeContext {
@@ -69,6 +70,14 @@ func (context *KubeContext) SetNodesSamples(nodesReport *k8s.NodesReport) {
 
 	context.IncompatibleNodeSamples = make([]*k8s.IncompatibleNode, incompatibleSamplesSize)
 	copy(context.IncompatibleNodeSamples, nodesReport.IncompatibleNodes)
+
+	incompatibleTaintsSize := len(nodesReport.TaintedNodes)
+	if incompatibleTaintsSize > MAX_NODE_REPORT_SAMPLES {
+		incompatibleTaintsSize = MAX_NODE_REPORT_SAMPLES
+	}
+
+	context.TaintedNodeSamples = make([]*k8s.IncompatibleNode, incompatibleTaintsSize)
+	copy(context.TaintedNodeSamples, nodesReport.TaintedNodes)
 }
 
 func (context KubeContext) SetOnCurrentScope() {
