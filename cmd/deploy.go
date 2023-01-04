@@ -409,11 +409,24 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		return nil, err
 	}
 
+	agent, ok := chartValues["agent"].(map[string]interface{})
+	if ok {
+		for _, toleration := range tolerations {
+			tolerationsMap := map[string]interface{}{
+				"key":               toleration.Key,
+				"operator":          toleration.Operator,
+				"value":             toleration.Value,
+				"effect":            toleration.Effect,
+				"tolerationSeconds": toleration.TolerationSeconds,
+			}
+			agent["tolerations"] = append(agent["tolerations"].([]interface{}), tolerationsMap)
+		}
+	}
+
 	defaultChartValues := map[string]interface{}{
 		"clusterId":            clusterName,
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
-		"agent":                map[string]interface{}{"tolerations": tolerations},
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
 	}
 
