@@ -137,7 +137,7 @@ func (suite *SentryContextTestSuite) TestKubeContextSetNodeReportSamplesWithTain
 	sentryContext.SetNodesSamples(nodesReport)
 
 	// assert
-	suite.Equal(nodesReport.TaintedNodes, sentryContext.IncompatibleNodeSamples)
+	suite.Equal(nodesReport.TaintedNodes, sentryContext.TaintedNodeSamples)
 }
 
 func (suite *SentryContextTestSuite) TestHelmContexJsonOmitEmpty() {
