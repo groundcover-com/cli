@@ -31,6 +31,8 @@ const (
 	VALUES_FLAG                         = "values"
 	EXPERIMENTAL_FLAG                   = "experimental"
 	LOW_RESOURCES_FLAG                  = "low-resources"
+	STORE_ALL_LOG_FLAG                  = "store-all-logs"
+	STORE_ALL_LOGS_KEY                  = "storeAllLogs"
 	CHART_NAME                          = "groundcover/groundcover"
 	HELM_REPO_NAME                      = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE         = "groundcover"
@@ -54,6 +56,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().Bool(LOW_RESOURCES_FLAG, false, "set low resources limits")
 	viper.BindPFlag(LOW_RESOURCES_FLAG, DeployCmd.PersistentFlags().Lookup(LOW_RESOURCES_FLAG))
+
+	DeployCmd.PersistentFlags().Bool(STORE_ALL_LOG_FLAG, false, "store all logs")
+	viper.BindPFlag(STORE_ALL_LOG_FLAG, DeployCmd.PersistentFlags().Lookup(STORE_ALL_LOG_FLAG))
 
 	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
 	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
@@ -474,6 +479,15 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 
 	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
+	}
+
+	if viper.GetBool(STORE_ALL_LOG_FLAG) {
+		valueOverride := map[string]interface{}{
+			STORE_ALL_LOGS_KEY: true,
+		}
+		if err = mergo.Merge(&chartValues, valueOverride, mergo.WithSliceDeepCopy); err != nil {
+			return nil, err
+		}
 	}
 
 	sentryHelmContext.ValuesOverride = valuesOverride
