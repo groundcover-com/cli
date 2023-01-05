@@ -2,44 +2,44 @@
 k8sWatcher:
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 5m
+      memory: 32Mi
     limits:
-      cpu: 100m
+      cpu: 50m
       memory: 128Mi
 
 portal:
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 5m
+      memory: 16Mi
     limits:
-      cpu: 100m
+      cpu: 50m
       memory: 64Mi
 
 loki:
   resources:
     requests:
-      cpu: 50m
-      memory: 256Mi
+      cpu: 5m
+      memory: 32Mi
     limits:
       cpu: 100m
-      memory: 512Mi
+      memory: 256Mi
 
 grafana:
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 5m
+      memory: 32Mi
     limits:
-      cpu: 100m
+      cpu: 32m
       memory: 128Mi
 
 timescaledb-single:
   resources:
     requests:
-      cpu: 50m
-      memory: 512Mi
+      cpu: 16m
+      memory: 256Mi
     limits:
       cpu: 300m
       memory: 768Mi
@@ -47,8 +47,8 @@ timescaledb-single:
 victoria-metrics-agent:
   resources: 
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 16m
+      memory: 32Mi
     limits:
       cpu: 100m
       memory: 128Mi
@@ -57,26 +57,26 @@ victoria-metrics-single:
   server:
     resources:            
       requests:
-        cpu: 50m
-        memory: 256Mi
+        cpu: 5m
+        memory: 32Mi
       limits:
-        cpu: 300m
+        cpu: 32m
         memory: 256Mi
 
 promscale:
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 5m
+      memory: 32Mi
     limits:
-      cpu: 300m
+      cpu: 30m
       memory: 128Mi
 
 shepherd:
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 5m
+      memory: 32Mi
     limits:
-      cpu: 100m
+      cpu: 32m
       memory: 128Mi
