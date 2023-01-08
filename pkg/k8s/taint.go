@@ -43,20 +43,27 @@ func (manager TolerationManager) GetTaints() ([]string, error) {
 	return maps.Keys(taintsSet), nil
 }
 
-func (manager TolerationManager) GetTolerations(allowedTaints []string) ([]v1.Toleration, error) {
-	var err error
-	var tolerations []v1.Toleration
+func (manager TolerationManager) GetTolerationsMap(allowedTaints []string) ([]map[string]interface{}, error) {
+	tolerations := make([]map[string]interface{}, 0, len(allowedTaints))
 
 	for _, taintMarshaled := range allowedTaints {
 		toleration := v1.Toleration{
 			Operator: "Equal",
 		}
 
-		if err = json.Unmarshal([]byte(taintMarshaled), &toleration); err != nil {
+		if err := json.Unmarshal([]byte(taintMarshaled), &toleration); err != nil {
 			return nil, err
 		}
 
-		tolerations = append(tolerations, toleration)
+		tolerationsMap := map[string]interface{}{
+			"key":               toleration.Key,
+			"operator":          toleration.Operator,
+			"value":             toleration.Value,
+			"effect":            toleration.Effect,
+			"tolerationSeconds": toleration.TolerationSeconds,
+		}
+
+		tolerations = append(tolerations, tolerationsMap)
 	}
 
 	return tolerations, nil
