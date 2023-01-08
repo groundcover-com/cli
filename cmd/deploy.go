@@ -477,17 +477,17 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		return nil, err
 	}
 
-	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
-		return nil, err
-	}
-
 	if viper.GetBool(STORE_ALL_LOG_FLAG) {
 		valueOverride := map[string]interface{}{
 			STORE_ALL_LOGS_KEY: true,
 		}
-		if err = mergo.Merge(&chartValues, valueOverride, mergo.WithSliceDeepCopy); err != nil {
+		if err = mergo.Merge(&valuesOverride, valueOverride, mergo.WithSliceDeepCopy); err != nil {
 			return nil, err
 		}
+	}
+	
+	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
+		return nil, err
 	}
 
 	sentryHelmContext.ValuesOverride = valuesOverride
