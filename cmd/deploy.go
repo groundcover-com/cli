@@ -121,9 +121,8 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	tolerations := make([]map[string]interface{}, 0)
-	var deployableNodes []*k8s.NodeSummary
-	if deployableNodes, tolerations, err = getDeployableNodesAndTolerations(nodesReport, sentryKubeContext); err != nil {
+	deployableNodes, tolerations, err := getDeployableNodesAndTolerations(nodesReport, sentryKubeContext)
+	if err != nil {
 		return err
 	}
 
@@ -484,7 +483,7 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 			return nil, err
 		}
 	}
-	
+
 	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
 	}

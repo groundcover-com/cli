@@ -44,15 +44,14 @@ func (manager TolerationManager) GetTaints() ([]string, error) {
 }
 
 func (manager TolerationManager) GetTolerationsMap(allowedTaints []string) ([]map[string]interface{}, error) {
-	var err error
-	tolerations := make([]map[string]interface{}, 0)
+	tolerations := make([]map[string]interface{}, 0, len(allowedTaints))
 
 	for _, taintMarshaled := range allowedTaints {
 		toleration := v1.Toleration{
 			Operator: "Equal",
 		}
 
-		if err = json.Unmarshal([]byte(taintMarshaled), &toleration); err != nil {
+		if err := json.Unmarshal([]byte(taintMarshaled), &toleration); err != nil {
 			return nil, err
 		}
 
