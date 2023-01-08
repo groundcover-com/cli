@@ -134,10 +134,10 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	var chartValues map[string]interface{}
 	if isUpgrade {
-		chartValues = release.Config
+		chartValues = release.Chart.Values
 	}
 
-	if chartValues, err = getChartValues(chartValues, clusterName, deployableNodes, tolerations, sentryHelmContext); err != nil {
+	if chartValues, err = generateChartValues(chartValues, clusterName, deployableNodes, tolerations, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -404,7 +404,7 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	return chart, nil
 }
 
-func getChartValues(chartValues map[string]interface{}, clusterName string, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func generateChartValues(chartValues map[string]interface{}, clusterName string, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey api.ApiKey
@@ -420,7 +420,15 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 	}
 
 	// we always want to override tolerations
-	chartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
+	agent, ok := chartValues["agent"]
+	if ok {
+		agentMap, ok := agent.(map[string]interface{})
+		if ok {
+			agentMap["tolerations"] = tolerations
+		}
+	} else {
+		defaultChartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
+	}
 
 	if err = mergo.Merge(&chartValues, defaultChartValues, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
@@ -482,12 +490,7 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 	}
 
 	if viper.GetBool(STORE_ALL_LOG_FLAG) {
-		valueOverride := map[string]interface{}{
-			STORE_ALL_LOGS_KEY: true,
-		}
-		if err = mergo.Merge(&valuesOverride, valueOverride, mergo.WithSliceDeepCopy); err != nil {
-			return nil, err
-		}
+		valuesOverride[STORE_ALL_LOGS_KEY] = true
 	}
 
 	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
