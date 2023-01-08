@@ -437,12 +437,12 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		}
 	} else {
 		agentPresetPath := helm.GetAgentResourcePresetPath(allocatableResources)
-		if agentPresetPath != "" {
+		if agentPresetPath != helm.NO_PRESET {
 			overridePaths = append(overridePaths, agentPresetPath)
 		}
 
 		backendPresetPath := helm.GetBackendResourcePresetPath(allocatableResources)
-		if backendPresetPath != "" {
+		if backendPresetPath != helm.NO_PRESET {
 			overridePaths = append(overridePaths, backendPresetPath)
 		}
 	}
@@ -490,7 +490,7 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 			return nil, err
 		}
 	}
-	
+
 	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
 	}
