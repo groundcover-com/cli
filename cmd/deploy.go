@@ -20,7 +20,6 @@ import (
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
 )
 
@@ -117,7 +116,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	var tolerations []v1.Toleration
+	tolerations := make([]map[string]interface{}, 0)
 	var deployableNodes []*k8s.NodeSummary
 	if deployableNodes, tolerations, err = getDeployableNodesAndTolerations(nodesReport, sentryKubeContext); err != nil {
 		return err
@@ -227,10 +226,10 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 	return nodesReport, nil
 }
 
-func getDeployableNodesAndTolerations(nodesReport *k8s.NodesReport, sentryKubeContext *sentry_utils.KubeContext) ([]*k8s.NodeSummary, []v1.Toleration, error) {
+func getDeployableNodesAndTolerations(nodesReport *k8s.NodesReport, sentryKubeContext *sentry_utils.KubeContext) ([]*k8s.NodeSummary, []map[string]interface{}, error) {
 	var err error
 
-	var tolerations []v1.Toleration
+	tolerations := make([]map[string]interface{}, 0)
 	deployableNodes := nodesReport.CompatibleNodes
 
 	if len(nodesReport.TaintedNodes) > 0 {
@@ -243,7 +242,7 @@ func getDeployableNodesAndTolerations(nodesReport *k8s.NodesReport, sentryKubeCo
 			return nil, nil, err
 		}
 
-		if tolerations, err = tolerationManager.GetTolerations(allowedTaints); err != nil {
+		if tolerations, err = tolerationManager.GetTolerationsMap(allowedTaints); err != nil {
 			return nil, nil, err
 		}
 
@@ -401,7 +400,7 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	return chart, nil
 }
 
-func getChartValues(chartValues map[string]interface{}, clusterName string, deployableNodes []*k8s.NodeSummary, tolerations []v1.Toleration, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func getChartValues(chartValues map[string]interface{}, clusterName string, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey api.ApiKey
@@ -409,24 +408,11 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		return nil, err
 	}
 
-	agent, ok := chartValues["agent"].(map[string]interface{})
-	if ok {
-		for _, toleration := range tolerations {
-			tolerationsMap := map[string]interface{}{
-				"key":               toleration.Key,
-				"operator":          toleration.Operator,
-				"value":             toleration.Value,
-				"effect":            toleration.Effect,
-				"tolerationSeconds": toleration.TolerationSeconds,
-			}
-			agent["tolerations"] = append(agent["tolerations"].([]interface{}), tolerationsMap)
-		}
-	}
-
 	defaultChartValues := map[string]interface{}{
 		"clusterId":            clusterName,
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
+		"agent":                map[string]interface{}{"tolerations": tolerations},
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
 	}
 
