@@ -19,7 +19,7 @@ var VersionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Get groundcover cli version",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ui.SingletonWriter.Println(BinaryVersion)
+		ui.GlobalWriter.Println(BinaryVersion)
 		return nil
 	},
 }

@@ -94,7 +94,7 @@ var StatusCmd = &cobra.Command{
 		}
 
 		if chart.Version().GT(release.Version()) {
-			ui.SingletonWriter.Printf("Current groundcover installation in your cluster version: %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
+			ui.GlobalWriter.Printf("Current groundcover installation in your cluster version: %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
 		}
 
 		var nodeList *v1.NodeList
@@ -112,7 +112,7 @@ var StatusCmd = &cobra.Command{
 }
 
 func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, sentryHelmContext *sentry_utils.HelmContext) error {
-	spinner := ui.SingletonWriter.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
+	spinner := ui.GlobalWriter.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
 	spinner.StopMessage("Cluster established connectivity")
 	spinner.StopFailMessage("Cluster failed to establish connectivity")
 
@@ -157,7 +157,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 }
 
 func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
-	spinner := ui.SingletonWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
+	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
 	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
 
 	spinner.Start()
@@ -246,7 +246,7 @@ func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, namespace str
 }
 
 func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {
-	spinner := ui.SingletonWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
+	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
 
 	spinner.StopMessage("Persistent Volumes are ready")
 	spinner.StopFailMessage("Not all Persistent Volumes are bound, timeout waiting for them to be ready")

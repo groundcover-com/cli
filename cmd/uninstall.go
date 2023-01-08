@@ -116,7 +116,7 @@ var UninstallCmd = &cobra.Command{
 func promptUninstall(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, clusterName, releaseName, namespace string, sentryHelmContext *sentry_utils.HelmContext) (bool, bool, bool, error) {
 	var err error
 
-	ui.SingletonWriter.Println("\nUninstalling groundcover:")
+	ui.GlobalWriter.Println("\nUninstalling groundcover:")
 
 	var shouldUninstall bool
 	if shouldUninstall, err = promptUninstallRelease(ctx, kubeClient, helmClient, clusterName, releaseName, namespace, sentryHelmContext); err != nil {
@@ -130,11 +130,11 @@ func promptUninstall(ctx context.Context, kubeClient *k8s.Client, helmClient *he
 
 	var shouldDeleteNamespace bool
 	if viper.GetBool(DELETE_NAMESPACE_FLAG) {
-		shouldDeleteNamespace = ui.SingletonWriter.YesNoPrompt(fmt.Sprintf("Are you sure you want to delete %s namespace?", namespace), true)
+		shouldDeleteNamespace = ui.GlobalWriter.YesNoPrompt(fmt.Sprintf("Are you sure you want to delete %s namespace?", namespace), true)
 	}
 
 	if !shouldUninstall && !shouldEraseData && !shouldDeleteNamespace {
-		ui.SingletonWriter.PrintWarningMessage(fmt.Sprintf(
+		ui.GlobalWriter.PrintWarningMessage(fmt.Sprintf(
 			"could not find release %s in namespace %s, maybe groundcover is installed elsewhere? (use --%s, --%s flags)\n",
 			releaseName, namespace, HELM_RELEASE_FLAG, NAMESPACE_FLAG),
 		)
@@ -159,7 +159,7 @@ func namespaceExists(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	}
 
 	if len(namespaceList.Items) == 0 {
-		ui.SingletonWriter.PrintWarningMessage(fmt.Sprintf("could not find namespace %s, maybe groundcover is installed elsewhere? (use --%s flag)\n", namespace, NAMESPACE_FLAG))
+		ui.GlobalWriter.PrintWarningMessage(fmt.Sprintf("could not find namespace %s, maybe groundcover is installed elsewhere? (use --%s flag)\n", namespace, NAMESPACE_FLAG))
 		return ErrSilentExecutionAbort
 	}
 
@@ -189,7 +189,7 @@ func promptUninstallRelease(ctx context.Context, kubeClient *k8s.Client, helmCli
 		clusterName, namespace, release.Version(),
 	)
 
-	if !ui.SingletonWriter.YesNoPrompt(promptMessage, true) {
+	if !ui.GlobalWriter.YesNoPrompt(promptMessage, true) {
 		return false, ErrExecutionAborted
 	}
 
@@ -220,13 +220,13 @@ func promptEraseData(ctx context.Context, kubeClient *k8s.Client, releaseName, n
 		return false, nil
 	}
 
-	return ui.SingletonWriter.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false), nil
+	return ui.GlobalWriter.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false), nil
 }
 
 func uninstallHelmRelease(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, releaseName, namespace string) error {
 	var err error
 
-	spinner := ui.SingletonWriter.NewSpinner("Uninstalling groundcover helm release")
+	spinner := ui.GlobalWriter.NewSpinner("Uninstalling groundcover helm release")
 	spinner.Start()
 	spinner.StopMessage("groundcover helm release is uninstalled")
 	defer spinner.Stop()
@@ -309,7 +309,7 @@ func deleteReleaseLeftovers(ctx context.Context, kubeClient *k8s.Client, release
 func deletePvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, namespace string) error {
 	var err error
 
-	spinner := ui.SingletonWriter.NewSpinner("Deleting groundcover pvcs")
+	spinner := ui.GlobalWriter.NewSpinner("Deleting groundcover pvcs")
 	spinner.Start()
 	spinner.StopMessage("groundcover pvcs are deleted")
 	spinner.StopFailMessage("failed to delete groundcover pvcs")
@@ -335,7 +335,7 @@ func deletePvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, namesp
 func deleteNamespace(ctx context.Context, kubeClient *k8s.Client, namespace string) error {
 	var err error
 
-	spinner := ui.SingletonWriter.NewSpinner("Deleting groundcover namespace")
+	spinner := ui.GlobalWriter.NewSpinner("Deleting groundcover namespace")
 	spinner.Start()
 	spinner.StopMessage(fmt.Sprintf("%s namespace is deleted", namespace))
 	spinner.StopFailMessage(fmt.Sprintf("failed to delete %s namespace", namespace))

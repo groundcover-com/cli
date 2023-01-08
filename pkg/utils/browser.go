@@ -6,6 +6,6 @@ import (
 )
 
 func TryOpenBrowser(message string, url string) {
-	ui.SingletonWriter.Printf("%s %s\n", message, ui.SingletonWriter.UrlLink(url))
+	ui.GlobalWriter.Printf("%s %s\n", message, ui.GlobalWriter.UrlLink(url))
 	open.Run(url)
 }

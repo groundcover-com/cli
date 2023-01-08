@@ -34,7 +34,7 @@ const (
 )
 
 var (
-	JOIN_SLACK_LINK       = ui.SingletonWriter.UrlLink("https://groundcover.com/join-slack")
+	JOIN_SLACK_LINK       = ui.GlobalWriter.UrlLink("https://groundcover.com/join-slack")
 	SUPPORT_SLACK_MESSAGE = fmt.Sprintf("questions? issues? ping us anytime %s", JOIN_SLACK_LINK)
 	JOIN_SLACK_MESSAGE    = fmt.Sprintf("join us on slack, we promise to keep things interesting %s", JOIN_SLACK_LINK)
 )
@@ -108,7 +108,7 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 					return err
 				}
 				command := strings.Join(os.Args, " ")
-				ui.SingletonWriter.PrintWarningMessage(fmt.Sprintf("Please re-run %s\n", command))
+				ui.GlobalWriter.PrintWarningMessage(fmt.Sprintf("Please re-run %s\n", command))
 				sentry.CaptureMessage("cli-update executed successfully")
 				return ErrSilentExecutionAbort
 			}
@@ -138,7 +138,7 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 	}
 
 	promptFormat := "Your groundcover cli version %s is out of date! The latest cli version is %s. Do you want to update your cli?"
-	shouldUpdate := ui.SingletonWriter.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
+	shouldUpdate := ui.GlobalWriter.YesNoPrompt(fmt.Sprintf(promptFormat, currentVersion, selfUpdater.Version), true)
 
 	if shouldUpdate {
 		sentry_utils.SetTransactionOnCurrentScope(sentry_utils.SELF_UPDATE_CONTEXT_NAME)
@@ -156,16 +156,16 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	ui.SingletonWriter.Println("Validating groundcover authentication:")
+	ui.GlobalWriter.Println("Validating groundcover authentication:")
 
 	err = validateAuth0Token()
 
 	if err == nil {
-		ui.SingletonWriter.PrintSuccessMessage("Device authentication is valid\n")
+		ui.GlobalWriter.PrintSuccessMessage("Device authentication is valid\n")
 		return nil
 	}
 
-	if !ui.SingletonWriter.YesNoPrompt("authentication is required, do you want to login?", true) {
+	if !ui.GlobalWriter.YesNoPrompt("authentication is required, do you want to login?", true) {
 		os.Exit(0)
 	}
 
@@ -194,13 +194,13 @@ func ExecuteContext(ctx context.Context) error {
 	}
 
 	if strings.HasPrefix(err.Error(), "unknown command") {
-		ui.SingletonWriter.PrintErrorMessageln(err.Error())
+		ui.GlobalWriter.PrintErrorMessageln(err.Error())
 		return nil
 	}
 
 	sentry.CaptureException(err)
-	ui.SingletonWriter.PrintErrorMessageln(err.Error())
-	ui.SingletonWriter.Printf("\n%s\n", SUPPORT_SLACK_MESSAGE)
+	ui.GlobalWriter.PrintErrorMessageln(err.Error())
+	ui.GlobalWriter.Printf("\n%s\n", SUPPORT_SLACK_MESSAGE)
 	return err
 }
 

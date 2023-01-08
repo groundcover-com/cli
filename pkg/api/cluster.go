@@ -19,7 +19,7 @@ const (
 func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string) error {
 	var err error
 
-	spinner := ui.SingletonWriter.NewSpinner("Waiting until groundcover is connected to cloud platform")
+	spinner := ui.GlobalWriter.NewSpinner("Waiting until groundcover is connected to cloud platform")
 	spinner.StopMessage("groundcover is connected to cloud platform")
 	spinner.StopFailMessage("groundcover is yet connected to cloud platform")
 

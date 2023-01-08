@@ -33,7 +33,7 @@ func main() {
 
 	sentryClientOptions := sentry_utils.GetSentryClientOptions(environment, release)
 	if err = sentry.Init(sentryClientOptions); err != nil {
-		ui.SingletonWriter.PrintErrorMessageln(err.Error())
+		ui.GlobalWriter.PrintErrorMessageln(err.Error())
 		panic(err)
 	}
 	defer sentry.Flush(sentry_utils.FLUSH_TIMEOUT)

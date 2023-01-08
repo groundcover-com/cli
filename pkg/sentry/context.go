@@ -32,7 +32,7 @@ func NewCommandContext(start time.Time) *CommandContext {
 	return &CommandContext{
 		Name: sentry.CurrentHub().Scope().Transaction(),
 		Took: time.Since(start).Round(time.Second).String(),
-		Log:  ui.SingletonWriter,
+		Log:  ui.GlobalWriter,
 	}
 }
 

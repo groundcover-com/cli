@@ -105,7 +105,7 @@ func (selfUpdater *SelfUpdater) IsDevVersion(currentVersion semver.Version) bool
 func (selfUpdater *SelfUpdater) Apply(ctx context.Context) error {
 	var err error
 
-	spinner := ui.SingletonWriter.NewSpinner(fmt.Sprintf("Downloading cli version: %s", selfUpdater.Version))
+	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf("Downloading cli version: %s", selfUpdater.Version))
 	spinner.StopMessage("cli update was successfully")
 	spinner.StopFailMessage("cli update has failed")
 

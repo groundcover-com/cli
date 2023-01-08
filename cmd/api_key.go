@@ -18,7 +18,7 @@ var apiKeyCmd = &cobra.Command{
 			return errors.Wrap(err, "failed to load api key")
 		}
 
-		ui.SingletonWriter.Println(apiKey.ApiKey)
+		ui.GlobalWriter.Println(apiKey.ApiKey)
 
 		return nil
 	},

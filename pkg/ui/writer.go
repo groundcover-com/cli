@@ -33,7 +33,7 @@ func NewWriter() *Writer {
 	}
 }
 
-var SingletonWriter = NewWriter()
+var GlobalWriter = NewWriter()
 
 func (w *Writer) MarshalJSON() ([]byte, error) {
 	return json.Marshal((w.Dump()))

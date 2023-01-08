@@ -118,9 +118,9 @@ func (kubeClient *Client) isActionPermitted(ctx context.Context, action *authv1.
 func (kubeClient *Client) printHintIfAuthError(err error) error {
 	switch err.Error() {
 	case EKS_AUTH_PLUGIN_OUTDATED:
-		ui.SingletonWriter.PrintWarningMessage(fmt.Sprintf("%s\n%s", err, HINT_EKS_AUTH_PLUGIN_UPGRADE))
+		ui.GlobalWriter.PrintWarningMessage(fmt.Sprintf("%s\n%s", err, HINT_EKS_AUTH_PLUGIN_UPGRADE))
 	case GKE_GCLOUD_AUTH_PLUGIN_MISSING:
-		ui.SingletonWriter.PrintWarningMessage(fmt.Sprintf("%s\n%s", err, HINT_GKE_GCLOUD_AUTH_PLUGIN_INSTALL))
+		ui.GlobalWriter.PrintWarningMessage(fmt.Sprintf("%s\n%s", err, HINT_GKE_GCLOUD_AUTH_PLUGIN_INSTALL))
 	default:
 		return err
 	}
