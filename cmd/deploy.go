@@ -416,9 +416,11 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 		"clusterId":            clusterName,
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
-		"agent":                map[string]interface{}{"tolerations": tolerations},
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
 	}
+
+	// we always want to override tolerations
+	chartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
 
 	if err = mergo.Merge(&chartValues, defaultChartValues, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
@@ -427,7 +429,6 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 	var overridePaths []string
 	allocatableResources := helm.CalcAllocatableResources(deployableNodes)
 	sentryHelmContext.AllocatableResources = allocatableResources
-
 	if viper.GetBool(LOW_RESOURCES_FLAG) {
 		overridePaths = []string{
 			helm.AGENT_LOW_RESOURCES_PATH,
