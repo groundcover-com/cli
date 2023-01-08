@@ -17,7 +17,7 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
-
+- Add store-all-logs flag [#sc-6717]
 ### Changed
 
 ### Fixed
