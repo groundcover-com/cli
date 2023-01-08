@@ -15,17 +15,20 @@ We use the following categories for changes:
 - `Security` in case of vulnerabilities.
 
 ## [Unreleased]
+### Added
+### Changed
+### Fixed
+### Removed
+### Deprecated
+### Security
 
+## [0.4.2] 2023-01-08
 ### Added
 - Add store-all-logs flag [#sc-6717]
 ### Changed
-
 ### Fixed
-
 ### Removed
-
 ### Deprecated
-
 ### Security
 
 ## [0.4.1] 2023-01-03
