@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"groundcover.com/pkg/k8s"
 	sentry_utils "groundcover.com/pkg/sentry"
+	"groundcover.com/pkg/ui"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -237,6 +238,7 @@ func (suite *SentryContextTestSuite) TestCommandContextSetOnCurrentScopeSuccess(
 		"command": &sentry_utils.CommandContext{
 			Name: "test",
 			Took: "0s",
+			Log:  ui.NewWriter(),
 		},
 	}
 
