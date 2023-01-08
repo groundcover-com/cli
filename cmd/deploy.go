@@ -422,29 +422,29 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 	}
 
 	var overridePaths []string
-	useExperimental := viper.GetBool(EXPERIMENTAL_FLAG)
-	if useExperimental {
-		overridePaths = append(overridePaths, EXPERIMENTAL_PRESET_PATH)
-	}
-
 	allocatableResources := helm.CalcAllocatableResources(deployableNodes)
 	sentryHelmContext.AllocatableResources = allocatableResources
-
-	agentPresetPath, overrideAgentPreset := helm.GetAgentResourcePresetPath(allocatableResources)
-	if overrideAgentPreset {
-		overridePaths = append(overridePaths, agentPresetPath)
-	}
-
-	backendPresetPath, overrideBackendPreset := helm.GetBackendResourcePresetPath(allocatableResources)
-	if overrideBackendPreset {
-		overridePaths = append(overridePaths, backendPresetPath)
-	}
 
 	if viper.GetBool(LOW_RESOURCES_FLAG) {
 		overridePaths = []string{
 			helm.AGENT_LOW_RESOURCES_PATH,
 			helm.BACKEND_LOW_RESOURCES_PATH,
 		}
+	} else {
+		agentPresetPath, overrideAgentPreset := helm.GetAgentResourcePresetPath(allocatableResources)
+		if overrideAgentPreset {
+			overridePaths = append(overridePaths, agentPresetPath)
+		}
+
+		backendPresetPath, overrideBackendPreset := helm.GetBackendResourcePresetPath(allocatableResources)
+		if overrideBackendPreset {
+			overridePaths = append(overridePaths, backendPresetPath)
+		}
+	}
+
+	useExperimental := viper.GetBool(EXPERIMENTAL_FLAG)
+	if useExperimental {
+		overridePaths = append(overridePaths, EXPERIMENTAL_PRESET_PATH)
 	}
 
 	if slices.Contains(overridePaths, helm.AGENT_LOW_RESOURCES_PATH) {
