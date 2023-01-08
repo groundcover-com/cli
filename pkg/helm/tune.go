@@ -35,7 +35,7 @@ type AllocatableResources struct {
 	TotalMemory *resource.Quantity
 }
 
-func GetAgentResourcePresetPath(allocatableResources *AllocatableResources) (string, bool) {
+func GetAgentResourcePresetPath(allocatableResources *AllocatableResources) string {
 	mediumCpuThreshold := resource.MustParse(AGENT_MEDIUM_CPU_THRESHOLD)
 	mediumMemoryThreshold := resource.MustParse(AGENT_MEDIUM_MEMORY_THRESHOLD)
 	highCpuThreshold := resource.MustParse(AGENT_HIGH_CPU_THRESHOLD)
@@ -51,13 +51,13 @@ func GetAgentResourcePresetPath(allocatableResources *AllocatableResources) (str
 	case minAllocatableCpu <= highCpuThreshold.AsApproximateFloat64(), minAllocatableMemory <= highMemoryThreshold.AsApproximateFloat64():
 		presetPath = AGENT_MEDIUM_RESOURCES_PATH
 	default:
-		return NO_PRESET, false
+		return NO_PRESET
 	}
 
-	return presetPath, true
+	return presetPath
 }
 
-func GetBackendResourcePresetPath(allocatableResources *AllocatableResources) (string, bool) {
+func GetBackendResourcePresetPath(allocatableResources *AllocatableResources) string {
 	mediumCpuThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD)
 	mediumMemoryThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD)
 	highCpuThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_CPU_THRESHOLD)
@@ -73,10 +73,10 @@ func GetBackendResourcePresetPath(allocatableResources *AllocatableResources) (s
 	case totalAllocatableCpu <= highCpuThreshold.AsApproximateFloat64(), totalAllocatableMemory <= highMemoryThreshold.AsApproximateFloat64():
 		presetPath = BACKEND_MEDIUM_RESOURCES_PATH
 	default:
-		return NO_PRESET, false
+		return NO_PRESET
 	}
 
-	return presetPath, true
+	return presetPath
 }
 
 func CalcAllocatableResources(nodesSummeries []*k8s.NodeSummary) *AllocatableResources {

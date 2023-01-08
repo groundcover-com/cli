@@ -27,8 +27,7 @@ func TestTuneResourcesValuesAgentLow(t *testing.T) {
 	resources := helm.CalcAllocatableResources(lowNodeReport)
 
 	// act
-	cpu, override := helm.GetAgentResourcePresetPath(resources)
-	assert.True(t, override)
+	cpu := helm.GetAgentResourcePresetPath(resources)
 
 	// assert
 	assert.Equal(t, helm.AGENT_LOW_RESOURCES_PATH, cpu)
@@ -52,8 +51,7 @@ func TestTuneResourcesValuesAgentMedium(t *testing.T) {
 	resources := helm.CalcAllocatableResources(mediumNodeReport)
 
 	// act
-	cpu, override := helm.GetAgentResourcePresetPath(resources)
-	assert.True(t, override)
+	cpu := helm.GetAgentResourcePresetPath(resources)
 
 	// assert
 	assert.Equal(t, helm.AGENT_MEDIUM_RESOURCES_PATH, cpu)
@@ -77,8 +75,7 @@ func TestTuneResourcesValuesAgentHigh(t *testing.T) {
 	resources := helm.CalcAllocatableResources(highNodeReport)
 
 	// act
-	cpu, override := helm.GetAgentResourcePresetPath(resources)
-	assert.False(t, override)
+	cpu := helm.GetAgentResourcePresetPath(resources)
 
 	// assert
 	assert.Equal(t, helm.NO_PRESET, cpu)
@@ -102,8 +99,7 @@ func TestTuneResourcesValuesBackendLow(t *testing.T) {
 	resources := helm.CalcAllocatableResources(lowNodeReport)
 
 	// act
-	cpu, override := helm.GetBackendResourcePresetPath(resources)
-	assert.True(t, override)
+	cpu := helm.GetBackendResourcePresetPath(resources)
 
 	// assert
 	assert.Equal(t, helm.BACKEND_LOW_RESOURCES_PATH, cpu)
@@ -127,8 +123,7 @@ func TestTuneResourcesValuesBackendMedium(t *testing.T) {
 	resources := helm.CalcAllocatableResources(mediumNodeReport)
 
 	// act
-	cpu, override := helm.GetBackendResourcePresetPath(resources)
-	assert.True(t, override)
+	cpu := helm.GetBackendResourcePresetPath(resources)
 
 	// assert
 	assert.Equal(t, helm.BACKEND_MEDIUM_RESOURCES_PATH, cpu)
@@ -152,8 +147,7 @@ func TestTuneResourcesValuesBackendHigh(t *testing.T) {
 	resources := helm.CalcAllocatableResources(highNodeReport)
 
 	// act
-	cpu, override := helm.GetBackendResourcePresetPath(resources)
-	assert.False(t, override)
+	cpu := helm.GetBackendResourcePresetPath(resources)
 
 	// assert
 	assert.Equal(t, helm.NO_PRESET, cpu)

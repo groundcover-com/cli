@@ -431,13 +431,13 @@ func getChartValues(chartValues map[string]interface{}, clusterName string, depl
 			helm.BACKEND_LOW_RESOURCES_PATH,
 		}
 	} else {
-		agentPresetPath, overrideAgentPreset := helm.GetAgentResourcePresetPath(allocatableResources)
-		if overrideAgentPreset {
+		agentPresetPath := helm.GetAgentResourcePresetPath(allocatableResources)
+		if agentPresetPath != "" {
 			overridePaths = append(overridePaths, agentPresetPath)
 		}
 
-		backendPresetPath, overrideBackendPreset := helm.GetBackendResourcePresetPath(allocatableResources)
-		if overrideBackendPreset {
+		backendPresetPath := helm.GetBackendResourcePresetPath(allocatableResources)
+		if backendPresetPath != "" {
 			overridePaths = append(overridePaths, backendPresetPath)
 		}
 	}
