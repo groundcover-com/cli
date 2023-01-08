@@ -94,7 +94,7 @@ var StatusCmd = &cobra.Command{
 		}
 
 		if chart.Version().GT(release.Version()) {
-			fmt.Printf("Current groundcover installation in your cluster version: %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
+			ui.SingletonWriter.Printf("Current groundcover installation in your cluster version: %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
 		}
 
 		var nodeList *v1.NodeList
@@ -112,7 +112,7 @@ var StatusCmd = &cobra.Command{
 }
 
 func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, sentryHelmContext *sentry_utils.HelmContext) error {
-	spinner := ui.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
+	spinner := ui.SingletonWriter.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
 	spinner.StopMessage("Cluster established connectivity")
 	spinner.StopFailMessage("Cluster failed to establish connectivity")
 
@@ -137,7 +137,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 			}
 		}
 
-		err = fmt.Errorf("portal pod is not running")
+		err = errors.New("portal pod is not running")
 		return ui.RetryableError(err)
 	}
 
@@ -150,14 +150,14 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 	spinner.StopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return fmt.Errorf("timeout waiting for cluster to establish connectivity")
+		return errors.New("timeout waiting for cluster to establish connectivity")
 	}
 
 	return err
 }
 
 func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
-	spinner := ui.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
+	spinner := ui.SingletonWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
 	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
 
 	spinner.Start()
@@ -178,7 +178,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 			return nil
 		}
 
-		err = fmt.Errorf("not all expected alligators are running")
+		err = errors.New("not all expected alligators are running")
 		return ui.RetryableError(err)
 	}
 
@@ -246,7 +246,7 @@ func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, namespace str
 }
 
 func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {
-	spinner := ui.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
+	spinner := ui.SingletonWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
 
 	spinner.StopMessage("Persistent Volumes are ready")
 	spinner.StopFailMessage("Not all Persistent Volumes are bound, timeout waiting for them to be ready")
@@ -277,7 +277,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 			return nil
 		}
 
-		err = fmt.Errorf("not all expected pvcs are bound")
+		err = errors.New("not all expected pvcs are bound")
 		return ui.RetryableError(err)
 	}
 
@@ -293,7 +293,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 	spinner.StopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return fmt.Errorf("timeout waiting for persistent volume claims to be ready")
+		return errors.New("timeout waiting for persistent volume claims to be ready")
 	}
 
 	return err

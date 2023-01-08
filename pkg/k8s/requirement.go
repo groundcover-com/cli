@@ -29,10 +29,10 @@ func (requirement Requirement) PrintStatus() {
 
 	switch {
 	case requirement.IsCompatible:
-		ui.PrintSuccessMessage(messageBuffer.String())
+		ui.SingletonWriter.PrintSuccessMessage(messageBuffer.String())
 	case requirement.IsNonCompatible:
-		ui.PrintErrorMessage(messageBuffer.String())
+		ui.SingletonWriter.PrintErrorMessage(messageBuffer.String())
 	default:
-		ui.PrintWarningMessage(messageBuffer.String())
+		ui.SingletonWriter.PrintWarningMessage(messageBuffer.String())
 	}
 }

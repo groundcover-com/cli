@@ -48,7 +48,7 @@ func (deviceCode *DeviceCode) PollToken(ctx context.Context, auth0Token *Auth0To
 	var err error
 
 	spinnerMessage := fmt.Sprintf("Waiting for device confirmation for: %s", deviceCode.UserCode)
-	spinner := ui.NewSpinner(spinnerMessage)
+	spinner := ui.SingletonWriter.NewSpinner(spinnerMessage)
 	spinner.StopMessage("Device authentication confirmed by auth0")
 	spinner.StopFailMessage("Device authentication failed")
 
