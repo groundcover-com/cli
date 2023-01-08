@@ -90,17 +90,18 @@ func (suite *KubeTaintTestSuite) TestGetTolerationsSuccess() {
 	}
 
 	// act
-	tolerations, err := tolerationManager.GetTolerations([]string{"{\"key\":\"test\",\"value\":\"test\",\"effect\":\"NoSchedule\"}"})
+	tolerations, err := tolerationManager.GetTolerationsMap([]string{"{\"key\":\"test\",\"value\":\"test\",\"effect\":\"NoSchedule\"}"})
 	suite.NoError(err)
 
 	// assert
-
-	expected := []v1.Toleration{
+	var tolerationSeconds *int64
+	expected := []map[string]interface{}{
 		{
-			Key:      "test",
-			Value:    "test",
-			Operator: "Equal",
-			Effect:   "NoSchedule",
+			"key":               "test",
+			"value":             "test",
+			"operator":          v1.TolerationOpEqual,
+			"effect":            v1.TaintEffectNoSchedule,
+			"tolerationSeconds": tolerationSeconds,
 		},
 	}
 
