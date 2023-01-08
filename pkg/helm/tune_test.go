@@ -1,208 +1,196 @@
 package helm_test
 
 import (
-	"os"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/assert"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-type HelmTuneTestSuite struct {
-	suite.Suite
-}
+func TestTuneResourcesValuesAgentLow(t *testing.T) {
+	// arrange
+	agentLowCpu := resource.MustParse(helm.AGENT_MEDIUM_CPU_THRESHOLD)
+	agentLowCpu.Sub(*resource.NewMilliQuantity(1, resource.DecimalSI))
 
-func (suite *HelmTuneTestSuite) SetupSuite() {}
+	agentLowMemory := resource.MustParse(helm.AGENT_MEDIUM_MEMORY_THRESHOLD)
+	agentLowMemory.Sub(*resource.NewQuantity(1, resource.BinarySI))
 
-func (suite *HelmTuneTestSuite) TearDownSuite() {}
-
-func TestHelmTuneTestSuite(t *testing.T) {
-	suite.Run(t, &HelmTuneTestSuite{})
-}
-
-func (suite *HelmTuneTestSuite) TestTuneResourcesValuesLowSuccess() {
-	//prepare
-	var err error
-	var cpuChartValues map[string]interface{}
-	var memoryChartValues map[string]interface{}
-
-	lowerThenThresholdCpu := resource.MustParse("500m")
-	higherThenThresholdCpu := resource.MustParse("4000m")
-	lowerThenThresholdMemory := resource.MustParse("128Mi")
-	higherThenThresholdMemory := resource.MustParse("4000Mi")
-
-	lowerCpuNodeReports := []*k8s.NodeSummary{
+	lowNodeReport := []*k8s.NodeSummary{
 		{
-			CPU:    &lowerThenThresholdCpu,
-			Memory: &higherThenThresholdMemory,
+			CPU:    &agentLowCpu,
+			Memory: &agentLowMemory,
 		},
 	}
 
-	lowerMemoryNodeReports := []*k8s.NodeSummary{
-		{
-			CPU:    &higherThenThresholdCpu,
-			Memory: &lowerThenThresholdMemory,
-		},
-	}
+	resources := helm.CalcAllocatableResources(lowNodeReport)
 
-	//act
-	var cpuPresetPaths []string
-	cpuPresetPaths, err = helm.GetResourcesTunerPresetPaths(lowerCpuNodeReports)
-	suite.NoError(err)
-
-	cpuChartValues, err = helm.GetChartValuesOverrides(cpuPresetPaths)
-	suite.NoError(err)
-
-	var memoryPresetPaths []string
-	memoryPresetPaths, err = helm.GetResourcesTunerPresetPaths(lowerMemoryNodeReports)
-	suite.NoError(err)
-
-	memoryChartValues, err = helm.GetChartValuesOverrides(memoryPresetPaths)
-	suite.NoError(err)
+	// act
+	cpu := helm.GetAgentResourcePresetPath(resources)
 
 	// assert
-
-	expected := make(map[string]interface{})
-	expectedPresetPaths := []string{helm.AGENT_LOW_RESOURCES_PATH, helm.BACKEND_LOW_RESOURCES_PATH}
-
-	var data []byte
-	data, err = os.ReadFile(helm.AGENT_LOW_RESOURCES_PATH)
-	suite.NoError(err)
-
-	err = yaml.Unmarshal(data, &expected)
-	suite.NoError(err)
-
-	data, err = os.ReadFile(helm.BACKEND_LOW_RESOURCES_PATH)
-	suite.NoError(err)
-
-	err = yaml.Unmarshal(data, &expected)
-	suite.NoError(err)
-
-	suite.Equal(expected, cpuChartValues)
-	suite.Equal(expectedPresetPaths, cpuPresetPaths)
-	suite.Equal(expected, memoryChartValues)
-	suite.Equal(expectedPresetPaths, memoryPresetPaths)
+	assert.Equal(t, helm.AGENT_LOW_RESOURCES_PATH, cpu)
 }
 
-func (suite *HelmTuneTestSuite) TestTuneResourcesValuesMediumSuccess() {
-	//prepare
-	var err error
-	var cpuChartValues map[string]interface{}
-	var memoryChartValues map[string]interface{}
+func TestTuneResourcesValuesAgentMedium(t *testing.T) {
+	// arrange
+	agentMediumCpu := resource.MustParse(helm.AGENT_MEDIUM_CPU_THRESHOLD)
+	agentMediumCpu.Add(*resource.NewMilliQuantity(1, resource.DecimalSI))
 
-	lowerThenThresholdCpu := resource.MustParse("1750m")
-	higherThenThresholdCpu := resource.MustParse("4000m")
-	lowerThenThresholdMemory := resource.MustParse("2048Mi")
-	higherThenThresholdMemory := resource.MustParse("4096Mi")
+	agentMediumMemory := resource.MustParse(helm.AGENT_MEDIUM_MEMORY_THRESHOLD)
+	agentMediumMemory.Add(*resource.NewQuantity(1, resource.BinarySI))
 
-	lowerCpuNodeReports := []*k8s.NodeSummary{
+	mediumNodeReport := []*k8s.NodeSummary{
 		{
-			CPU:    &lowerThenThresholdCpu,
-			Memory: &higherThenThresholdMemory,
-		},
-		{
-			CPU:    &lowerThenThresholdCpu,
-			Memory: &higherThenThresholdMemory,
-		},
-		{
-			CPU:    &lowerThenThresholdCpu,
-			Memory: &higherThenThresholdMemory,
+			CPU:    &agentMediumCpu,
+			Memory: &agentMediumMemory,
 		},
 	}
 
-	lowerMemoryNodeReports := []*k8s.NodeSummary{
-		{
-			CPU:    &higherThenThresholdCpu,
-			Memory: &lowerThenThresholdMemory,
-		},
-		{
-			CPU:    &higherThenThresholdCpu,
-			Memory: &lowerThenThresholdMemory,
-		},
-		{
-			CPU:    &higherThenThresholdCpu,
-			Memory: &lowerThenThresholdMemory,
-		},
-	}
+	resources := helm.CalcAllocatableResources(mediumNodeReport)
 
-	//act
-	var cpuPresetPaths []string
-	cpuPresetPaths, err = helm.GetResourcesTunerPresetPaths(lowerCpuNodeReports)
-	suite.NoError(err)
-
-	cpuChartValues, err = helm.GetChartValuesOverrides(cpuPresetPaths)
-	suite.NoError(err)
-
-	var memoryPresetPaths []string
-	memoryPresetPaths, err = helm.GetResourcesTunerPresetPaths(lowerMemoryNodeReports)
-	suite.NoError(err)
-
-	memoryChartValues, err = helm.GetChartValuesOverrides(memoryPresetPaths)
-	suite.NoError(err)
+	// act
+	cpu := helm.GetAgentResourcePresetPath(resources)
 
 	// assert
-
-	expected := make(map[string]interface{})
-	expectedPresetPaths := []string{helm.AGENT_MEDIUM_RESOURCES_PATH, helm.BACKEND_MEDIUM_RESOURCES_PATH}
-
-	var data []byte
-	data, err = os.ReadFile(helm.AGENT_MEDIUM_RESOURCES_PATH)
-	suite.NoError(err)
-
-	err = yaml.Unmarshal(data, &expected)
-	suite.NoError(err)
-
-	data, err = os.ReadFile(helm.BACKEND_MEDIUM_RESOURCES_PATH)
-	suite.NoError(err)
-
-	err = yaml.Unmarshal(data, &expected)
-	suite.NoError(err)
-
-	suite.Equal(expected, cpuChartValues)
-	suite.Equal(expectedPresetPaths, cpuPresetPaths)
-	suite.Equal(expected, memoryChartValues)
-	suite.Equal(expectedPresetPaths, memoryPresetPaths)
+	assert.Equal(t, helm.AGENT_MEDIUM_RESOURCES_PATH, cpu)
 }
 
-func (suite *HelmTuneTestSuite) TestTuneResourcesValuesHighSuccess() {
-	//prepare
-	var err error
-	var chartValues map[string]interface{}
+func TestTuneResourcesValuesAgentHigh(t *testing.T) {
+	// arrange
+	agentHighCpu := resource.MustParse(helm.AGENT_HIGH_CPU_THRESHOLD)
+	agentHighCpu.Add(*resource.NewMilliQuantity(1, resource.DecimalSI))
 
-	cpu := resource.MustParse("4000m")
-	memory := resource.MustParse("4096Mi")
+	agentHighMemory := resource.MustParse(helm.AGENT_HIGH_MEMORY_THRESHOLD)
+	agentHighMemory.Add(*resource.NewQuantity(1, resource.BinarySI))
 
-	nodeReports := []*k8s.NodeSummary{
+	highNodeReport := []*k8s.NodeSummary{
 		{
-			CPU:    &cpu,
-			Memory: &memory,
-		},
-		{
-			CPU:    &cpu,
-			Memory: &memory,
-		},
-		{
-			CPU:    &cpu,
-			Memory: &memory,
+			CPU:    &agentHighCpu,
+			Memory: &agentHighMemory,
 		},
 	}
 
-	//act
+	resources := helm.CalcAllocatableResources(highNodeReport)
 
-	var presetPaths []string
-	presetPaths, err = helm.GetResourcesTunerPresetPaths(nodeReports)
-	suite.NoError(err)
+	// act
+	cpu := helm.GetAgentResourcePresetPath(resources)
 
-	chartValues, err = helm.GetChartValuesOverrides(presetPaths)
-	suite.NoError(err)
 	// assert
+	assert.Equal(t, helm.NO_PRESET, cpu)
+}
 
-	expected := make(map[string]interface{})
-	var expectedPresetPaths []string
+func TestTuneResourcesValuesBackendLow(t *testing.T) {
+	// arrange
+	backendLowCpu := resource.MustParse(helm.BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD)
+	backendLowCpu.Sub(*resource.NewMilliQuantity(1, resource.DecimalSI))
 
-	suite.Equal(expected, chartValues)
-	suite.Equal(expectedPresetPaths, presetPaths)
+	backendLowMemory := resource.MustParse(helm.BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD)
+	backendLowMemory.Sub(*resource.NewQuantity(1, resource.BinarySI))
+
+	lowNodeReport := []*k8s.NodeSummary{
+		{
+			CPU:    &backendLowCpu,
+			Memory: &backendLowMemory,
+		},
+	}
+
+	resources := helm.CalcAllocatableResources(lowNodeReport)
+
+	// act
+	cpu := helm.GetBackendResourcePresetPath(resources)
+
+	// assert
+	assert.Equal(t, helm.BACKEND_LOW_RESOURCES_PATH, cpu)
+}
+
+func TestTuneResourcesValuesBackendMedium(t *testing.T) {
+	// arrange
+	backendMediumCpu := resource.MustParse(helm.BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD)
+	backendMediumCpu.Add(*resource.NewMilliQuantity(1, resource.DecimalSI))
+
+	backendMediumMemory := resource.MustParse(helm.BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD)
+	backendMediumMemory.Add(*resource.NewQuantity(1, resource.BinarySI))
+
+	mediumNodeReport := []*k8s.NodeSummary{
+		{
+			CPU:    &backendMediumCpu,
+			Memory: &backendMediumMemory,
+		},
+	}
+
+	resources := helm.CalcAllocatableResources(mediumNodeReport)
+
+	// act
+	cpu := helm.GetBackendResourcePresetPath(resources)
+
+	// assert
+	assert.Equal(t, helm.BACKEND_MEDIUM_RESOURCES_PATH, cpu)
+}
+
+func TestTuneResourcesValuesBackendHigh(t *testing.T) {
+	// arrange
+	backendHighCpu := resource.MustParse(helm.BACKEND_HIGH_TOTAL_CPU_THRESHOLD)
+	backendHighCpu.Add(*resource.NewMilliQuantity(1, resource.DecimalSI))
+
+	backendHighMemory := resource.MustParse(helm.BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD)
+	backendHighMemory.Add(*resource.NewQuantity(1, resource.BinarySI))
+
+	highNodeReport := []*k8s.NodeSummary{
+		{
+			CPU:    &backendHighCpu,
+			Memory: &backendHighMemory,
+		},
+	}
+
+	resources := helm.CalcAllocatableResources(highNodeReport)
+
+	// act
+	cpu := helm.GetBackendResourcePresetPath(resources)
+
+	// assert
+	assert.Equal(t, helm.NO_PRESET, cpu)
+}
+
+func TestCalcAllocatableResourcesSingleNode(t *testing.T) {
+	// arrange
+	nodes := []*k8s.NodeSummary{
+		{
+			CPU:    resource.NewMilliQuantity(1000, resource.DecimalSI),
+			Memory: resource.NewQuantity(1000, resource.BinarySI),
+		},
+	}
+
+	// act
+	resources := helm.CalcAllocatableResources(nodes)
+
+	// assert
+	assert.Equal(t, resource.NewMilliQuantity(1000, resource.DecimalSI), resources.MinCpu)
+	assert.Equal(t, resource.NewQuantity(1000, resource.BinarySI), resources.MinMemory)
+	assert.Equal(t, resource.NewMilliQuantity(1000, resource.DecimalSI), resources.TotalCpu)
+	assert.Equal(t, resource.NewQuantity(1000, resource.BinarySI), resources.TotalMemory)
+}
+
+func TestCalcAllocatableResourcesMultiNode(t *testing.T) {
+	// arrange
+	nodes := []*k8s.NodeSummary{
+		{
+			CPU:    resource.NewMilliQuantity(2000, resource.DecimalSI),
+			Memory: resource.NewQuantity(2000, resource.BinarySI),
+		},
+		{
+			CPU:    resource.NewMilliQuantity(1000, resource.DecimalSI),
+			Memory: resource.NewQuantity(1000, resource.BinarySI),
+		},
+	}
+
+	// act
+	resources := helm.CalcAllocatableResources(nodes)
+
+	// assert
+	assert.Equal(t, resource.NewMilliQuantity(1000, resource.DecimalSI), resources.MinCpu)
+	assert.Equal(t, resource.NewQuantity(1000, resource.BinarySI), resources.MinMemory)
+	assert.Equal(t, resource.NewMilliQuantity(3000, resource.DecimalSI), resources.TotalCpu)
+	assert.Equal(t, resource.NewQuantity(3000, resource.BinarySI), resources.TotalMemory)
 }

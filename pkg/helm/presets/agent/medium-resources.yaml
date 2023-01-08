@@ -16,19 +16,3 @@ agent:
       limits:
         cpu: 250m
         memory: 750Mi
-  promtail:
-    resources:
-      requests:
-        cpu: 40m
-        memory: 100Mi
-      limits:
-        cpu: 80m
-        memory: 100Mi
-  flb:
-    resources:
-      requests:
-        cpu: 20m
-        memory: 32Mi
-      limits:
-        cpu: 40m
-        memory: 32Mi
