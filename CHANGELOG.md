@@ -22,6 +22,15 @@ We use the following categories for changes:
 ### Deprecated
 ### Security
 
+## [0.4.3] 2023-01-08
+### Added
+### Changed
+ -Improved logging [#sc-6298]
+### Fixed
+### Removed
+### Deprecated
+### Security
+
 ## [0.4.2] 2023-01-08
 ### Added
 - Add store-all-logs flag [#sc-6717]
