@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -278,7 +279,7 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeSchedulable(nodeSum
 			continue
 		}
 
-		return fmt.Errorf("taints are set")
+		return errors.New("taints are set")
 	}
 
 	return nil

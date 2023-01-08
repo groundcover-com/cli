@@ -1,7 +1,7 @@
 package helm
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -39,7 +39,7 @@ func NewHelmClient(namespace, kubecontext string) (*Client, error) {
 
 	getter, ok := helmClient.settings.RESTClientGetter().(*genericclioptions.ConfigFlags)
 	if !ok {
-		return nil, fmt.Errorf("failed to cast helm rest client getter")
+		return nil, errors.New("failed to cast helm rest client getter")
 	}
 
 	getter.WrapConfigFn = func(restConfig *rest.Config) *rest.Config {

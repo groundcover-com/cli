@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"groundcover.com/pkg/api"
+	"groundcover.com/pkg/ui"
 )
 
 var apiKeyCmd = &cobra.Command{
@@ -19,7 +18,7 @@ var apiKeyCmd = &cobra.Command{
 			return errors.Wrap(err, "failed to load api key")
 		}
 
-		fmt.Println(apiKey.ApiKey)
+		ui.GlobalWriter.Println(apiKey.ApiKey)
 
 		return nil
 	},
