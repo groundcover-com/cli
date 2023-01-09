@@ -238,7 +238,9 @@ func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, namespace str
 
 	podsStatus := make(map[string]k8s.PodStatus)
 	for _, pod := range podList.Items {
-		podsStatus[pod.Name] = k8s.BuildPodStatus(pod)
+		if pod.Status.Phase != v1.PodRunning && pod.Status.Phase != v1.PodSucceeded {
+			podsStatus[pod.Name] = k8s.BuildPodStatus(pod)
+		}
 	}
 
 	sentryHelmContext.PodsStatus = podsStatus
