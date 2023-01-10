@@ -2,7 +2,7 @@ package ui_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
@@ -25,7 +25,7 @@ func TestSpinnerSuite(t *testing.T) {
 func (suite *SpinnerTestSuite) TestPollFuncSuccues() {
 	//prepare
 	ctx := context.Background()
-	spinner := ui.NewSpinner("test")
+	spinner := ui.NewWriter().NewSpinner("test")
 
 	//act
 	testFunc := func() error {
@@ -41,8 +41,8 @@ func (suite *SpinnerTestSuite) TestPollFuncSuccues() {
 func (suite *SpinnerTestSuite) TestPollFuncMaxRetries() {
 	//prepare
 	ctx := context.Background()
-	spinner := ui.NewSpinner("test")
-	myError := fmt.Errorf("test")
+	spinner := ui.NewWriter().NewSpinner("test")
+	myError := errors.New("test")
 
 	//act
 	var attempts int
@@ -61,8 +61,8 @@ func (suite *SpinnerTestSuite) TestPollFuncMaxRetries() {
 func (suite *SpinnerTestSuite) TestPollFuncTimeout() {
 	//prepare
 	ctx := context.Background()
-	myError := fmt.Errorf("test")
-	spinner := ui.NewSpinner("test")
+	myError := errors.New("test")
+	spinner := ui.NewWriter().NewSpinner("test")
 
 	//act
 	testFunc := func() error {
@@ -79,8 +79,8 @@ func (suite *SpinnerTestSuite) TestPollFuncTimeout() {
 func (suite *SpinnerTestSuite) TestPollFuncNonRetryableError() {
 	//prepare
 	ctx := context.Background()
-	myError := fmt.Errorf("test")
-	spinner := ui.NewSpinner("test")
+	myError := errors.New("test")
+	spinner := ui.NewWriter().NewSpinner("test")
 
 	//act
 	var attempts int

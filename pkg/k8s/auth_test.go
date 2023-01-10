@@ -1,7 +1,7 @@
 package k8s_test
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,7 +36,7 @@ func TestValidateAwsCliVersionSupported(t *testing.T) {
 		{
 			name:     "aws cli version 1.18.0",
 			version:  "aws-cli/1.18.0 Python/3.7.4 Darwin/19.4.0 botocore/1.17.0",
-			expected: fmt.Errorf("aws-cli version is unsupported (1.18.0 < 1.23.9)"),
+			expected: errors.New("aws-cli version is unsupported (1.18.0 < 1.23.9)"),
 		},
 		{
 			name:     "aws cli version 1.23.9",
@@ -51,7 +51,7 @@ func TestValidateAwsCliVersionSupported(t *testing.T) {
 		{
 			name:     "aws cli version 2.0.0",
 			version:  "aws-cli/2.0.0 Python/3.7.4 Darwin/19.4.0 botocore/2.0.0dev0",
-			expected: fmt.Errorf("aws-cli version is unsupported (2.0.0 < 2.7.0)"),
+			expected: errors.New("aws-cli version is unsupported (2.0.0 < 2.7.0)"),
 		},
 		{
 			name:     "aws cli version 2.7.0",
@@ -66,12 +66,12 @@ func TestValidateAwsCliVersionSupported(t *testing.T) {
 		{
 			name:     "aws cli version 3.0.0",
 			version:  "aws-cli/3.0.0 Python/3.7.4 Darwin/19.4.0 botocore/3.0.0",
-			expected: fmt.Errorf("aws-cli version 3.0.0 is unsupported"),
+			expected: errors.New("aws-cli version 3.0.0 is unsupported"),
 		},
 		{
 			name:     "aws cli version 0.9.0",
 			version:  "aws-cli/0.9.0 Python/3.7.4 Darwin/19.4.0 botocore/0.9.0",
-			expected: fmt.Errorf("aws-cli version 0.9.0 is unsupported"),
+			expected: errors.New("aws-cli version 0.9.0 is unsupported"),
 		},
 	}
 

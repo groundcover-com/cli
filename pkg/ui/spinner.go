@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/theckman/yacspin"
@@ -17,7 +16,7 @@ const (
 	spinnerCharset = 11
 )
 
-var ErrSpinnerTimeout = fmt.Errorf("spinner timeout")
+var ErrSpinnerTimeout = errors.New("spinner timeout")
 
 type retryableError struct {
 	error
@@ -31,7 +30,7 @@ type Spinner struct {
 	*yacspin.Spinner
 }
 
-func NewSpinner(message string) *Spinner {
+func newSpinner(message string) *Spinner {
 	cfg := yacspin.Config{
 		Frequency:         100 * time.Millisecond,
 		Colors:            []string{"fgBlue"},

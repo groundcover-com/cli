@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/blang/semver/v4"
 	"github.com/spf13/cobra"
+	"groundcover.com/pkg/ui"
 )
 
 var (
@@ -20,7 +19,7 @@ var VersionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Get groundcover cli version",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println(BinaryVersion)
+		ui.GlobalWriter.Println(BinaryVersion)
 		return nil
 	},
 }

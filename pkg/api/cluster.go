@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"groundcover.com/pkg/ui"
@@ -20,7 +19,7 @@ const (
 func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string) error {
 	var err error
 
-	spinner := ui.NewSpinner("Waiting until groundcover is connected to cloud platform")
+	spinner := ui.GlobalWriter.NewSpinner("Waiting until groundcover is connected to cloud platform")
 	spinner.StopMessage("groundcover is connected to cloud platform")
 	spinner.StopFailMessage("groundcover is yet connected to cloud platform")
 
@@ -52,7 +51,7 @@ func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string
 	spinner.StopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return fmt.Errorf("timeout waiting for groundcover to connect cloud platform")
+		return errors.New("timeout waiting for groundcover to connect cloud platform")
 	}
 
 	return err
