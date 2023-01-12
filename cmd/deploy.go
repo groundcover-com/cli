@@ -161,7 +161,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		ui.GlobalWriter.Printf("\nInstallation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"\n", namespace)
 		ui.GlobalWriter.Printf("If pods in %q namespce are running, Check out: %s\n", namespace, ui.GlobalWriter.UrlLink(fmt.Sprintf("%s/?clusterId=%s&viewType=Overview\n", GROUNDCOVER_URL, clusterName)))
 		ui.GlobalWriter.Printf("%s\n", SUPPORT_SLACK_MESSAGE)
-		return nil
+		return err
 	}
 
 	ui.GlobalWriter.Println("\nThat was easy. groundcover installed!")
