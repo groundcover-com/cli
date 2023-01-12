@@ -5,7 +5,7 @@ import (
 	"groundcover.com/pkg/ui"
 )
 
-func TryOpenBrowser(message string, url string) {
-	ui.GlobalWriter.Printf("%s %s\n", message, ui.GlobalWriter.UrlLink(url))
+func TryOpenBrowser(writer ui.Writer, message string, url string) {
+	writer.Printf("%s %s\n", message, writer.UrlLink(url))
 	open.Run(url)
 }
