@@ -34,6 +34,7 @@ func NewWriter() *Writer {
 }
 
 var GlobalWriter = NewWriter()
+var QuietWriter = NewWriter()
 
 func (w *Writer) MarshalJSON() ([]byte, error) {
 	return json.Marshal((w.Dump()))
