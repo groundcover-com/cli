@@ -98,7 +98,8 @@ type HelmContext struct {
 	PreviousChartVersion string                     `json:",omitempty"`
 	ResourcesPresets     []string                   `json:",omitempty"`
 	ValuesOverride       map[string]interface{}     `json:",omitempty"`
-	PodsStatus           map[string]k8s.PodStatus   `json:",omitempty"`
+	AgentStatus          map[string]k8s.PodStatus   `json:",omitempty"`
+	BackendStatus        map[string]k8s.PodStatus   `json:",omitempty"`
 	BoundPvcs            []string                   `json:",omitempty"`
 	AllocatableResources *helm.AllocatableResources `json:",omitempty"`
 }
