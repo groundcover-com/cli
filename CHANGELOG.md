@@ -22,10 +22,20 @@ We use the following categories for changes:
 ### Deprecated
 ### Security
 
+## [0.4.4] 2023-01-08
+### Added
+- added a quiet logger [sc-6808]
+### Changed
+### Fixed
+- deploy executed successfully with no pvcs report bug [sc-6811]
+### Removed
+### Deprecated
+### Security
+
 ## [0.4.3] 2023-01-08
 ### Added
 ### Changed
- -Improved logging [#sc-6298]
+- Improved logging [#sc-6298]
 ### Fixed
 ### Removed
 ### Deprecated
