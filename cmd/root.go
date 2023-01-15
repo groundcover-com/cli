@@ -198,7 +198,7 @@ func ExecuteContext(ctx context.Context) error {
 		return nil
 	}
 
-	sentry.CaptureException(err)
+	sentry.CaptureMessage(fmt.Sprintf("%s execution failed - %s", sentryCommandContext.Name, err.Error()))
 	ui.GlobalWriter.PrintErrorMessageln(err.Error())
 	ui.GlobalWriter.Printf("\n%s\n", SUPPORT_SLACK_MESSAGE)
 	return err

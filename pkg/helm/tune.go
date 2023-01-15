@@ -10,6 +10,9 @@ import (
 const (
 	NO_PRESET = ""
 
+	GROUNDCOVER_MINIUM_CPU    = "6000m"
+	GROUNDCOVER_MINIUM_MEMORY = "6000Mi"
+
 	AGENT_MEDIUM_CPU_THRESHOLD    = "1000m"
 	AGENT_MEDIUM_MEMORY_THRESHOLD = "1024Mi"
 	AGENT_HIGH_CPU_THRESHOLD      = "3000m"
@@ -101,4 +104,13 @@ func CalcAllocatableResources(nodesSummeries []*k8s.NodeSummary) *AllocatableRes
 	}
 
 	return allocatableResources
+}
+
+func CanRunGroundcover(resources *AllocatableResources) bool {
+	if resources.TotalCpu.Cmp(resource.MustParse(GROUNDCOVER_MINIUM_CPU)) >= 0 &&
+		resources.TotalMemory.Cmp(resource.MustParse(GROUNDCOVER_MINIUM_MEMORY)) >= 0 {
+		return true
+	}
+
+	return false
 }

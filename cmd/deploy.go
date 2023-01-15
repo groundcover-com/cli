@@ -42,6 +42,7 @@ const (
 	HELM_REPO_URL                       = "https://helm.groundcover.com"
 	EXPERIMENTAL_PRESET_PATH            = "presets/agent/experimental.yaml"
 	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
+	BELOW_RESOURCES_MESSAGE             = "🚨 We get it, you like things light 🪁 - but since you’re deploying on a cluster with extremely low resources we cannot deploy groundcover and provide a smooth sailing.\n     To check out groundcover, please try deploying on a different cluster."
 )
 
 func init() {
@@ -437,6 +438,11 @@ func generateChartValues(chartValues map[string]interface{}, clusterName string,
 	var overridePaths []string
 	allocatableResources := helm.CalcAllocatableResources(deployableNodes)
 	sentryHelmContext.AllocatableResources = allocatableResources
+
+	if !helm.CanRunGroundcover(allocatableResources) {
+		return nil, errors.New(BELOW_RESOURCES_MESSAGE)
+	}
+
 	if viper.GetBool(LOW_RESOURCES_FLAG) {
 		overridePaths = []string{
 			helm.AGENT_LOW_RESOURCES_PATH,

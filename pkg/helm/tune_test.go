@@ -194,3 +194,51 @@ func TestCalcAllocatableResourcesMultiNode(t *testing.T) {
 	assert.Equal(t, resource.NewMilliQuantity(3000, resource.DecimalSI), resources.TotalCpu)
 	assert.Equal(t, resource.NewQuantity(3000, resource.BinarySI), resources.TotalMemory)
 }
+
+func TestAllocatableResourcesBelowMinimum(t *testing.T) {
+	// arrange
+	belowMinCpu := resource.MustParse(helm.GROUNDCOVER_MINIUM_CPU)
+	belowMinCpu.Sub(*resource.NewMilliQuantity(1, resource.DecimalSI))
+
+	belowMinMemory := resource.MustParse(helm.GROUNDCOVER_MINIUM_MEMORY)
+	belowMinMemory.Sub(*resource.NewQuantity(1, resource.BinarySI))
+
+	nodes := []*k8s.NodeSummary{
+		{
+			CPU:    &belowMinCpu,
+			Memory: &belowMinMemory,
+		},
+	}
+
+	resources := helm.CalcAllocatableResources(nodes)
+
+	// act
+	canRunGroundcover := helm.CanRunGroundcover(resources)
+
+	// assert
+	assert.False(t, canRunGroundcover)
+}
+
+func TestAllocatableResourcesAboveMinimum(t *testing.T) {
+	// arrange
+	aboveMinCpu := resource.MustParse(helm.GROUNDCOVER_MINIUM_CPU)
+	aboveMinCpu.Add(*resource.NewMilliQuantity(1, resource.DecimalSI))
+
+	aboveMinMemory := resource.MustParse(helm.GROUNDCOVER_MINIUM_MEMORY)
+	aboveMinMemory.Add(*resource.NewQuantity(1, resource.BinarySI))
+
+	nodes := []*k8s.NodeSummary{
+		{
+			CPU:    &aboveMinCpu,
+			Memory: &aboveMinMemory,
+		},
+	}
+
+	resources := helm.CalcAllocatableResources(nodes)
+
+	// act
+	canRunGroundcover := helm.CanRunGroundcover(resources)
+
+	// assert
+	assert.True(t, canRunGroundcover)
+}
