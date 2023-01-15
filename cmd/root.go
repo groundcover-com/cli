@@ -34,9 +34,9 @@ const (
 )
 
 var (
-	JOIN_SLACK_LINK       = ui.GlobalWriter.UrlLink("https://groundcover.com/join-slack")
-	SUPPORT_SLACK_MESSAGE = fmt.Sprintf("questions? issues? ping us anytime %s", JOIN_SLACK_LINK)
-	JOIN_SLACK_MESSAGE    = fmt.Sprintf("join us on slack, we promise to keep things interesting %s", JOIN_SLACK_LINK)
+	JOIN_SLACK_LINK       = "https://groundcover.com/join-slack"
+	SUPPORT_SLACK_MESSAGE = "questions? issues? ping us anytime"
+	JOIN_SLACK_MESSAGE    = "join us on slack, we promise to keep things interesting"
 )
 
 func init() {
@@ -185,6 +185,7 @@ func ExecuteContext(ctx context.Context) error {
 	}
 
 	if errors.Is(err, ErrSilentExecutionAbort) {
+		sentry.CaptureMessage(fmt.Sprintf("%s execution aborted silently", sentryCommandContext.Name))
 		return nil
 	}
 
@@ -198,9 +199,9 @@ func ExecuteContext(ctx context.Context) error {
 		return nil
 	}
 
-	sentry.CaptureException(err)
 	ui.GlobalWriter.PrintErrorMessageln(err.Error())
-	ui.GlobalWriter.Printf("\n%s\n", SUPPORT_SLACK_MESSAGE)
+	ui.GlobalWriter.PrintUrl(fmt.Sprintf("\n%s\n", SUPPORT_SLACK_MESSAGE), JOIN_SLACK_LINK)
+	sentry.CaptureException(err)
 	return err
 }
 

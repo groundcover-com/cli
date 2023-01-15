@@ -40,6 +40,10 @@ func (w *Writer) MarshalJSON() ([]byte, error) {
 	return json.Marshal((w.Dump()))
 }
 
+func (w *Writer) Writeln(message string) {
+	w.writen = append(w.writen, fmt.Sprintln(message))
+}
+
 func (w *Writer) Println(message string) {
 	w.writen = append(w.writen, fmt.Sprintln(message))
 	fmt.Println(message)
@@ -49,6 +53,11 @@ func (w *Writer) Printf(format string, args ...interface{}) {
 	formatted := fmt.Sprintf(format, args...)
 	w.writen = append(w.writen, formatted)
 	fmt.Print(formatted)
+}
+
+func (w *Writer) PrintUrl(message string, url string) {
+	w.writen = append(w.writen, fmt.Sprintf("%s%s", message, url))
+	fmt.Printf("%s%s\n", message, w.UrlLink(url))
 }
 
 func (w *Writer) Errorf(format string, args ...interface{}) error {
@@ -88,7 +97,7 @@ func (w *Writer) UrlLink(url string) string {
 
 func (w *Writer) NewSpinner(message string) *Spinner {
 	w.writen = append(w.writen, fmt.Sprintln(message))
-	return newSpinner(message)
+	return newSpinner(w, message)
 }
 
 func (w *Writer) SprintfScrub(format string, args ...interface{}) string {

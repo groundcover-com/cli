@@ -20,11 +20,11 @@ func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string
 	var err error
 
 	spinner := ui.GlobalWriter.NewSpinner("Waiting until groundcover is connected to cloud platform")
-	spinner.StopMessage("groundcover is connected to cloud platform")
-	spinner.StopFailMessage("groundcover is yet connected to cloud platform")
+	spinner.SetStopMessage("groundcover is connected to cloud platform")
+	spinner.SetStopFailMessage("groundcover is yet connected to cloud platform")
 
 	spinner.Start()
-	defer spinner.Stop()
+	defer spinner.WriteStop()
 
 	isClusterExistInSassFunc := func() error {
 		var clusterList map[string]interface{}
@@ -48,7 +48,7 @@ func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string
 		return nil
 	}
 
-	spinner.StopFail()
+	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		return errors.New("timeout waiting for groundcover to connect cloud platform")
