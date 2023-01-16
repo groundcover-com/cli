@@ -14,6 +14,7 @@ const (
 	CHART_VERSION_TAG            = "chart.version"
 	FLUSH_TIMEOUT                = time.Second * 2
 	DEFAULT_RESOURCES_PRESET_TAG = "resources.presets.default"
+	EMPTY_DIR_STORAGE_TAG        = "storage.emptydir"
 	PROD_DSN                     = "https://a8ac7024755f47e5b5d4ae620499c7f6@o1295881.ingest.sentry.io/6521983"
 	DEV_DSN                      = "https://6420be38b4544852a61df1d7ec56f442@o1295881.ingest.sentry.io/6521982"
 )

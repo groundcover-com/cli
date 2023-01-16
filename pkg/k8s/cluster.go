@@ -117,6 +117,10 @@ func (kubeClient *Client) GetClusterSummary(namespace string) (*ClusterSummary, 
 		return clusterSummary, err
 	}
 
+	if clusterSummary.ServerVersion, err = kubeClient.GetServerVersion(); err != nil {
+		return clusterSummary, err
+	}
+
 	return clusterSummary, nil
 }
 
