@@ -16,8 +16,10 @@ We use the following categories for changes:
 
 ## [Unreleased]
 ### Added
+- Added --no-pvc option [#sc-6887]
 ### Changed
 ### Fixed
+- support aws eks 1.23+ with no ebs driver installed
 ### Removed
 ### Deprecated
 ### Security
@@ -25,7 +27,7 @@ We use the following categories for changes:
 ## [0.4.3] 2023-01-08
 ### Added
 ### Changed
- -Improved logging [#sc-6298]
+- Improved logging [#sc-6298]
 ### Fixed
 ### Removed
 ### Deprecated
