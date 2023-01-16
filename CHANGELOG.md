@@ -16,6 +16,14 @@ We use the following categories for changes:
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+### Removed
+### Deprecated
+### Security
+
+## [0.5.0] 2023-01-16
+### Added
 - Added --no-pvc option [#sc-6887]
 ### Changed
 ### Fixed
