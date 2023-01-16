@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -241,4 +242,32 @@ func TestAllocatableResourcesAboveMinimum(t *testing.T) {
 
 	// assert
 	assert.True(t, canRunGroundcover)
+}
+
+func TestCalcAllocatableResourcesMultiNodeWithTaints(t *testing.T) {
+	// arrange
+	nodes := []*k8s.NodeSummary{
+		{
+			CPU:    resource.NewMilliQuantity(2000, resource.DecimalSI),
+			Memory: resource.NewQuantity(2000, resource.BinarySI),
+		},
+		{
+			CPU:    resource.NewMilliQuantity(1000, resource.DecimalSI),
+			Memory: resource.NewQuantity(1000, resource.BinarySI),
+			Taints: []v1.Taint{
+				{
+					Key: "key",
+				},
+			},
+		},
+	}
+
+	// act
+	resources := helm.CalcAllocatableResources(nodes)
+
+	// assert
+	assert.Equal(t, resource.NewMilliQuantity(2000, resource.DecimalSI), resources.MinCpu)
+	assert.Equal(t, resource.NewQuantity(2000, resource.BinarySI), resources.MinMemory)
+	assert.Equal(t, resource.NewMilliQuantity(2000, resource.DecimalSI), resources.TotalCpu)
+	assert.Equal(t, resource.NewQuantity(2000, resource.BinarySI), resources.TotalMemory)
 }

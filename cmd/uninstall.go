@@ -116,7 +116,7 @@ var UninstallCmd = &cobra.Command{
 func promptUninstall(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, clusterName, releaseName, namespace string, sentryHelmContext *sentry_utils.HelmContext) (bool, bool, bool, error) {
 	var err error
 
-	ui.GlobalWriter.Println("\nUninstalling groundcover:")
+	ui.GlobalWriter.PrintlnWithPrefixln("Uninstalling groundcover:")
 
 	var shouldUninstall bool
 	if shouldUninstall, err = promptUninstallRelease(ctx, kubeClient, helmClient, clusterName, releaseName, namespace, sentryHelmContext); err != nil {
@@ -134,8 +134,8 @@ func promptUninstall(ctx context.Context, kubeClient *k8s.Client, helmClient *he
 	}
 
 	if !shouldUninstall && !shouldEraseData && !shouldDeleteNamespace {
-		ui.GlobalWriter.PrintWarningMessage(fmt.Sprintf(
-			"could not find release %s in namespace %s, maybe groundcover is installed elsewhere? (use --%s, --%s flags)\n",
+		ui.GlobalWriter.PrintWarningMessageln(fmt.Sprintf(
+			"could not find release %s in namespace %s, maybe groundcover is installed elsewhere? (use --%s, --%s flags)",
 			releaseName, namespace, HELM_RELEASE_FLAG, NAMESPACE_FLAG),
 		)
 		return false, false, false, ErrSilentExecutionAbort
@@ -159,7 +159,7 @@ func namespaceExists(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	}
 
 	if len(namespaceList.Items) == 0 {
-		ui.GlobalWriter.PrintWarningMessage(fmt.Sprintf("could not find namespace %s, maybe groundcover is installed elsewhere? (use --%s flag)\n", namespace, NAMESPACE_FLAG))
+		ui.GlobalWriter.PrintWarningMessageln(fmt.Sprintf("could not find namespace %s, maybe groundcover is installed elsewhere? (use --%s flag)", namespace, NAMESPACE_FLAG))
 		return ErrSilentExecutionAbort
 	}
 
@@ -220,7 +220,8 @@ func promptEraseData(ctx context.Context, kubeClient *k8s.Client, releaseName, n
 		return false, nil
 	}
 
-	return ui.GlobalWriter.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", false), nil
+	// we found PVCs, and we are uninstalling
+	return true, nil
 }
 
 func uninstallHelmRelease(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, releaseName, namespace string) error {
