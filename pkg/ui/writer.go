@@ -42,7 +42,7 @@ func (w *Writer) MarshalJSON() ([]byte, error) {
 }
 
 func (w *Writer) Writeln(message string) {
-	w.writen = append(w.writen, fmt.Sprintln(message))
+	w.addMessage(fmt.Sprintln(message))
 }
 
 func (w *Writer) Println(message string) {
@@ -68,7 +68,7 @@ func (w *Writer) Printf(format string, args ...interface{}) {
 }
 
 func (w *Writer) PrintUrl(message string, url string) {
-	w.writen = append(w.writen, fmt.Sprintf("%s%s", message, url))
+	w.addMessage(fmt.Sprintf("%s%s", message, url))
 	fmt.Printf("%s%s\n", message, w.UrlLink(url))
 }
 
