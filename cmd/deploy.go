@@ -142,8 +142,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	storageProvision := k8s.GenerateStorageProvision(context.Background(), kubeClient, clusterSummary)
-	useEmptyDirStorage := viper.GetBool(NO_PVC_FLAG)
-	if useEmptyDirStorage {
+	if viper.GetBool(NO_PVC_FLAG) {
 		storageProvision.PersistentStorage = false
 		storageProvision.Reason = "user used --no-pvc flag"
 	}
@@ -176,7 +175,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), &auth0Token, clusterName, len(deployableNodes), useEmptyDirStorage, sentryHelmContext)
+	err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), &auth0Token, clusterName, len(deployableNodes), storageProvision.PersistentStorage, sentryHelmContext)
 	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
 	if err != nil {
@@ -369,12 +368,12 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, auth0Token *auth.Auth0Token, clusterName string, deployableNodesCount int, useEmptyDirStorage bool, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, auth0Token *auth.Auth0Token, clusterName string, deployableNodesCount int, persistentStorage bool, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating groundcover installation:")
 
-	if !useEmptyDirStorage {
+	if persistentStorage {
 		if err = waitForPvcs(ctx, kubeClient, namespace, sentryHelmContext); err != nil {
 			return err
 		}
