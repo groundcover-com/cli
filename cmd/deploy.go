@@ -134,7 +134,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	var chartValues map[string]interface{}
 	if isUpgrade {
-		chartValues = release.Chart.Values
+		chartValues = release.Config
 	}
 
 	if chartValues, err = generateChartValues(chartValues, clusterName, deployableNodes, tolerations, sentryHelmContext); err != nil {
