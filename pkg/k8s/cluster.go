@@ -117,6 +117,10 @@ func (kubeClient *Client) GetClusterSummary(namespace string) (*ClusterSummary, 
 		return clusterSummary, err
 	}
 
+	if clusterSummary.ServerVersion, err = kubeClient.GetServerVersion(); err != nil {
+		return clusterSummary, err
+	}
+
 	return clusterSummary, nil
 }
 
@@ -247,7 +251,7 @@ func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx cont
 	var requirement Requirement
 	requirement.Message = CLUSTER_CLI_AUTH_SUPPORTED
 
-	if !eksClusterRegex.MatchString(clusterName) {
+	if IsEksCluster(clusterName) {
 		requirement.IsCompatible = true
 		return requirement
 	}
@@ -296,9 +300,9 @@ func (kubeClient *Client) GetClusterShortName() (string, error) {
 	}
 
 	switch {
-	case eksClusterRegex.MatchString(clusterName):
+	case IsEksCluster(clusterName):
 		return extractRegexClusterName(eksClusterRegex, clusterName)
-	case gkeClusterRegex.MatchString(clusterName):
+	case IsGkeCluster(clusterName):
 		return extractRegexClusterName(gkeClusterRegex, clusterName)
 	default:
 		return clusterName, nil
@@ -331,4 +335,12 @@ func (kubeClient Client) GetServerVersion() (semver.Version, error) {
 	}
 
 	return serverVersion, nil
+}
+
+func IsEksCluster(clusterName string) bool {
+	return eksClusterRegex.MatchString(clusterName)
+}
+
+func IsGkeCluster(clusterName string) bool {
+	return gkeClusterRegex.MatchString(clusterName)
 }

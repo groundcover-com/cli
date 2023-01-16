@@ -29,6 +29,7 @@ const (
 	HELM_DEPLOY_POLLING_TIMEOUT         = time.Minute * 5
 	VALUES_FLAG                         = "values"
 	EXPERIMENTAL_FLAG                   = "experimental"
+	NO_PVC_FLAG                         = "no-pvc"
 	LOW_RESOURCES_FLAG                  = "low-resources"
 	STORE_ALL_LOG_FLAG                  = "store-all-logs"
 	STORE_ALL_LOGS_KEY                  = "storeAllLogs"
@@ -52,6 +53,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().Bool(EXPERIMENTAL_FLAG, false, "enable groundcover experimental features")
 	viper.BindPFlag(EXPERIMENTAL_FLAG, DeployCmd.PersistentFlags().Lookup(EXPERIMENTAL_FLAG))
+
+	DeployCmd.PersistentFlags().Bool(NO_PVC_FLAG, false, "use emptyDir storage instead of PVC")
+	viper.BindPFlag(NO_PVC_FLAG, DeployCmd.PersistentFlags().Lookup(NO_PVC_FLAG))
 
 	DeployCmd.PersistentFlags().Bool(LOW_RESOURCES_FLAG, false, "set low resources limits")
 	viper.BindPFlag(LOW_RESOURCES_FLAG, DeployCmd.PersistentFlags().Lookup(LOW_RESOURCES_FLAG))
@@ -132,17 +136,34 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	var clusterSummary *k8s.ClusterSummary
+	if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
+		return err
+	}
+
+	storageProvision := k8s.GenerateStorageProvision(context.Background(), kubeClient, clusterSummary)
+	if viper.GetBool(NO_PVC_FLAG) {
+		storageProvision.PersistentStorage = false
+		storageProvision.Reason = "user used --no-pvc flag"
+	}
+
+	if storageProvision.PersistentStorage {
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.PERSISTENT_STORAGE_TAG, "true")
+	} else {
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.PERSISTENT_STORAGE_TAG, "false")
+	}
+
 	var chartValues map[string]interface{}
 	if isUpgrade {
 		chartValues = release.Config
 	}
 
-	if chartValues, err = generateChartValues(chartValues, clusterName, deployableNodes, tolerations, sentryHelmContext); err != nil {
+	if chartValues, err = generateChartValues(chartValues, clusterName, storageProvision.PersistentStorage, deployableNodes, tolerations, sentryHelmContext); err != nil {
 		return err
 	}
 
 	var shouldInstall bool
-	if shouldInstall, err = promptInstallSummary(isUpgrade, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), sentryHelmContext); err != nil {
+	if shouldInstall, err = promptInstallSummary(isUpgrade, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), storageProvision, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -154,7 +175,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), &auth0Token, clusterName, len(deployableNodes), sentryHelmContext)
+	err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), &auth0Token, clusterName, len(deployableNodes), storageProvision.PersistentStorage, sentryHelmContext)
 	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
 	if err != nil {
@@ -277,8 +298,12 @@ func promptTaints(tolerationManager *k8s.TolerationManager, sentryKubeContext *s
 	return allowedTaints, nil
 }
 
-func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string, namespace string, release *helm.Release, chart *helm.Chart, deployableNodesCount, nodesCount int, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
+func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string, namespace string, release *helm.Release, chart *helm.Chart, deployableNodesCount, nodesCount int, storageProvision k8s.StorageProvision, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	ui.GlobalWriter.PrintlnWithPrefixln("Installing groundcover:")
+
+	if !storageProvision.PersistentStorage {
+		ui.GlobalWriter.Printf("Using emptyDir storage, reason: %s\n", storageProvision.Reason)
+	}
 
 	var promptMessage string
 	if isUpgrade {
@@ -343,13 +368,15 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, auth0Token *auth.Auth0Token, clusterName string, deployableNodesCount int, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, auth0Token *auth.Auth0Token, clusterName string, deployableNodesCount int, persistentStorage bool, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating groundcover installation:")
 
-	if err = waitForPvcs(ctx, kubeClient, namespace, sentryHelmContext); err != nil {
-		return err
+	if persistentStorage {
+		if err = waitForPvcs(ctx, kubeClient, namespace, sentryHelmContext); err != nil {
+			return err
+		}
 	}
 
 	if err = waitForPortal(ctx, kubeClient, namespace, appVersion, sentryHelmContext); err != nil {
@@ -402,7 +429,7 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	return chart, nil
 }
 
-func generateChartValues(chartValues map[string]interface{}, clusterName string, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func generateChartValues(chartValues map[string]interface{}, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey api.ApiKey
@@ -455,6 +482,10 @@ func generateChartValues(chartValues map[string]interface{}, clusterName string,
 	useExperimental := viper.GetBool(EXPERIMENTAL_FLAG)
 	if useExperimental {
 		overridePaths = append(overridePaths, EXPERIMENTAL_PRESET_PATH)
+	}
+
+	if !persistentStorage {
+		overridePaths = append(overridePaths, helm.EMPTYDIR_STORAGE_PATH)
 	}
 
 	if slices.Contains(overridePaths, helm.AGENT_LOW_RESOURCES_PATH) {

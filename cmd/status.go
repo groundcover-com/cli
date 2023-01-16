@@ -23,7 +23,7 @@ const (
 	PORTAL_POLLING_TIMEOUT     = time.Minute * 7
 	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 3
 	PODS_POLLING_INTERVAL      = time.Second * 10
-	PVC_POLLING_TIMEOUT        = time.Minute * 5
+	PVC_POLLING_TIMEOUT        = time.Minute * 10
 	WAIT_FOR_PORTAL_FORMAT     = "Waiting until cluster establish connectivity"
 	WAIT_FOR_ALLIGATORS_FORMAT = "Waiting until all nodes are monitored (%d/%d Nodes)"
 	ALLIGATOR_LABEL_SELECTOR   = "app=alligator"
@@ -307,7 +307,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return errors.New("timeout waiting for persistent volume claims to be ready")
+		return errors.New("timeout waiting for persistent volume claims to be ready\nif none were create try running with --no-pvc flag")
 	}
 
 	return err

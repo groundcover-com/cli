@@ -17,6 +17,8 @@ const (
 	AGENT_LOW_RESOURCES_PATH      = "presets/agent/low-resources.yaml"
 	AGENT_MEDIUM_RESOURCES_PATH   = "presets/agent/medium-resources.yaml"
 
+	EMPTYDIR_STORAGE_PATH = "presets/backend/emptydir-storage.yaml"
+
 	BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD    = "12000m"
 	BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD = "20000Mi"
 	BACKEND_HIGH_TOTAL_CPU_THRESHOLD      = "30000m"
