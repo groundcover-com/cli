@@ -22,6 +22,15 @@ We use the following categories for changes:
 ### Deprecated
 ### Security
 
+## [0.5.1] 2023-01-16
+### Added
+### Changed
+### Fixed
+- no slack link on fail [#sc-6903]
+### Removed
+### Deprecated
+### Security
+
 ## [0.5.0] 2023-01-16
 ### Added
 - Added --no-pvc option [#sc-6887]
