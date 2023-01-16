@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/theckman/yacspin"
@@ -29,7 +30,9 @@ func RetryableError(err error) error {
 
 type Spinner struct {
 	*yacspin.Spinner
-	writer       *Writer
+	writer *Writer
+
+	mu           *sync.Mutex
 	stopFailChar string
 	stopFailMsg  string
 	stopChar     string
@@ -63,6 +66,9 @@ func newSpinner(writer *Writer, message string) *Spinner {
 }
 
 func (s *Spinner) SetWarningSign() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.stopFailChar = statusWarning
 	s.StopFailCharacter(statusWarning)
 	s.StopFailColors("fgYellow")
@@ -74,11 +80,17 @@ func (s *Spinner) WriteMessage(message string) {
 }
 
 func (s *Spinner) SetStopMessage(message string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.stopMsg = message
 	s.StopMessage(message)
 }
 
 func (s *Spinner) WriteStop() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if s.wroteError {
 		return
 	}
@@ -88,11 +100,17 @@ func (s *Spinner) WriteStop() {
 }
 
 func (s *Spinner) SetStopFailMessage(message string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.stopFailMsg = message
 	s.StopFailMessage(message)
 }
 
 func (s *Spinner) WriteStopFail() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.wroteError = true
 	s.writer.Writeln(fmt.Sprintf("%v %v", s.stopFailChar, s.stopFailMsg))
 	s.StopFail()
