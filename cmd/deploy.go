@@ -144,14 +144,14 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	storageProvision := k8s.GenerateStorageProvision(context.Background(), kubeClient, clusterSummary)
 	useEmptyDirStorage := viper.GetBool(NO_PVC_FLAG)
 	if useEmptyDirStorage {
-		storageProvision.UseEmptyDir = true
-		storageProvision.Reason = "user specified"
+		storageProvision.PersistentStorage = false
+		storageProvision.Reason = "user used --no-pvc flag"
 	}
 
-	if storageProvision.UseEmptyDir {
-		sentry_utils.SetTagOnCurrentScope(sentry_utils.EMPTY_DIR_STORAGE_TAG, "true")
+	if storageProvision.PersistentStorage {
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.PERSISTENT_STORAGE_TAG, "true")
 	} else {
-		sentry_utils.SetTagOnCurrentScope(sentry_utils.EMPTY_DIR_STORAGE_TAG, "false")
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.PERSISTENT_STORAGE_TAG, "false")
 	}
 
 	var chartValues map[string]interface{}
@@ -159,7 +159,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		chartValues = release.Config
 	}
 
-	if chartValues, err = generateChartValues(chartValues, clusterName, storageProvision.UseEmptyDir, deployableNodes, tolerations, sentryHelmContext); err != nil {
+	if chartValues, err = generateChartValues(chartValues, clusterName, storageProvision.PersistentStorage, deployableNodes, tolerations, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -303,8 +303,8 @@ func promptTaints(tolerationManager *k8s.TolerationManager, sentryKubeContext *s
 func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string, namespace string, release *helm.Release, chart *helm.Chart, deployableNodesCount, nodesCount int, storageProvision k8s.StorageProvision, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	ui.GlobalWriter.PrintlnWithPrefixln("Installing groundcover:")
 
-	if storageProvision.UseEmptyDir {
-		ui.GlobalWriter.Printf("Using emptyDir storage, reason: %s (cluster: %s, namespace: %s)\n", storageProvision.Reason, clusterName, namespace)
+	if !storageProvision.PersistentStorage {
+		ui.GlobalWriter.Printf("Using emptyDir storage, reason: %s\n", storageProvision.Reason)
 	}
 
 	var promptMessage string
@@ -432,7 +432,7 @@ func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.Hel
 	return chart, nil
 }
 
-func generateChartValues(chartValues map[string]interface{}, clusterName string, useEmptyDir bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func generateChartValues(chartValues map[string]interface{}, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey api.ApiKey
@@ -487,7 +487,7 @@ func generateChartValues(chartValues map[string]interface{}, clusterName string,
 		overridePaths = append(overridePaths, EXPERIMENTAL_PRESET_PATH)
 	}
 
-	if useEmptyDir {
+	if !persistentStorage {
 		overridePaths = append(overridePaths, helm.EMPTYDIR_STORAGE_PATH)
 	}
 

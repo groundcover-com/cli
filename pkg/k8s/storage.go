@@ -8,58 +8,19 @@ import (
 )
 
 type StorageProvision struct {
-	UseEmptyDir bool
-	Reason      string
+	PersistentStorage bool
+	Reason            string
 }
 
 func GenerateStorageProvision(ctx context.Context, client *Client, clusterSummary *ClusterSummary) StorageProvision {
-	if !eksClusterRegex.MatchString(clusterSummary.ClusterName) {
-		return StorageProvision{
-			UseEmptyDir: false,
-			Reason:      "Not an EKS cluster",
-		}
+	if IsEksCluster(clusterSummary.ClusterName) {
+		return generateEksStorageProvision(ctx, client, clusterSummary)
 	}
 
-	if clusterSummary.ServerVersion.LT(semver.MustParse("1.23.0")) {
-		return StorageProvision{
-			UseEmptyDir: false,
-			Reason:      "Kubernetes version is less than 1.23.0",
-		}
-	}
-
-	list, err := client.CoreV1().Pods(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=aws-ebs-csi-driver",
-	})
-
-	if err != nil {
-		return StorageProvision{
-			UseEmptyDir: true,
-			Reason:      "Error listing aws csi driver pods",
-		}
-	}
-
-	if len(list.Items) == 0 {
-		return StorageProvision{
-			UseEmptyDir: true,
-			Reason:      "No aws csi driver pods found",
-		}
-	}
-
-	hasStorageClass := HasDefaultStorageClass(ctx, client, clusterSummary)
-	if hasStorageClass {
-		return StorageProvision{
-			UseEmptyDir: false,
-			Reason:      "Has default storage class",
-		}
-	}
-
-	return StorageProvision{
-		UseEmptyDir: true,
-		Reason:      "Has aws ebs dirver without default storage class",
-	}
+	return generateDefaultStorageProvision(ctx, client, clusterSummary)
 }
 
-func HasDefaultStorageClass(ctx context.Context, client *Client, clusterSummary *ClusterSummary) bool {
+func hasDefaultStorageClass(ctx context.Context, client *Client, clusterSummary *ClusterSummary) bool {
 	storageClasses, err := client.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return false
@@ -72,4 +33,59 @@ func HasDefaultStorageClass(ctx context.Context, client *Client, clusterSummary 
 	}
 
 	return false
+}
+
+func generateEksStorageProvision(ctx context.Context, client *Client, clusterSummary *ClusterSummary) StorageProvision {
+	if clusterSummary.ServerVersion.LT(semver.MustParse("1.23.0")) {
+		return StorageProvision{
+			PersistentStorage: true,
+			Reason:            "Kubernetes version is less than 1.23.0",
+		}
+	}
+
+	list, err := client.CoreV1().Pods(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
+		LabelSelector: "app.kubernetes.io/name=aws-ebs-csi-driver",
+	})
+
+	if err != nil {
+		return StorageProvision{
+			PersistentStorage: false,
+			Reason:            "Error listing aws csi driver pods",
+		}
+	}
+
+	if len(list.Items) == 0 {
+		return StorageProvision{
+			PersistentStorage: false,
+			Reason:            "No aws csi driver pods found",
+		}
+	}
+
+	hasStorageClass := hasDefaultStorageClass(ctx, client, clusterSummary)
+	if hasStorageClass {
+		return StorageProvision{
+			PersistentStorage: true,
+			Reason:            "Has default storage class",
+		}
+	}
+
+	return StorageProvision{
+		PersistentStorage: false,
+		Reason:            "Has aws ebs dirver without default storage class",
+	}
+
+}
+
+func generateDefaultStorageProvision(ctx context.Context, client *Client, clusterSummary *ClusterSummary) StorageProvision {
+	if hasDefaultStorageClass(ctx, client, clusterSummary) {
+		return StorageProvision{
+			PersistentStorage: true,
+			Reason:            "Has default storage class",
+		}
+	}
+
+	return StorageProvision{
+		PersistentStorage: false,
+		Reason:            "Cluster has no default storage class",
+	}
 }
