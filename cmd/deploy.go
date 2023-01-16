@@ -158,12 +158,12 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
 	if err != nil {
-		ui.GlobalWriter.Printf("\nInstallation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"\n", namespace)
+		ui.GlobalWriter.PrintflnWithPrefixln("Installation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"", namespace)
 		ui.GlobalWriter.PrintUrl(fmt.Sprintf("If pods in %q namespce are running, Check out: ", namespace), fmt.Sprintf("%s/?clusterId=%s&viewType=Overview\n", GROUNDCOVER_URL, clusterName))
 		return err
 	}
 
-	ui.GlobalWriter.Println("\nThat was easy. groundcover installed!")
+	ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
 	utils.TryOpenBrowser(ui.GlobalWriter, "Check out: ", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
 	ui.GlobalWriter.PrintUrl(fmt.Sprintf("\n%s\n", JOIN_SLACK_MESSAGE), JOIN_SLACK_LINK)
 
@@ -173,7 +173,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryKubeContext *sentry_utils.KubeContext) error {
 	var err error
 
-	ui.GlobalWriter.Println("\nValidating cluster compatibility:")
+	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster compatibility:")
 
 	var clusterSummary *k8s.ClusterSummary
 	if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
@@ -205,7 +205,7 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContext *sentry_utils.KubeContext) (*k8s.NodesReport, error) {
 	var err error
 
-	ui.GlobalWriter.Println("\nValidating cluster nodes compatibility:")
+	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster nodes compatibility:")
 
 	var nodesSummeries []*k8s.NodeSummary
 	if nodesSummeries, err = kubeClient.GetNodesSummeries(ctx); err != nil {
@@ -278,7 +278,7 @@ func promptTaints(tolerationManager *k8s.TolerationManager, sentryKubeContext *s
 }
 
 func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string, namespace string, release *helm.Release, chart *helm.Chart, deployableNodesCount, nodesCount int, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
-	ui.GlobalWriter.Println("\nInstalling groundcover:")
+	ui.GlobalWriter.PrintlnWithPrefixln("Installing groundcover:")
 
 	var promptMessage string
 	if isUpgrade {
@@ -346,7 +346,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, auth0Token *auth.Auth0Token, clusterName string, deployableNodesCount int, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
-	ui.GlobalWriter.Println("\nValidating groundcover installation:")
+	ui.GlobalWriter.PrintlnWithPrefixln("Validating groundcover installation:")
 
 	if err = waitForPvcs(ctx, kubeClient, namespace, sentryHelmContext); err != nil {
 		return err

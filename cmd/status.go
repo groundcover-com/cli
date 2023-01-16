@@ -27,6 +27,7 @@ const (
 	WAIT_FOR_PORTAL_FORMAT     = "Waiting until cluster establish connectivity"
 	WAIT_FOR_ALLIGATORS_FORMAT = "Waiting until all nodes are monitored (%d/%d Nodes)"
 	ALLIGATOR_LABEL_SELECTOR   = "app=alligator"
+	BACKEND_LABEL_SELECTOR     = "app!=alligator"
 	PORTAL_LABEL_SELECTOR      = "app=portal"
 	RUNNING_FIELD_SELECTOR     = "status.phase=Running"
 	WAIT_FOR_PVCS_FORMAT       = "Waiting until all PVCs are bound (%d/%d PVCs)"
@@ -229,20 +230,33 @@ func getRunningAlligators(ctx context.Context, kubeClient *k8s.Client, appVersio
 }
 
 func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) {
-	podClient := kubeClient.CoreV1().Pods(namespace)
-
-	podList, err := podClient.List(ctx, metav1.ListOptions{})
+	backendPodStatus, err := listPodsStatuses(ctx, kubeClient, namespace, metav1.ListOptions{LabelSelector: BACKEND_LABEL_SELECTOR})
 	if err != nil {
 		return
 	}
 
-	podsStatus := make(map[string]k8s.PodStatus)
-	for _, pod := range podList.Items {
-		podsStatus[pod.Name] = k8s.BuildPodStatus(pod)
+	agentPodsStatus, err := listPodsStatuses(ctx, kubeClient, namespace, metav1.ListOptions{LabelSelector: ALLIGATOR_LABEL_SELECTOR})
+	if err != nil {
+		return
 	}
 
-	sentryHelmContext.PodsStatus = podsStatus
+	sentryHelmContext.AgentStatus = agentPodsStatus
+	sentryHelmContext.BackendStatus = backendPodStatus
 	sentryHelmContext.SetOnCurrentScope()
+}
+
+func listPodsStatuses(ctx context.Context, kubeClient *k8s.Client, namespace string, options metav1.ListOptions) (map[string]k8s.PodStatus, error) {
+	podList, err := kubeClient.CoreV1().Pods(namespace).List(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+
+	podsStatuses := make(map[string]k8s.PodStatus)
+	for _, pod := range podList.Items {
+		podsStatuses[pod.Name] = k8s.BuildPodStatus(pod)
+	}
+
+	return podsStatuses, nil
 }
 
 func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {

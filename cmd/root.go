@@ -161,7 +161,7 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 	err = validateAuth0Token()
 
 	if err == nil {
-		ui.GlobalWriter.PrintSuccessMessage("Device authentication is valid\n")
+		ui.GlobalWriter.PrintSuccessMessageln("Device authentication is valid")
 		return nil
 	}
 
@@ -200,7 +200,7 @@ func ExecuteContext(ctx context.Context) error {
 	}
 
 	ui.GlobalWriter.PrintErrorMessageln(err.Error())
-	ui.GlobalWriter.PrintUrl(fmt.Sprintf("\n%s\n", SUPPORT_SLACK_MESSAGE), JOIN_SLACK_LINK)
+	ui.GlobalWriter.PrintlnWithPrefixln(SUPPORT_SLACK_MESSAGE)
 	sentry.CaptureException(err)
 	return err
 }
