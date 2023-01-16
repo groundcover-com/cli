@@ -220,7 +220,8 @@ func promptEraseData(ctx context.Context, kubeClient *k8s.Client, releaseName, n
 		return false, nil
 	}
 
-	return ui.GlobalWriter.YesNoPrompt("Do you want to delete groundcover's Persistent Volume Claims? This will remove all of groundcover data", true), nil
+	// we found PVCs, and we are uninstalling
+	return true, nil
 }
 
 func uninstallHelmRelease(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, releaseName, namespace string) error {
