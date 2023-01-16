@@ -52,7 +52,7 @@ func attemptAuth0Login(ctx context.Context) (*auth.Auth0Token, error) {
 		return nil, err
 	}
 
-	utils.TryOpenBrowser(*ui.QuietWriter, "Browse to:", deviceCode.VerificationURIComplete)
+	utils.TryOpenBrowser(ui.QuietWriter, "Browse to:", deviceCode.VerificationURIComplete)
 
 	var auth0Token auth.Auth0Token
 	if err = deviceCode.PollToken(ctx, &auth0Token); err != nil {

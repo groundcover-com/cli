@@ -49,11 +49,11 @@ func (deviceCode *DeviceCode) PollToken(ctx context.Context, auth0Token *Auth0To
 
 	spinnerMessage := fmt.Sprintf("Waiting for device confirmation for: %s", deviceCode.UserCode)
 	spinner := ui.GlobalWriter.NewSpinner(spinnerMessage)
-	spinner.StopMessage("Device authentication confirmed by auth0")
-	spinner.StopFailMessage("Device authentication failed")
+	spinner.SetStopMessage("Device authentication confirmed by auth0")
+	spinner.SetStopFailMessage("Device authentication failed")
 
 	spinner.Start()
-	defer spinner.Stop()
+	defer spinner.WriteStop()
 
 	data := url.Values{}
 	data.Set("client_id", DefaultClient.ClientId)
@@ -82,7 +82,7 @@ func (deviceCode *DeviceCode) PollToken(ctx context.Context, auth0Token *Auth0To
 		return nil
 	}
 
-	spinner.StopFail()
+	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		return fmt.Errorf("timed out while waiting for your login in browser")

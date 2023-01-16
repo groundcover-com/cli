@@ -181,14 +181,13 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	if err != nil {
 		ui.GlobalWriter.PrintflnWithPrefixln("Installation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"", namespace)
-		ui.GlobalWriter.Printf("If pods in %q namespce are running, Check out: %s\n", namespace, ui.GlobalWriter.UrlLink(fmt.Sprintf("%s/?clusterId=%s&viewType=Overview\n", GROUNDCOVER_URL, clusterName)))
-		ui.GlobalWriter.Printf("%s\n", SUPPORT_SLACK_MESSAGE)
+		ui.GlobalWriter.PrintUrl(fmt.Sprintf("If pods in %q namespce are running, Check out: ", namespace), fmt.Sprintf("%s/?clusterId=%s&viewType=Overview\n", GROUNDCOVER_URL, clusterName))
 		return err
 	}
 
 	ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
-	utils.TryOpenBrowser(*ui.GlobalWriter, "Check out:", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
-	ui.GlobalWriter.PrintlnWithPrefixln(JOIN_SLACK_MESSAGE)
+	utils.TryOpenBrowser(ui.GlobalWriter, "Check out: ", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
+	ui.GlobalWriter.PrintUrl(fmt.Sprintf("\n%s\n", JOIN_SLACK_MESSAGE), JOIN_SLACK_LINK)
 
 	return nil
 }
@@ -340,9 +339,9 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 
 	spinner := ui.GlobalWriter.NewSpinner("Installing groundcover helm release")
 	spinner.Start()
-	spinner.StopMessage("groundcover helm release is installed")
-	spinner.StopFailMessage("groundcover helm release installation failed")
-	defer spinner.Stop()
+	spinner.SetStopMessage("groundcover helm release is installed")
+	spinner.SetStopFailMessage("groundcover helm release installation failed")
+	defer spinner.WriteStop()
 
 	helmUpgradeFunc := func() error {
 		if _, err = helmClient.Upgrade(ctx, releaseName, chart, chartValues); err != nil {
@@ -361,13 +360,12 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
 		spinner.SetWarningSign()
-		spinner.StopFailMessage("Timeout waiting for helm release installation")
-		spinner.StopFail()
+		spinner.SetStopFailMessage("Timeout waiting for helm release installation")
+		spinner.WriteStopFail()
 		return nil
 	}
 
-	spinner.StopFail()
-
+	spinner.WriteStopFail()
 	return err
 }
 

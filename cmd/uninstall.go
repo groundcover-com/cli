@@ -229,18 +229,18 @@ func uninstallHelmRelease(ctx context.Context, kubeClient *k8s.Client, helmClien
 
 	spinner := ui.GlobalWriter.NewSpinner("Uninstalling groundcover helm release")
 	spinner.Start()
-	spinner.StopMessage("groundcover helm release is uninstalled")
-	defer spinner.Stop()
+	spinner.SetStopMessage("groundcover helm release is uninstalled")
+	defer spinner.WriteStop()
 
 	if err = helmClient.Uninstall(releaseName); err != nil {
 		if !errors.Is(err, helm_driver.ErrReleaseNotFound) {
-			spinner.StopFail()
+			spinner.WriteStopFail()
 			return err
 		}
 	}
 
 	if err = deleteReleaseLeftovers(ctx, kubeClient, releaseName, namespace); err != nil {
-		spinner.StopFail()
+		spinner.WriteStopFail()
 		return err
 	}
 
@@ -312,9 +312,9 @@ func deletePvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, namesp
 
 	spinner := ui.GlobalWriter.NewSpinner("Deleting groundcover pvcs")
 	spinner.Start()
-	spinner.StopMessage("groundcover pvcs are deleted")
-	spinner.StopFailMessage("failed to delete groundcover pvcs")
-	defer spinner.Stop()
+	spinner.SetStopMessage("groundcover pvcs are deleted")
+	spinner.SetStopFailMessage("failed to delete groundcover pvcs")
+	defer spinner.WriteStop()
 
 	deleteOptions := metav1.DeleteOptions{}
 
@@ -325,7 +325,7 @@ func deletePvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, namesp
 		}
 
 		if err = pvcClient.DeleteCollection(ctx, deleteOptions, listOptions); err != nil {
-			spinner.StopFail()
+			spinner.WriteStopFail()
 			return err
 		}
 	}
@@ -338,12 +338,12 @@ func deleteNamespace(ctx context.Context, kubeClient *k8s.Client, namespace stri
 
 	spinner := ui.GlobalWriter.NewSpinner("Deleting groundcover namespace")
 	spinner.Start()
-	spinner.StopMessage(fmt.Sprintf("%s namespace is deleted", namespace))
-	spinner.StopFailMessage(fmt.Sprintf("failed to delete %s namespace", namespace))
-	defer spinner.Stop()
+	spinner.SetStopMessage(fmt.Sprintf("%s namespace is deleted", namespace))
+	spinner.SetStopFailMessage(fmt.Sprintf("failed to delete %s namespace", namespace))
+	defer spinner.WriteStop()
 
 	if err = kubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{}); err != nil {
-		spinner.StopFail()
+		spinner.WriteStopFail()
 		return err
 	}
 

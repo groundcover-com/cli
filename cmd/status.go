@@ -114,11 +114,11 @@ var StatusCmd = &cobra.Command{
 
 func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, sentryHelmContext *sentry_utils.HelmContext) error {
 	spinner := ui.GlobalWriter.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
-	spinner.StopMessage("Cluster established connectivity")
-	spinner.StopFailMessage("Cluster failed to establish connectivity")
+	spinner.SetStopMessage("Cluster established connectivity")
+	spinner.SetStopFailMessage("Cluster failed to establish connectivity")
 
 	spinner.Start()
-	defer spinner.Stop()
+	defer spinner.WriteStop()
 
 	isPortalRunningFunc := func() error {
 		podClient := kubeClient.CoreV1().Pods(namespace)
@@ -148,7 +148,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 		return nil
 	}
 
-	spinner.StopFail()
+	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		return errors.New("timeout waiting for cluster to establish connectivity")
@@ -159,10 +159,10 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 
 func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
 	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
-	spinner.StopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
+	spinner.SetStopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
 
 	spinner.Start()
-	defer spinner.Stop()
+	defer spinner.WriteStop()
 
 	runningAlligators := 0
 
@@ -173,7 +173,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 			return err
 		}
 
-		spinner.Message(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, runningAlligators, expectedAlligatorsCount))
+		spinner.WriteMessage(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, runningAlligators, expectedAlligatorsCount))
 
 		if runningAlligators >= expectedAlligatorsCount {
 			return nil
@@ -195,13 +195,13 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
 		spinner.SetWarningSign()
-		spinner.StopFailMessage(fmt.Sprintf("Timeout waiting for all nodes to be monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
-		spinner.StopFail()
+		spinner.SetStopFailMessage(fmt.Sprintf("Timeout waiting for all nodes to be monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
+		spinner.WriteStopFail()
 		return nil
 	}
 
-	spinner.StopFailMessage(fmt.Sprintf("Not all nodes are monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
-	spinner.StopFail()
+	spinner.SetStopFailMessage(fmt.Sprintf("Not all nodes are monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
+	spinner.WriteStopFail()
 
 	return err
 }
@@ -262,11 +262,11 @@ func listPodsStatuses(ctx context.Context, kubeClient *k8s.Client, namespace str
 func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {
 	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
 
-	spinner.StopMessage("Persistent Volumes are ready")
-	spinner.StopFailMessage("Not all Persistent Volumes are bound, timeout waiting for them to be ready")
+	spinner.SetStopMessage("Persistent Volumes are ready")
+	spinner.SetStopFailMessage("Not all Persistent Volumes are bound, timeout waiting for them to be ready")
 
 	spinner.Start()
-	defer spinner.Stop()
+	defer spinner.WriteStop()
 
 	pvcs := make(map[string]bool, 0)
 
@@ -285,7 +285,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 			}
 		}
 
-		spinner.Message(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, len(pvcs), EXPECTED_BOUND_PVCS))
+		spinner.WriteMessage(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, len(pvcs), EXPECTED_BOUND_PVCS))
 
 		if len(pvcs) == EXPECTED_BOUND_PVCS {
 			return nil
@@ -304,7 +304,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 		return nil
 	}
 
-	spinner.StopFail()
+	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		return errors.New("timeout waiting for persistent volume claims to be ready\nif none were create try running with --no-pvc flag")
