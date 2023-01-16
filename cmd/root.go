@@ -35,7 +35,7 @@ const (
 
 var (
 	JOIN_SLACK_LINK       = "https://groundcover.com/join-slack"
-	SUPPORT_SLACK_MESSAGE = "questions? issues? ping us anytime"
+	SUPPORT_SLACK_MESSAGE = "questions? issues? ping us anytime "
 	JOIN_SLACK_MESSAGE    = "join us on slack, we promise to keep things interesting"
 )
 
@@ -200,8 +200,10 @@ func ExecuteContext(ctx context.Context) error {
 	}
 
 	ui.GlobalWriter.PrintErrorMessageln(err.Error())
-	ui.GlobalWriter.PrintlnWithPrefixln(SUPPORT_SLACK_MESSAGE)
-	sentry.CaptureException(err)
+	ui.GlobalWriter.Println("")
+	ui.GlobalWriter.PrintUrl(SUPPORT_SLACK_MESSAGE, JOIN_SLACK_LINK)
+
+	sentry.CaptureMessage(fmt.Sprintf("%s execution failed - %s", sentryCommandContext.Name, err.Error()))
 	return err
 }
 
