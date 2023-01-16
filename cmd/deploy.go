@@ -141,11 +141,14 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	storageProvision := k8s.GenerateStorageProvision(context.Background(), kubeClient, clusterSummary)
 	useEmptyDirStorage := viper.GetBool(NO_PVC_FLAG)
-	shouldUseEmptyDirStorage := k8s.ShouldUseEmptydir(context.Background(), kubeClient, clusterSummary)
-	useEmptyDirStorage = useEmptyDirStorage || shouldUseEmptyDirStorage
-
 	if useEmptyDirStorage {
+		storageProvision.UseEmptyDir = true
+		storageProvision.Reason = "user specified"
+	}
+
+	if storageProvision.UseEmptyDir {
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.EMPTY_DIR_STORAGE_TAG, "true")
 	} else {
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.EMPTY_DIR_STORAGE_TAG, "false")
@@ -156,12 +159,12 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		chartValues = release.Chart.Values
 	}
 
-	if chartValues, err = generateChartValues(chartValues, clusterName, useEmptyDirStorage, deployableNodes, tolerations, sentryHelmContext); err != nil {
+	if chartValues, err = generateChartValues(chartValues, clusterName, storageProvision.UseEmptyDir, deployableNodes, tolerations, sentryHelmContext); err != nil {
 		return err
 	}
 
 	var shouldInstall bool
-	if shouldInstall, err = promptInstallSummary(isUpgrade, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), useEmptyDirStorage, sentryHelmContext); err != nil {
+	if shouldInstall, err = promptInstallSummary(isUpgrade, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), storageProvision, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -297,11 +300,11 @@ func promptTaints(tolerationManager *k8s.TolerationManager, sentryKubeContext *s
 	return allowedTaints, nil
 }
 
-func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string, namespace string, release *helm.Release, chart *helm.Chart, deployableNodesCount, nodesCount int, useEmptyDirStorage bool, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
+func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string, namespace string, release *helm.Release, chart *helm.Chart, deployableNodesCount, nodesCount int, storageProvision k8s.StorageProvision, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	ui.GlobalWriter.PrintlnWithPrefixln("Installing groundcover:")
 
-	if useEmptyDirStorage {
-		ui.GlobalWriter.Printf("Using emptyDir storage (cluster: %s, namespace: %s)\n", clusterName, namespace)
+	if storageProvision.UseEmptyDir {
+		ui.GlobalWriter.Printf("Using emptyDir storage, reason: %s (cluster: %s, namespace: %s)\n", storageProvision.Reason, clusterName, namespace)
 	}
 
 	var promptMessage string
