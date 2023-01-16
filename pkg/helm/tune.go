@@ -88,6 +88,10 @@ func CalcAllocatableResources(nodesSummeries []*k8s.NodeSummary) *AllocatableRes
 	}
 
 	for _, nodeSummary := range nodesSummeries {
+		if len(nodeSummary.Taints) > 0 {
+			continue
+		}
+
 		allocatableResources.TotalCpu.Add(*nodeSummary.CPU)
 		allocatableResources.TotalMemory.Add(*nodeSummary.Memory)
 
