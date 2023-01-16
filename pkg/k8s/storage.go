@@ -16,9 +16,13 @@ func ShouldUseEmptydir(ctx context.Context, client *Client, clusterSummary *Clus
 		return false
 	}
 
-	list, _ := client.CoreV1().Pods(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
+	list, err := client.CoreV1().Pods(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
 		LabelSelector: "app.kubernetes.io/name=aws-ebs-csi-driver",
 	})
+
+	if err != nil {
+		return true
+	}
 
 	if len(list.Items) == 0 {
 		return true
