@@ -59,6 +59,7 @@ func newSpinner(writer *Writer, message string) *Spinner {
 	spinner := Spinner{
 		Spinner:      s,
 		writer:       writer,
+		mu:           &sync.Mutex{},
 		stopFailChar: statusErr,
 		stopChar:     statusOK,
 	}
