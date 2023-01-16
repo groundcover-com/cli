@@ -106,11 +106,11 @@ func (selfUpdater *SelfUpdater) Apply(ctx context.Context) error {
 	var err error
 
 	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf("Downloading cli version: %s", selfUpdater.Version))
-	spinner.StopMessage("cli update was successfully")
-	spinner.StopFailMessage("cli update has failed")
+	spinner.SetStopMessage("cli update was successfully")
+	spinner.SetStopFailMessage("cli update has failed")
 
 	spinner.Start()
-	defer spinner.Stop()
+	defer spinner.WriteStop()
 
 	err = spinner.Poll(ctx, selfUpdater.apply, APPLY_POLLING_INTERVAL, APPLY_POLLING_TIMEOUT, APPLY_POLLING_RETRIES)
 
@@ -118,7 +118,7 @@ func (selfUpdater *SelfUpdater) Apply(ctx context.Context) error {
 		return nil
 	}
 
-	spinner.StopFail()
+	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
 		return errors.New("timeout waiting for cli download")
