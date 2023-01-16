@@ -111,10 +111,6 @@ func CalcAllocatableResources(nodesSummeries []*k8s.NodeSummary) *AllocatableRes
 }
 
 func CanRunGroundcover(resources *AllocatableResources) bool {
-	if resources.TotalCpu.Cmp(resource.MustParse(GROUNDCOVER_MINIUM_CPU)) >= 0 &&
-		resources.TotalMemory.Cmp(resource.MustParse(GROUNDCOVER_MINIUM_MEMORY)) >= 0 {
-		return true
-	}
-
-	return false
+	return resources.TotalCpu.Cmp(resource.MustParse(GROUNDCOVER_MINIUM_CPU)) >= 0 &&
+		resources.TotalMemory.Cmp(resource.MustParse(GROUNDCOVER_MINIUM_MEMORY)) >= 0
 }

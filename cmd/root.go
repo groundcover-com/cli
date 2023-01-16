@@ -199,7 +199,7 @@ func ExecuteContext(ctx context.Context) error {
 	}
 
 	sentry.CaptureMessage(fmt.Sprintf("%s execution failed - %s", sentryCommandContext.Name, err.Error()))
-	ui.GlobalWriter.PrintErrorMessageln(err.Error())
+	ui.GlobalWriter.PrintErrorMessagelnWithPrefixln(err.Error())
 	ui.GlobalWriter.PrintlnWithPrefixln(SUPPORT_SLACK_MESSAGE)
 	return err
 }

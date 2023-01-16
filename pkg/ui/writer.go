@@ -84,6 +84,11 @@ func (w *Writer) PrintErrorMessage(message string) {
 	fmt.Printf("%s %s", redStatusErr, message)
 }
 
+func (w *Writer) PrintErrorMessagelnWithPrefixln(message string) {
+	w.addMessage(fmt.Sprintf("%s %s", writenStatusErr, message))
+	fmt.Printf("\n%s %s\n", redStatusErr, message)
+}
+
 func (w *Writer) PrintErrorMessageln(message string) {
 	w.addMessage(fmt.Sprintf("%s %s", writenStatusErr, message))
 	fmt.Printf("%s %s\n", redStatusErr, message)
