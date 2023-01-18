@@ -251,7 +251,7 @@ func (clusterRequirements ClusterRequirements) validateCliAuthSupported(ctx cont
 	var requirement Requirement
 	requirement.Message = CLUSTER_CLI_AUTH_SUPPORTED
 
-	if IsEksCluster(clusterName) {
+	if !IsEksCluster(clusterName) {
 		requirement.IsCompatible = true
 		return requirement
 	}
