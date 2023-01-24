@@ -518,8 +518,7 @@ func generateChartValues(chartValues map[string]interface{}, clusterName string,
 		return nil, err
 	}
 
-	storeIssuesLogsOnly := viper.GetBool(STORE_ISSUES_LOGS_ONLY_FLAG)
-	valuesOverride[STORE_ISSUES_LOGS_ONLY_KEY] = storeIssuesLogsOnly
+	valuesOverride[STORE_ISSUES_LOGS_ONLY_KEY] = viper.GetBool(STORE_ISSUES_LOGS_ONLY_FLAG)
 
 	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
