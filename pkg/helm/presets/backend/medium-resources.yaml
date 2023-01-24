@@ -26,15 +26,6 @@ loki:
       cpu: 100m
       memory: 750Mi
 
-grafana:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 100m
-      memory: 64Mi
-
 timescaledb-single:
   resources:
     requests:
