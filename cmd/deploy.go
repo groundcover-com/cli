@@ -31,8 +31,8 @@ const (
 	EXPERIMENTAL_FLAG                   = "experimental"
 	NO_PVC_FLAG                         = "no-pvc"
 	LOW_RESOURCES_FLAG                  = "low-resources"
-	STORE_ALL_LOG_FLAG                  = "store-all-logs"
-	STORE_ALL_LOGS_KEY                  = "storeAllLogs"
+	STORE_ISSUES_LOGS_ONLY_FLAG         = "store-issues-logs-only"
+	STORE_ISSUES_LOGS_ONLY_KEY          = "storeIssuesLogsOnly"
 	CHART_NAME                          = "groundcover/groundcover"
 	HELM_REPO_NAME                      = "groundcover"
 	DEFAULT_GROUNDCOVER_RELEASE         = "groundcover"
@@ -60,8 +60,8 @@ func init() {
 	DeployCmd.PersistentFlags().Bool(LOW_RESOURCES_FLAG, false, "set low resources limits")
 	viper.BindPFlag(LOW_RESOURCES_FLAG, DeployCmd.PersistentFlags().Lookup(LOW_RESOURCES_FLAG))
 
-	DeployCmd.PersistentFlags().Bool(STORE_ALL_LOG_FLAG, false, "store all logs")
-	viper.BindPFlag(STORE_ALL_LOG_FLAG, DeployCmd.PersistentFlags().Lookup(STORE_ALL_LOG_FLAG))
+	DeployCmd.PersistentFlags().Bool(STORE_ISSUES_LOGS_ONLY_FLAG, false, "store issues logs only")
+	viper.BindPFlag(STORE_ISSUES_LOGS_ONLY_FLAG, DeployCmd.PersistentFlags().Lookup(STORE_ISSUES_LOGS_ONLY_FLAG))
 
 	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
 	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
@@ -518,9 +518,7 @@ func generateChartValues(chartValues map[string]interface{}, clusterName string,
 		return nil, err
 	}
 
-	if viper.GetBool(STORE_ALL_LOG_FLAG) {
-		valuesOverride[STORE_ALL_LOGS_KEY] = true
-	}
+	valuesOverride[STORE_ISSUES_LOGS_ONLY_KEY] = viper.GetBool(STORE_ISSUES_LOGS_ONLY_FLAG)
 
 	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
