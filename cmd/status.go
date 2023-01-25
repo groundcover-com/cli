@@ -90,7 +90,7 @@ var StatusCmd = &cobra.Command{
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
 
 		var chart *helm.Chart
-		if chart, err = getLatestChart(helmClient, sentryHelmContext); err != nil {
+		if chart, err = pollGetLatestChart(ctx, helmClient, sentryHelmContext); err != nil {
 			return err
 		}
 
