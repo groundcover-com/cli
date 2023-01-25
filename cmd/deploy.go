@@ -43,6 +43,13 @@ const (
 	HELM_REPO_URL                       = "https://helm.groundcover.com"
 	EXPERIMENTAL_PRESET_PATH            = "presets/agent/experimental.yaml"
 	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
+	WAIT_FOR_GET_LATEST_CHART_FORMAT    = "Waiting for downloading latest chart to complete"
+	WAIT_FOR_GET_LATEST_CHART_SUCCESS   = "Downloading latest chart completed successfully"
+	WAIT_FOR_GET_LATEST_CHART_FAILURE   = "Latest chart download failed:"
+	WAIT_FOR_GET_LATEST_CHART_TIMEOUT   = "Latest chart download timeout"
+	GET_LATEST_CHART_POLLING_RETIRES    = 3
+	GET_LATEST_CHART_POLLING_INTERVAL   = time.Second * 1
+	GET_LATEST_CHART_POLLING_TIMEOUT    = time.Second * 10
 )
 
 func init() {
@@ -121,7 +128,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	var chart *helm.Chart
-	if chart, err = getLatestChart(helmClient, sentryHelmContext); err != nil {
+	if chart, err = pollGetLatestChart(ctx, helmClient, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -410,23 +417,45 @@ func getClusterName(kubeClient *k8s.Client) (string, error) {
 	return clusterName, nil
 }
 
-func getLatestChart(helmClient *helm.Client, sentryHelmContext *sentry_utils.HelmContext) (*helm.Chart, error) {
-	var err error
+func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelmContext *sentry_utils.HelmContext) (*helm.Chart, error) {
+	spinner := ui.GlobalWriter.NewSpinner(WAIT_FOR_GET_LATEST_CHART_FORMAT)
+	spinner.SetStopMessage(WAIT_FOR_GET_LATEST_CHART_SUCCESS)
+	spinner.SetStopFailMessage(WAIT_FOR_GET_LATEST_CHART_FAILURE)
 
-	if err = helmClient.AddRepo(HELM_REPO_NAME, HELM_REPO_URL); err != nil {
-		return nil, err
-	}
+	spinner.Start()
+	defer spinner.WriteStop()
 
 	var chart *helm.Chart
-	if chart, err = helmClient.GetLatestChart(CHART_NAME); err != nil {
-		return nil, err
+	var err error
+	getLatestChartFunc := func() error {
+		if err := helmClient.AddRepo(HELM_REPO_NAME, HELM_REPO_URL); err != nil {
+			return ui.RetryableError(err)
+		}
+
+		if chart, err = helmClient.GetLatestChart(CHART_NAME); err != nil {
+			return ui.RetryableError(err)
+		}
+
+		return nil
 	}
 
-	sentryHelmContext.ChartVersion = chart.Version().String()
-	sentryHelmContext.SetOnCurrentScope()
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
+	err = spinner.Poll(ctx, getLatestChartFunc, GET_LATEST_CHART_POLLING_INTERVAL, GET_LATEST_CHART_POLLING_TIMEOUT, GET_LATEST_CHART_POLLING_RETIRES)
 
-	return chart, nil
+	if err == nil {
+		sentryHelmContext.ChartVersion = chart.Version().String()
+		sentryHelmContext.SetOnCurrentScope()
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
+
+		return chart, nil
+	}
+
+	spinner.WriteStopFail()
+
+	if errors.Is(err, ui.ErrSpinnerTimeout) {
+		return nil, errors.New(WAIT_FOR_GET_LATEST_CHART_TIMEOUT)
+	}
+
+	return nil, err
 }
 
 func generateChartValues(chartValues map[string]interface{}, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
