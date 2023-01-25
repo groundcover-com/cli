@@ -31,6 +31,10 @@ func NewKubeClient(kubeconfig, kubecontext string) (*Client, error) {
 		return nil, err
 	}
 
+	if err = kubeClient.validateClusterConnectivity(); err != nil {
+		return nil, fmt.Errorf("couldn't connect to context: %s. maybe do you need to connect via VPN?", kubeClient.kubecontext)
+	}
+
 	return kubeClient, nil
 }
 
@@ -84,4 +88,9 @@ func (kubeClient *Client) loadClient() error {
 	}
 
 	return nil
+}
+
+func (kubeClient *Client) validateClusterConnectivity() error {
+	_, err := kubeClient.Discovery().ServerVersion()
+	return err
 }

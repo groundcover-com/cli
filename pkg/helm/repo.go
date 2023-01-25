@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/repo"
 )
@@ -23,7 +24,7 @@ func (helmClient *Client) AddRepo(name, url string) error {
 	}
 
 	if _, err = chartRepo.DownloadIndexFile(); err != nil {
-		return err
+		return errors.Wrap(err, "couldn't connect to helm repo, please make sure you are connected to the internet")
 	}
 
 	repoFile := repo.NewFile()
