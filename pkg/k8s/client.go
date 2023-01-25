@@ -32,7 +32,7 @@ func NewKubeClient(kubeconfig, kubecontext string) (*Client, error) {
 	}
 
 	if err = kubeClient.validateClusterConnectivity(); err != nil {
-		return nil, fmt.Errorf("couldn't connect to cluster: %s. maybe do you need to connect via VPN?", kubecontext)
+		return nil, fmt.Errorf("couldn't connect to context: %s. maybe do you need to connect via VPN?", kubeClient.kubecontext)
 	}
 
 	return kubeClient, nil
