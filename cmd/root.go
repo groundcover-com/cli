@@ -200,6 +200,7 @@ func ExecuteContext(ctx context.Context) error {
 
 	if strings.HasPrefix(err.Error(), "unknown") {
 		ui.GlobalWriter.PrintErrorMessageln(err.Error())
+		// in case the unknown flag / command is due to an old version of the cli
 		checkAndUpgradeVersion(ctx)
 		return nil
 	}
