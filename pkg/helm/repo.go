@@ -24,7 +24,7 @@ func (helmClient *Client) AddRepo(name, url string) error {
 	}
 
 	if _, err = chartRepo.DownloadIndexFile(); err != nil {
-		return errors.Wrap(err, "couldn't connect to repo, please make sure you are connected to the internet")
+		return errors.Wrap(err, "couldn't connect to helm repo, please make sure you are connected to the internet")
 	}
 
 	repoFile := repo.NewFile()
