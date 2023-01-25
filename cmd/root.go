@@ -94,8 +94,6 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		ctx := cmd.Context()
-
 		sentry_utils.SetTransactionOnCurrentScope(cmd.Name())
 
 		if err = validateAuthentication(cmd, args); err != nil {
@@ -103,19 +101,25 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 		}
 
 		if !viper.GetBool(SKIP_CLI_UPDATE_FLAG) {
-			if shouldUpdate, selfUpdater := checkLatestVersionUpdate(cmd.Context()); shouldUpdate {
-				if err = selfUpdater.Apply(ctx); err != nil {
-					return err
-				}
-				command := strings.Join(os.Args, " ")
-				ui.GlobalWriter.PrintWarningMessage(fmt.Sprintf("Please re-run %s\n", command))
-				sentry.CaptureMessage("cli-update executed successfully")
-				return ErrSilentExecutionAbort
-			}
+			return checkAndUpgradeVersion(cmd.Context())
 		}
 
 		return nil
 	},
+}
+
+func checkAndUpgradeVersion(ctx context.Context) error {
+	if shouldUpdate, selfUpdater := checkLatestVersionUpdate(ctx); shouldUpdate {
+		if err := selfUpdater.Apply(ctx); err != nil {
+			return err
+		}
+		command := strings.Join(os.Args, " ")
+		ui.GlobalWriter.PrintWarningMessage(fmt.Sprintf("Please re-run %s\n", command))
+		sentry.CaptureMessage("cli-update executed successfully")
+		return ErrSilentExecutionAbort
+	}
+
+	return nil
 }
 
 func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdater) {
@@ -194,8 +198,9 @@ func ExecuteContext(ctx context.Context) error {
 		return nil
 	}
 
-	if strings.HasPrefix(err.Error(), "unknown command") {
+	if strings.HasPrefix(err.Error(), "unknown") {
 		ui.GlobalWriter.PrintErrorMessageln(err.Error())
+		checkAndUpgradeVersion(ctx)
 		return nil
 	}
 
