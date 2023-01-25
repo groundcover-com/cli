@@ -45,8 +45,8 @@ const (
 	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
 	WAIT_FOR_GET_LATEST_CHART_FORMAT    = "Waiting for downloading latest chart to complete"
 	WAIT_FOR_GET_LATEST_CHART_SUCCESS   = "Downloading latest chart completed successfully"
-	WAIT_FOR_GET_LATEST_CHART_FAILURE   = "Downloading latest chart failed"
-	WAIT_FOR_GET_LATEST_CHART_TIMEOUT   = "Timeout waiting for downloading latest chart"
+	WAIT_FOR_GET_LATEST_CHART_FAILURE   = "Latest chart download failed"
+	WAIT_FOR_GET_LATEST_CHART_TIMEOUT   = "Latest chart download timeout"
 	GET_LATEST_CHART_POLLING_RETIRES    = 3
 	GET_LATEST_CHART_POLLING_INTERVAL   = time.Second * 1
 	GET_LATEST_CHART_POLLING_TIMEOUT    = time.Second * 10
