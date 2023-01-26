@@ -26,15 +26,15 @@ var (
 )
 
 func init() {
-	RootCmd.AddCommand(UninstallCmd)
+	RootCmd.AddCommand(DeleteCmd)
 
-	UninstallCmd.PersistentFlags().Bool(DELETE_NAMESPACE_FLAG, false, "force delete groundcover namespace")
-	viper.BindPFlag(DELETE_NAMESPACE_FLAG, UninstallCmd.PersistentFlags().Lookup(DELETE_NAMESPACE_FLAG))
+	DeleteCmd.PersistentFlags().Bool(DELETE_NAMESPACE_FLAG, false, "force delete groundcover namespace")
+	viper.BindPFlag(DELETE_NAMESPACE_FLAG, DeleteCmd.PersistentFlags().Lookup(DELETE_NAMESPACE_FLAG))
 }
 
-var UninstallCmd = &cobra.Command{
-	Use:   "uninstall",
-	Short: "Uninstall groundcover",
+var DeleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Delete groundcover",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
@@ -84,15 +84,15 @@ var UninstallCmd = &cobra.Command{
 			return err
 		}
 
-		var shouldUninstall bool
+		var shouldDelete bool
 		var shouldEraseData bool
 		var shouldDeleteNamespace bool
-		if shouldUninstall, shouldEraseData, shouldDeleteNamespace, err = promptUninstall(ctx, kubeClient, helmClient, clusterName, releaseName, namespace, &sentryHelmContext); err != nil {
+		if shouldDelete, shouldEraseData, shouldDeleteNamespace, err = promptDelete(ctx, kubeClient, helmClient, clusterName, releaseName, namespace, &sentryHelmContext); err != nil {
 			return err
 		}
 
-		if shouldUninstall {
-			if err = uninstallHelmRelease(ctx, kubeClient, helmClient, releaseName, namespace); err != nil {
+		if shouldDelete {
+			if err = deleteHelmRelease(ctx, kubeClient, helmClient, releaseName, namespace); err != nil {
 				return err
 			}
 		}
@@ -113,13 +113,13 @@ var UninstallCmd = &cobra.Command{
 	},
 }
 
-func promptUninstall(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, clusterName, releaseName, namespace string, sentryHelmContext *sentry_utils.HelmContext) (bool, bool, bool, error) {
+func promptDelete(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, clusterName, releaseName, namespace string, sentryHelmContext *sentry_utils.HelmContext) (bool, bool, bool, error) {
 	var err error
 
-	ui.GlobalWriter.PrintlnWithPrefixln("Uninstalling groundcover:")
+	ui.GlobalWriter.PrintlnWithPrefixln("Deleting groundcover:")
 
-	var shouldUninstall bool
-	if shouldUninstall, err = promptUninstallRelease(ctx, kubeClient, helmClient, clusterName, releaseName, namespace, sentryHelmContext); err != nil {
+	var shouldDelete bool
+	if shouldDelete, err = promptDeleteRelease(ctx, kubeClient, helmClient, clusterName, releaseName, namespace, sentryHelmContext); err != nil {
 		return false, false, false, err
 	}
 
@@ -133,7 +133,7 @@ func promptUninstall(ctx context.Context, kubeClient *k8s.Client, helmClient *he
 		shouldDeleteNamespace = ui.GlobalWriter.YesNoPrompt(fmt.Sprintf("Are you sure you want to delete %s namespace?", namespace), true)
 	}
 
-	if !shouldUninstall && !shouldEraseData && !shouldDeleteNamespace {
+	if !shouldDelete && !shouldEraseData && !shouldDeleteNamespace {
 		ui.GlobalWriter.PrintWarningMessageln(fmt.Sprintf(
 			"could not find release %s in namespace %s, maybe groundcover is installed elsewhere? (use --%s, --%s flags)",
 			releaseName, namespace, HELM_RELEASE_FLAG, NAMESPACE_FLAG),
@@ -143,7 +143,7 @@ func promptUninstall(ctx context.Context, kubeClient *k8s.Client, helmClient *he
 
 	sentry_utils.SetTagOnCurrentScope(sentry_utils.ERASE_DATA_TAG, strconv.FormatBool(shouldEraseData))
 
-	return shouldUninstall, shouldEraseData, shouldDeleteNamespace, nil
+	return shouldDelete, shouldEraseData, shouldDeleteNamespace, nil
 }
 
 func namespaceExists(ctx context.Context, kubeClient *k8s.Client, namespace string) error {
@@ -166,7 +166,7 @@ func namespaceExists(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	return nil
 }
 
-func promptUninstallRelease(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, clusterName, releaseName, namespace string, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
+func promptDeleteRelease(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, clusterName, releaseName, namespace string, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	var err error
 
 	var release *helm.Release
@@ -185,7 +185,7 @@ func promptUninstallRelease(ctx context.Context, kubeClient *k8s.Client, helmCli
 	sentry_utils.SetTagOnCurrentScope(sentry_utils.CHART_VERSION_TAG, sentryHelmContext.ChartVersion)
 
 	promptMessage := fmt.Sprintf(
-		"Current groundcover installation in your cluster: (cluster: %s, namespace: %s, version: %s).\nAre you sure you want to uninstall?",
+		"Current groundcover installation in your cluster: (cluster: %s, namespace: %s, version: %s).\nAre you sure you want to delete?",
 		clusterName, namespace, release.Version(),
 	)
 
@@ -220,16 +220,16 @@ func promptEraseData(ctx context.Context, kubeClient *k8s.Client, releaseName, n
 		return false, nil
 	}
 
-	// we found PVCs, and we are uninstalling
+	// we found PVCs, and we are deleting
 	return true, nil
 }
 
-func uninstallHelmRelease(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, releaseName, namespace string) error {
+func deleteHelmRelease(ctx context.Context, kubeClient *k8s.Client, helmClient *helm.Client, releaseName, namespace string) error {
 	var err error
 
-	spinner := ui.GlobalWriter.NewSpinner("Uninstalling groundcover helm release")
+	spinner := ui.GlobalWriter.NewSpinner("Deleting groundcover helm release")
 	spinner.Start()
-	spinner.SetStopMessage("groundcover helm release is uninstalled")
+	spinner.SetStopMessage("groundcover helm release is deleted")
 	defer spinner.WriteStop()
 
 	if err = helmClient.Uninstall(releaseName); err != nil {
