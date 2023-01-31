@@ -17,6 +17,7 @@ We use the following categories for changes:
 ## [Unreleased]
 ### Added
 ### Changed
+- renamed uninstall command to delete [#sc-7033]
 ### Fixed
 ### Removed
 ### Deprecated
