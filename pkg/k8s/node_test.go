@@ -186,7 +186,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 				RequirementErrors: []string{
 					"fargate is unsupported provider",
 					"4.13.0 is unsupported kernel version",
-					"arm64 is unspported architecture",
+					"arm64 is limited architecture, not all features are enabled",
 					"windows is unspported operating system",
 				},
 			},
@@ -204,7 +204,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 		ArchitectureAllowed: k8s.Requirement{
 			IsCompatible:  false,
 			Message:       "Node architecture supported (2/3 Nodes)",
-			ErrorMessages: []string{"node: incompatible - arm64 is unspported architecture"},
+			ErrorMessages: []string{"node: incompatible - arm64 is limited architecture, not all features are enabled"},
 		},
 		OperatingSystemAllowed: k8s.Requirement{
 			IsCompatible:  false,
@@ -241,7 +241,7 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 				RequirementErrors: []string{
 					"fargate is unsupported provider",
 					"4.13.0 is unsupported kernel version",
-					"arm64 is unspported architecture",
+					"arm64 is limited architecture, not all features are enabled",
 					"windows is unspported operating system",
 				},
 			},
@@ -262,7 +262,7 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 			IsCompatible:    false,
 			IsNonCompatible: true,
 			Message:         "Node architecture supported (0/1 Nodes)",
-			ErrorMessages:   []string{"node: incompatible - arm64 is unspported architecture"},
+			ErrorMessages:   []string{"node: incompatible - arm64 is limited architecture, not all features are enabled"},
 		},
 		OperatingSystemAllowed: k8s.Requirement{
 			IsCompatible:    false,

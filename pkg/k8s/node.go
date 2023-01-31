@@ -31,6 +31,7 @@ var (
 	DefaultNodeRequirements = &NodeMinimumRequirements{
 		AllowedOperatingSystems: []string{"linux"},
 		AllowedArchitectures:    []string{"amd64"},
+		LimitedArchitectures:    []string{"arm64"},
 		BlockedProviders:        []string{"fargate"},
 		KernelVersion:           MinimumKernelVersionSupport,
 	}
@@ -81,6 +82,7 @@ type NodeMinimumRequirements struct {
 	KernelVersion           semver.Version
 	BlockedProviders        []string
 	AllowedArchitectures    []string
+	LimitedArchitectures    []string
 	AllowedOperatingSystems []string
 }
 
@@ -257,6 +259,12 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeArchitecture(nodeSu
 	for _, allowedArchitecture := range nodeRequirements.AllowedArchitectures {
 		if allowedArchitecture == nodeSummary.Architecture {
 			return nil
+		}
+	}
+
+	for _, limitedArchitecutre := range nodeRequirements.LimitedArchitectures {
+		if limitedArchitecutre == nodeSummary.Architecture {
+			return fmt.Errorf("%s is limited architecture, not all features are enabled", nodeSummary.Architecture)
 		}
 	}
 

@@ -15,48 +15,85 @@ We use the following categories for changes:
 - `Security` in case of vulnerabilities.
 
 ## [Unreleased]
+
 ### Added
+
+- add support to arm64 agent [#sc-7116]
+
 ### Changed
+
 ### Fixed
+
 ### Removed
+
 ### Deprecated
+
 ### Security
 
 ## [0.5.1] 2023-01-16
+
 ### Added
+
 ### Changed
+
 ### Fixed
+
 - no slack link on fail [#sc-6903]
+
 ### Removed
+
 ### Deprecated
+
 ### Security
 
 ## [0.5.0] 2023-01-16
+
 ### Added
+
 - Added --no-pvc option [#sc-6887]
+
 ### Changed
+
 ### Fixed
+
 - support aws eks 1.23+ with no ebs driver installed
+
 ### Removed
+
 ### Deprecated
+
 ### Security
 
 ## [0.4.3] 2023-01-08
+
 ### Added
+
 ### Changed
+
 - Improved logging [#sc-6298]
+
 ### Fixed
+
 ### Removed
+
 ### Deprecated
+
 ### Security
 
 ## [0.4.2] 2023-01-08
+
 ### Added
+
 - Add store-all-logs flag [#sc-6717]
+
 ### Changed
+
 ### Fixed
+
 ### Removed
+
 ### Deprecated
+
 ### Security
 
 ## [0.4.1] 2023-01-03
