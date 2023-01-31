@@ -30,6 +30,15 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.5.4] 2023-01-31
+### Added
+### Changed
+- renamed uninstall command to delete [#sc-7033]
+### Fixed
+### Removed
+### Deprecated
+### Security
+
 ## [0.5.1] 2023-01-16
 
 ### Added
