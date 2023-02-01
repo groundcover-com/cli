@@ -90,7 +90,7 @@ func CalcAllocatableResources(nodesSummeries []*k8s.NodeSummary) *AllocatableRes
 	}
 
 	for _, nodeSummary := range nodesSummeries {
-		if len(nodeSummary.Taints) > 0 {
+		if len(nodeSummary.Taints) > 0 || nodeSummary.Architecture == "arm64" {
 			continue
 		}
 

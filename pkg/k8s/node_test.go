@@ -56,7 +56,7 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 						v1.ResourceMemory: *resource.NewScaledQuantity(1000, resource.Mega),
 					},
 					NodeInfo: v1.NodeSystemInfo{
-						Architecture:    "arm64",
+						Architecture:    "arm",
 						OperatingSystem: "windows",
 						KernelVersion:   "4.13.0",
 						OSImage:         "amazon linux",
@@ -129,7 +129,7 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 			CPU:             resource.NewScaledQuantity(500, resource.Milli),
 			Memory:          resource.NewScaledQuantity(1000, resource.Mega),
 			Name:            "incompatible",
-			Architecture:    "arm64",
+			Architecture:    "arm",
 			OperatingSystem: "windows",
 			Kernel:          "4.13.0",
 			OSImage:         "amazon linux",
@@ -186,7 +186,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 				RequirementErrors: []string{
 					"fargate is unsupported provider",
 					"4.13.0 is unsupported kernel version",
-					"arm64 is limited architecture, not all features are enabled",
+					"arm is unspported architecture",
 					"windows is unspported operating system",
 				},
 			},
@@ -204,7 +204,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 		ArchitectureAllowed: k8s.Requirement{
 			IsCompatible:  false,
 			Message:       "Node architecture supported (2/3 Nodes)",
-			ErrorMessages: []string{"node: incompatible - arm64 is limited architecture, not all features are enabled"},
+			ErrorMessages: []string{"node: incompatible - arm is unspported architecture"},
 		},
 		OperatingSystemAllowed: k8s.Requirement{
 			IsCompatible:  false,
@@ -241,7 +241,7 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 				RequirementErrors: []string{
 					"fargate is unsupported provider",
 					"4.13.0 is unsupported kernel version",
-					"arm64 is limited architecture, not all features are enabled",
+					"arm is unspported architecture",
 					"windows is unspported operating system",
 				},
 			},
@@ -261,8 +261,8 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 		ArchitectureAllowed: k8s.Requirement{
 			IsCompatible:    false,
 			IsNonCompatible: true,
-			Message:         "Node architecture supported (0/1 Nodes)",
-			ErrorMessages:   []string{"node: incompatible - arm64 is limited architecture, not all features are enabled"},
+			Message:         "groundcover backend components requires at least one amd64-based instance",
+			ErrorMessages:   []string{"node: incompatible - arm is unspported architecture"},
 		},
 		OperatingSystemAllowed: k8s.Requirement{
 			IsCompatible:    false,

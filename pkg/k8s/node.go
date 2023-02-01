@@ -21,6 +21,7 @@ const (
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "Cloud provider supported (%d/%d Nodes)"
 	ARCHITECTURE_REPORT_MESSAGE_FORMAT     = "Node architecture supported (%d/%d Nodes)"
 	OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT = "Node operating system supported (%d/%d Nodes)"
+	BACKEND_IS_NOT_SCHEDULABLE_MESSAGE     = "groundcover backend components requires at least one amd64-based instance"
 )
 
 var (
@@ -30,8 +31,7 @@ var (
 
 	DefaultNodeRequirements = &NodeMinimumRequirements{
 		AllowedOperatingSystems: []string{"linux"},
-		AllowedArchitectures:    []string{"amd64"},
-		LimitedArchitectures:    []string{"arm64"},
+		AllowedArchitectures:    []string{"amd64", "arm64"},
 		BlockedProviders:        []string{"fargate"},
 		KernelVersion:           MinimumKernelVersionSupport,
 	}
@@ -82,7 +82,6 @@ type NodeMinimumRequirements struct {
 	KernelVersion           semver.Version
 	BlockedProviders        []string
 	AllowedArchitectures    []string
-	LimitedArchitectures    []string
 	AllowedOperatingSystems []string
 }
 
@@ -103,9 +102,9 @@ func (nodesReport *NodesReport) NodesCount() int {
 
 func (nodesReport *NodesReport) PrintStatus() {
 	nodesReport.KernelVersionAllowed.PrintStatus()
-	nodesReport.ArchitectureAllowed.PrintStatus()
 	nodesReport.OperatingSystemAllowed.PrintStatus()
 	nodesReport.ProviderAllowed.PrintStatus()
+	nodesReport.ArchitectureAllowed.PrintStatus()
 	nodesReport.Schedulable.PrintStatus()
 }
 
@@ -117,11 +116,18 @@ type IncompatibleNode struct {
 func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*NodeSummary) *NodesReport {
 	var err error
 	var nodesReport NodesReport
+	var backendIsSchedulable bool
 
 	nodesCount := len(nodesSummeries)
 
 	for _, nodeSummary := range nodesSummeries {
 		var requirementErrors []string
+
+		if !backendIsSchedulable {
+			if nodeSummary.Architecture == "amd64" {
+				backendIsSchedulable = true
+			}
+		}
 
 		if err = nodeRequirements.validateNodeProvider(nodeSummary); err != nil {
 			requirementErrors = append(requirementErrors, err.Error())
@@ -211,6 +217,12 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 		len(nodesSummeries),
 	)
 
+	if !backendIsSchedulable {
+		nodesReport.ArchitectureAllowed.IsCompatible = false
+		nodesReport.ArchitectureAllowed.IsNonCompatible = true
+		nodesReport.ArchitectureAllowed.Message = BACKEND_IS_NOT_SCHEDULABLE_MESSAGE
+	}
+
 	nodesReport.OperatingSystemAllowed.IsCompatible = len(nodesReport.OperatingSystemAllowed.ErrorMessages) == 0
 	nodesReport.OperatingSystemAllowed.IsNonCompatible = len(nodesReport.OperatingSystemAllowed.ErrorMessages) == nodesCount
 	nodesReport.OperatingSystemAllowed.Message = fmt.Sprintf(
@@ -259,12 +271,6 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeArchitecture(nodeSu
 	for _, allowedArchitecture := range nodeRequirements.AllowedArchitectures {
 		if allowedArchitecture == nodeSummary.Architecture {
 			return nil
-		}
-	}
-
-	for _, limitedArchitecutre := range nodeRequirements.LimitedArchitectures {
-		if limitedArchitecutre == nodeSummary.Architecture {
-			return fmt.Errorf("%s is limited architecture, not all features are enabled", nodeSummary.Architecture)
 		}
 	}
 
