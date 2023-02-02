@@ -261,7 +261,7 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 		ArchitectureAllowed: k8s.Requirement{
 			IsCompatible:    false,
 			IsNonCompatible: true,
-			Message:         "groundcover backend components requires at least one amd64-based instance",
+			Message:         "groundcover backend components require at least one amd64-based instance",
 			ErrorMessages:   []string{"node: incompatible - arm is unspported architecture"},
 		},
 		OperatingSystemAllowed: k8s.Requirement{

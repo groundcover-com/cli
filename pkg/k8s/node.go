@@ -14,6 +14,8 @@ import (
 )
 
 const (
+	AMD64_ARCH                             = "amd64"
+	ARM64_ARCH                             = "arm64"
 	SCHEDULABLE_REPORT_MESSAGE_FORMAT      = "Node is schedulable (%d/%d Nodes)"
 	CPU_REPORT_MESSAGE_FORMAT              = "Sufficient node CPU (%d/%d Nodes)"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "Kernel version >= %s (%d/%d Nodes)"
@@ -21,7 +23,7 @@ const (
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "Cloud provider supported (%d/%d Nodes)"
 	ARCHITECTURE_REPORT_MESSAGE_FORMAT     = "Node architecture supported (%d/%d Nodes)"
 	OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT = "Node operating system supported (%d/%d Nodes)"
-	BACKEND_IS_NOT_SCHEDULABLE_MESSAGE     = "groundcover backend components requires at least one amd64-based instance"
+	BACKEND_IS_NOT_SCHEDULABLE_MESSAGE     = "groundcover backend components require at least one amd64-based instance"
 )
 
 var (
@@ -31,7 +33,7 @@ var (
 
 	DefaultNodeRequirements = &NodeMinimumRequirements{
 		AllowedOperatingSystems: []string{"linux"},
-		AllowedArchitectures:    []string{"amd64", "arm64"},
+		AllowedArchitectures:    []string{AMD64_ARCH, ARM64_ARCH},
 		BlockedProviders:        []string{"fargate"},
 		KernelVersion:           MinimumKernelVersionSupport,
 	}
@@ -47,6 +49,14 @@ type NodeSummary struct {
 	Architecture    string             `json:",omitempty"`
 	OperatingSystem string             `json:",omitempty"`
 	Taints          []v1.Taint         `json:"-"`
+}
+
+func (nodeSummary *NodeSummary) IsArm64() bool {
+	return nodeSummary.Architecture == ARM64_ARCH
+}
+
+func (nodeSummary *NodeSummary) IsAmd64() bool {
+	return nodeSummary.Architecture == AMD64_ARCH
 }
 
 func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary, error) {
@@ -124,7 +134,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 		var requirementErrors []string
 
 		if !backendIsSchedulable {
-			if nodeSummary.Architecture == "amd64" {
+			if nodeSummary.IsAmd64() {
 				backendIsSchedulable = true
 			}
 		}
