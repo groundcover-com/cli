@@ -250,7 +250,7 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 
 	nodesReport.PrintStatus()
 
-	if len(nodesReport.CompatibleNodes) == 0 || nodesReport.Schedulable.IsNonCompatible {
+	if len(nodesReport.CompatibleNodes) == 0 || nodesReport.Schedulable.IsNonCompatible || nodesReport.ArchitectureAllowed.IsNonCompatible {
 		return nil, errors.New("can't continue with installation, no compatible nodes for installation")
 	}
 

@@ -14,6 +14,8 @@ import (
 )
 
 const (
+	AMD64_ARCH                             = "amd64"
+	ARM64_ARCH                             = "arm64"
 	SCHEDULABLE_REPORT_MESSAGE_FORMAT      = "Node is schedulable (%d/%d Nodes)"
 	CPU_REPORT_MESSAGE_FORMAT              = "Sufficient node CPU (%d/%d Nodes)"
 	KERNEL_REPORT_MESSAGE_FORMAT           = "Kernel version >= %s (%d/%d Nodes)"
@@ -21,6 +23,7 @@ const (
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "Cloud provider supported (%d/%d Nodes)"
 	ARCHITECTURE_REPORT_MESSAGE_FORMAT     = "Node architecture supported (%d/%d Nodes)"
 	OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT = "Node operating system supported (%d/%d Nodes)"
+	BACKEND_IS_NOT_SCHEDULABLE_MESSAGE     = "groundcover backend components require at least one amd64-based instance"
 )
 
 var (
@@ -30,7 +33,7 @@ var (
 
 	DefaultNodeRequirements = &NodeMinimumRequirements{
 		AllowedOperatingSystems: []string{"linux"},
-		AllowedArchitectures:    []string{"amd64"},
+		AllowedArchitectures:    []string{AMD64_ARCH, ARM64_ARCH},
 		BlockedProviders:        []string{"fargate"},
 		KernelVersion:           MinimumKernelVersionSupport,
 	}
@@ -46,6 +49,14 @@ type NodeSummary struct {
 	Architecture    string             `json:",omitempty"`
 	OperatingSystem string             `json:",omitempty"`
 	Taints          []v1.Taint         `json:"-"`
+}
+
+func (nodeSummary *NodeSummary) IsArm64() bool {
+	return nodeSummary.Architecture == ARM64_ARCH
+}
+
+func (nodeSummary *NodeSummary) IsAmd64() bool {
+	return nodeSummary.Architecture == AMD64_ARCH
 }
 
 func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary, error) {
@@ -101,9 +112,9 @@ func (nodesReport *NodesReport) NodesCount() int {
 
 func (nodesReport *NodesReport) PrintStatus() {
 	nodesReport.KernelVersionAllowed.PrintStatus()
-	nodesReport.ArchitectureAllowed.PrintStatus()
 	nodesReport.OperatingSystemAllowed.PrintStatus()
 	nodesReport.ProviderAllowed.PrintStatus()
+	nodesReport.ArchitectureAllowed.PrintStatus()
 	nodesReport.Schedulable.PrintStatus()
 }
 
@@ -115,11 +126,18 @@ type IncompatibleNode struct {
 func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*NodeSummary) *NodesReport {
 	var err error
 	var nodesReport NodesReport
+	var backendIsSchedulable bool
 
 	nodesCount := len(nodesSummeries)
 
 	for _, nodeSummary := range nodesSummeries {
 		var requirementErrors []string
+
+		if !backendIsSchedulable {
+			if nodeSummary.IsAmd64() {
+				backendIsSchedulable = true
+			}
+		}
 
 		if err = nodeRequirements.validateNodeProvider(nodeSummary); err != nil {
 			requirementErrors = append(requirementErrors, err.Error())
@@ -208,6 +226,12 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 		len(nodesSummeries)-len(nodesReport.ArchitectureAllowed.ErrorMessages),
 		len(nodesSummeries),
 	)
+
+	if !backendIsSchedulable {
+		nodesReport.ArchitectureAllowed.IsCompatible = false
+		nodesReport.ArchitectureAllowed.IsNonCompatible = true
+		nodesReport.ArchitectureAllowed.Message = BACKEND_IS_NOT_SCHEDULABLE_MESSAGE
+	}
 
 	nodesReport.OperatingSystemAllowed.IsCompatible = len(nodesReport.OperatingSystemAllowed.ErrorMessages) == 0
 	nodesReport.OperatingSystemAllowed.IsNonCompatible = len(nodesReport.OperatingSystemAllowed.ErrorMessages) == nodesCount

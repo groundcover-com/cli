@@ -223,3 +223,27 @@ func TestCalcAllocatableResourcesMultiNodeWithTaints(t *testing.T) {
 	assert.Equal(t, resource.NewMilliQuantity(2000, resource.DecimalSI), resources.TotalCpu)
 	assert.Equal(t, resource.NewQuantity(2000, resource.BinarySI), resources.TotalMemory)
 }
+
+func TestCalcAllocatableResourcesMultiNodeWithArmArch(t *testing.T) {
+	// arrange
+	nodes := []*k8s.NodeSummary{
+		{
+			CPU:    resource.NewMilliQuantity(2000, resource.DecimalSI),
+			Memory: resource.NewQuantity(2000, resource.BinarySI),
+		},
+		{
+			Architecture: "arm64",
+			CPU:          resource.NewMilliQuantity(1000, resource.DecimalSI),
+			Memory:       resource.NewQuantity(1000, resource.BinarySI),
+		},
+	}
+
+	// act
+	resources := helm.CalcAllocatableResources(nodes)
+
+	// assert
+	assert.Equal(t, resource.NewMilliQuantity(2000, resource.DecimalSI), resources.MinCpu)
+	assert.Equal(t, resource.NewQuantity(2000, resource.BinarySI), resources.MinMemory)
+	assert.Equal(t, resource.NewMilliQuantity(2000, resource.DecimalSI), resources.TotalCpu)
+	assert.Equal(t, resource.NewQuantity(2000, resource.BinarySI), resources.TotalMemory)
+}
