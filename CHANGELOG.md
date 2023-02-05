@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.6.0] 2023-02-05
+
+### Added
+
 - add support to arm64 agent [#sc-7116]
 
 ### Changed
