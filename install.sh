@@ -139,7 +139,7 @@ verifySupported() {
 checkInstalledVersion() {
   if [ -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
     local version
-    version=$("${INSTALL_DIR}/${BINARY_NAME}" --skip-selfupdate version)
+    version=$("${INSTALL_DIR}/${BINARY_NAME}" --skip-cli-update version)
     if [ "${version}" = "${LATEST_TAG#v}" ]; then
       completed "groundcover ${version} is already latest"
       return 0
