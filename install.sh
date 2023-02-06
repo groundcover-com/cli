@@ -100,7 +100,7 @@ appendShellPath() {
   if [ -f "${bashrc_file}" ]; then
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
     if ! grep -q "${export_path_expression}" "${bashrc_file}"; then
-      echo -e "\n${export_path_expression}" >> "${bashrc_file}"
+      echo -e "\n${export_path_expression}\n" >> "${bashrc_file}"
       completed "Added ${INSTALL_DIR} to \$PATH in ${bashrc_file}"
     fi    
   fi
@@ -109,7 +109,7 @@ appendShellPath() {
   if [ -f "${zshrc_file}" ]; then
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
     if ! grep -q "${export_path_expression}" "${zshrc_file}"; then
-      echo -e "\n${export_path_expression}" >> "${zshrc_file}"
+      echo -e "\n${export_path_expression}\n" >> "${zshrc_file}"
       completed "Added ${INSTALL_DIR} to \$PATH in ${zshrc_file}"
     fi
   fi
@@ -118,7 +118,7 @@ appendShellPath() {
   if [ -f "${fish_config_file}" ]; then
     local export_path_expression="set -U fish_user_paths ${INSTALL_DIR} \$fish_user_paths"
     if ! grep -q "${export_path_expression}" "${fish_config_file}"; then
-      echo -e "\n${export_path_expression}" >> "${fish_config_file}"
+      echo -e "\n${export_path_expression}\n" >> "${fish_config_file}"
       completed "Added ${INSTALL_DIR} to \$PATH in ${fish_config_file}"
     fi
   fi
