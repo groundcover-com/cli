@@ -106,7 +106,7 @@ appendShellPath() {
   fi
 
   local zshrc_file="${HOME}/.zshrc"
-  if [ -f "${zshrc_file}" ]; then
+  if [ -f "${zshrc_file}" ] || [ "${OS}" = "darwin" ]; then
     local export_path_expression="export PATH=${INSTALL_DIR}:\${PATH}"
     if ! grep -q "${export_path_expression}" "${zshrc_file}"; then
       echo -e "\n${export_path_expression}\n" >> "${zshrc_file}"
