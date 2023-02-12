@@ -35,9 +35,10 @@ const (
 )
 
 var (
-	JOIN_SLACK_LINK       = "https://groundcover.com/join-slack"
-	SUPPORT_SLACK_MESSAGE = "questions? issues? ping us anytime "
-	JOIN_SLACK_MESSAGE    = "join us on slack, we promise to keep things interesting"
+	JOIN_SLACK_LINK       = ui.GlobalWriter.UrlLink("https://groundcover.com/join-slack")
+	SUPPORT_SLACK_MESSAGE = fmt.Sprintf("questions? issues? ping us anytime %s", JOIN_SLACK_LINK)
+	JOIN_SLACK_MESSAGE    = fmt.Sprintf("join us on slack, we promise to keep things interesting %s", JOIN_SLACK_LINK)
+	INVALID_TOKEN_MESSAGE = fmt.Sprintf("Issue with authentication - try again to copy command line and rerun or join our slack community for assistance %s", JOIN_SLACK_LINK)
 )
 
 func init() {
@@ -168,11 +169,11 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 
 	if viper.IsSet(TOKEN_FLAG) {
 		if err = validateInstallationToken(); err != nil {
-			ui.GlobalWriter.PrintErrorMessageln("Token authentication is invalid")
+			ui.GlobalWriter.PrintErrorMessageln(INVALID_TOKEN_MESSAGE)
 			return err
 		}
 
-		ui.GlobalWriter.PrintSuccessMessageln("Token authentication is valid")
+		ui.GlobalWriter.PrintSuccessMessageln("Token authentication success")
 		return nil
 	}
 
@@ -220,8 +221,7 @@ func ExecuteContext(ctx context.Context) error {
 	}
 
 	ui.GlobalWriter.PrintErrorMessageln(err.Error())
-	ui.GlobalWriter.Println("")
-	ui.GlobalWriter.PrintUrl(SUPPORT_SLACK_MESSAGE, JOIN_SLACK_LINK)
+	ui.GlobalWriter.PrintlnWithPrefixln(SUPPORT_SLACK_MESSAGE)
 
 	sentry.CaptureMessage(fmt.Sprintf("%s execution failed - %s", sentryCommandContext.Name, err.Error()))
 	return err

@@ -187,15 +187,24 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), &auth0Token, clusterName, len(deployableNodes), storageProvision.PersistentStorage, sentryHelmContext)
 	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
+	clusterUrl := fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName)
+	clusterUrlLink := ui.GlobalWriter.UrlLink(clusterUrl)
+
 	if err != nil {
 		ui.GlobalWriter.PrintflnWithPrefixln("Installation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"", namespace)
-		ui.GlobalWriter.PrintUrl(fmt.Sprintf("If pods in %q namespce are running, Check out: ", namespace), fmt.Sprintf("%s/?clusterId=%s&viewType=Overview\n", GROUNDCOVER_URL, clusterName))
+		ui.GlobalWriter.Printf("If pods in %q namespce are running, Check out: %s\n", namespace, clusterUrlLink)
 		return err
 	}
 
 	ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
-	utils.TryOpenBrowser(ui.GlobalWriter, "Check out: ", fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName))
-	ui.GlobalWriter.PrintUrl(fmt.Sprintf("\n%s\n", JOIN_SLACK_MESSAGE), JOIN_SLACK_LINK)
+
+	if viper.IsSet(TOKEN_FLAG) {
+		ui.GlobalWriter.Printf("Return to browser tab or visit %s if you closed tab\n", clusterUrlLink)
+	} else {
+		utils.TryOpenBrowser(ui.GlobalWriter, "Check out: ", clusterUrl)
+	}
+
+	ui.GlobalWriter.PrintlnWithPrefixln(JOIN_SLACK_MESSAGE)
 
 	return nil
 }
