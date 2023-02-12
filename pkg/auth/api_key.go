@@ -1,4 +1,4 @@
-package api
+package auth
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ const (
 )
 
 type ApiKey struct {
-	ApiKey string `json:"apiKey"`
+	ApiKey string `json:"apiKey" validate:"required"`
 }
 
 func (apiKey *ApiKey) Load() error {
@@ -23,7 +23,15 @@ func (apiKey *ApiKey) Load() error {
 		return err
 	}
 
-	return json.Unmarshal(data, &apiKey)
+	if err = json.Unmarshal(data, &apiKey); err != nil {
+		return err
+	}
+
+	if err = validate.Struct(apiKey); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (apiKey *ApiKey) Save() error {
@@ -35,20 +43,4 @@ func (apiKey *ApiKey) Save() error {
 	}
 
 	return utils.PresistentStorage.Write(API_KEY_STORAGE_KEY, data)
-}
-
-func (client *Client) ApiKey() (*ApiKey, error) {
-	var err error
-
-	var body []byte
-	if body, err = client.Post(GENERATE_API_KEY_ENDPOINT, "", nil); err != nil {
-		return nil, err
-	}
-
-	var apiKey *ApiKey
-	if err = json.Unmarshal(body, &apiKey); err != nil {
-		return nil, err
-	}
-
-	return apiKey, nil
 }

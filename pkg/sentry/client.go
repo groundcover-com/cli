@@ -10,6 +10,7 @@ const (
 	TAINTED_TAG                  = "tainted"
 	ERASE_DATA_TAG               = "erase"
 	UPGRADE_TAG                  = "upgrade"
+	TOKEN_ID_TAG                 = "token.id"
 	ORGANIZATION_TAG             = "organization"
 	CHART_VERSION_TAG            = "chart.version"
 	FLUSH_TIMEOUT                = time.Second * 2

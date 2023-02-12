@@ -25,6 +25,7 @@ import (
 const (
 	GITHUB_REPO          = "cli"
 	GITHUB_OWNER         = "groundcover-com"
+	TOKEN_FLAG           = "token"
 	NAMESPACE_FLAG       = "namespace"
 	KUBECONFIG_FLAG      = "kubeconfig"
 	KUBECONTEXT_FLAG     = "kube-context"
@@ -41,6 +42,9 @@ var (
 
 func init() {
 	home := homedir.HomeDir()
+
+	RootCmd.PersistentFlags().String(TOKEN_FLAG, "", "optional login token")
+	viper.BindPFlag(TOKEN_FLAG, RootCmd.PersistentFlags().Lookup(TOKEN_FLAG))
 
 	RootCmd.PersistentFlags().Bool(ui.ASSUME_YES_FLAG, false, "assume yes on interactive prompts")
 	viper.BindPFlag(ui.ASSUME_YES_FLAG, RootCmd.PersistentFlags().Lookup(ui.ASSUME_YES_FLAG))
@@ -162,6 +166,16 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 
 	ui.GlobalWriter.Println("Validating groundcover authentication:")
 
+	if viper.IsSet(TOKEN_FLAG) {
+		if err = validateInstallationToken(); err != nil {
+			ui.GlobalWriter.PrintErrorMessageln("Token authentication is invalid")
+			return err
+		}
+
+		ui.GlobalWriter.PrintSuccessMessageln("Token authentication is valid")
+		return nil
+	}
+
 	err = validateAuth0Token()
 
 	if err == nil {
@@ -211,6 +225,26 @@ func ExecuteContext(ctx context.Context) error {
 
 	sentry.CaptureMessage(fmt.Sprintf("%s execution failed - %s", sentryCommandContext.Name, err.Error()))
 	return err
+}
+
+func validateInstallationToken() error {
+	var err error
+
+	encodedToken := viper.GetString(TOKEN_FLAG)
+
+	var installationToken auth.InstallationToken
+	if err = installationToken.Parse(encodedToken); err != nil {
+		return err
+	}
+
+	if err = installationToken.ApiKey.Save(); err != nil {
+		return err
+	}
+
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: installationToken.Email})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.TOKEN_ID_TAG, installationToken.Id)
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, installationToken.Org)
+	return nil
 }
 
 func validateAuth0Token() error {

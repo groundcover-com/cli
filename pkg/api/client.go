@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -47,11 +48,27 @@ func NewClient(auth0Token *auth.Auth0Token) *Client {
 	}
 }
 
+func (client *Client) ApiKey() (*auth.ApiKey, error) {
+	var err error
+
+	var body []byte
+	if body, err = client.post(auth.GENERATE_API_KEY_ENDPOINT, "", nil); err != nil {
+		return nil, err
+	}
+
+	var apiKey *auth.ApiKey
+	if err = json.Unmarshal(body, &apiKey); err != nil {
+		return nil, err
+	}
+
+	return apiKey, nil
+}
+
 func (client *Client) JoinPath(endpoint string) (*url.URL, error) {
 	return client.baseUrl.Parse(endpoint)
 }
 
-func (client *Client) Get(endpoint string) ([]byte, error) {
+func (client *Client) get(endpoint string) ([]byte, error) {
 	var err error
 
 	var url *url.URL
@@ -72,7 +89,7 @@ func (client *Client) Get(endpoint string) ([]byte, error) {
 	return ioutil.ReadAll(response.Body)
 }
 
-func (client *Client) Post(endpoint, contentType string, payload io.Reader) ([]byte, error) {
+func (client *Client) post(endpoint, contentType string, payload io.Reader) ([]byte, error) {
 	var err error
 
 	var url *url.URL

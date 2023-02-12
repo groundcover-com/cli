@@ -20,12 +20,12 @@ const (
 )
 
 type DeviceCode struct {
-	Interval                int    `json:"interval"`
-	UserCode                string `json:"user_code"`
-	ExpiresIn               int    `json:"expires_in"`
-	DeviceCode              string `json:"device_code"`
-	VerificationURI         string `json:"verification_uri"`
-	VerificationURIComplete string `json:"verification_uri_complete"`
+	Interval                int    `json:"interval" validate:"required"`
+	UserCode                string `json:"user_code" validate:"required"`
+	ExpiresIn               int    `json:"expires_in" validate:"required"`
+	DeviceCode              string `json:"device_code" validate:"required"`
+	VerificationURI         string `json:"verification_uri" validate:"required"`
+	VerificationURIComplete string `json:"verification_uri_complete" validate:"required"`
 }
 
 func (deviceCode *DeviceCode) Fetch() error {
@@ -41,7 +41,15 @@ func (deviceCode *DeviceCode) Fetch() error {
 		return err
 	}
 
-	return json.Unmarshal(body, &deviceCode)
+	if err = json.Unmarshal(body, &deviceCode); err != nil {
+		return err
+	}
+
+	if err = validate.Struct(deviceCode); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (deviceCode *DeviceCode) PollToken(ctx context.Context, auth0Token *Auth0Token) error {

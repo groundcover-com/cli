@@ -93,8 +93,10 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	releaseName := viper.GetString(HELM_RELEASE_FLAG)
 
 	var auth0Token auth.Auth0Token
-	if err = auth0Token.Load(); err != nil {
-		return err
+	if !viper.IsSet(TOKEN_FLAG) {
+		if err = auth0Token.Load(); err != nil {
+			return err
+		}
 	}
 
 	sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
@@ -394,9 +396,11 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 		return err
 	}
 
-	apiClient := api.NewClient(auth0Token)
-	if err = apiClient.PollIsClusterExist(ctx, clusterName); err != nil {
-		return err
+	if !viper.IsSet(TOKEN_FLAG) {
+		apiClient := api.NewClient(auth0Token)
+		if err = apiClient.PollIsClusterExist(ctx, clusterName); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -461,7 +465,7 @@ func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelm
 func generateChartValues(chartValues map[string]interface{}, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
-	var apiKey api.ApiKey
+	var apiKey auth.ApiKey
 	if err = apiKey.Load(); err != nil {
 		return nil, err
 	}

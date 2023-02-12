@@ -71,7 +71,7 @@ func fetchAndSaveApiKey(auth0Token *auth.Auth0Token) error {
 
 	apiClient := api.NewClient(auth0Token)
 
-	var apiKey *api.ApiKey
+	var apiKey *auth.ApiKey
 	if apiKey, err = apiClient.ApiKey(); err != nil {
 		return err
 	}

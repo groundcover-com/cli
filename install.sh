@@ -59,6 +59,18 @@ cat << 'BANNER'
 BANNER
 }
 
+parseArguments() {
+  while [[ "$#" -gt 0 ]]
+  do case $1 in
+      -t|--token) token="$2"
+      shift;;
+      *) error "Unknown parameter passed: $1"
+      exit 1;;
+  esac
+  shift
+  done
+}
+
 # initArch discovers the architecture for this system.
 initArch() {
   ARCH=$(uname -m)
@@ -190,6 +202,10 @@ what now?\n\
 run ${BLUE}groundcover help${NO_COLOR}, or dive deeper with ${BLUE}${UNDERLINE}https://docs.groundcover.com/docs${NO_COLOR}.\n"
 }
 
+deployWithToken() {
+  "${INSTALL_DIR}/${BINARY_NAME}" deploy --token "${token}"
+}
+
 # fail_trap is executed if an error occurs.
 fail_trap() {
   result=$?
@@ -209,6 +225,7 @@ set -e
 
 
 printBanner
+parseArguments "$@"
 initArch
 initOS
 initLatestTag
@@ -218,6 +235,11 @@ if ! checkInstalledVersion; then
 fi
 appendShellPath
 completed "groundcover cli was successfully installed!"
-printWhatNow
-cleanup
-exec "${SHELL}" # Reload shell
+if [ -z "${token}" ]
+then
+  printWhatNow
+  cleanup
+  exec "${SHELL}" # Reload shell
+else
+  deployWithToken
+fi

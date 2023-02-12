@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- add `token` flag to `deploy` command [#sc-7216]
+
 ### Changed
 
 ### Fixed

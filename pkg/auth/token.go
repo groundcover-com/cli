@@ -1,12 +1,14 @@
 package auth
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
 
 	"github.com/MicahParks/keyfunc"
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v4"
 	"groundcover.com/pkg/utils"
 )
@@ -17,19 +19,20 @@ const (
 	JWKS_ENDPOINT     = "/.well-known/jwks.json"
 )
 
+var validate = validator.New()
+
 type Auth0Token struct {
 	Claims       Claims `json:"-"`
-	ExpiresIn    int64  `json:"expires_in"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in" validate:"required"`
+	AccessToken  string `json:"access_token" validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 type Claims struct {
 	jwt.RegisteredClaims
-	Scope    string `json:"scope"`
-	Org      string `json:"https://client.info/org"`
-	Email    string `json:"https://client.info/email"`
-	TenantID uint32 `json:"https://client.info/tenant-id"`
+	Scope string `json:"scope" validate:"required"`
+	Org   string `json:"https://client.info/org" validate:"required"`
+	Email string `json:"https://client.info/email" validate:"required"`
 }
 
 func (auth0Token *Auth0Token) Load() error {
@@ -40,11 +43,7 @@ func (auth0Token *Auth0Token) Load() error {
 		return err
 	}
 
-	if err = json.Unmarshal(data, &auth0Token); err != nil {
-		return err
-	}
-
-	return auth0Token.loadClaims()
+	return auth0Token.parseBody(data)
 }
 
 func (auth0Token *Auth0Token) Save() error {
@@ -82,11 +81,7 @@ func (auth0Token *Auth0Token) Fetch(data url.Values) error {
 		return err
 	}
 
-	if err = json.Unmarshal(body, &auth0Token); err != nil {
-		return err
-	}
-
-	return auth0Token.loadClaims()
+	return auth0Token.parseBody(body)
 }
 
 func (auth0Token *Auth0Token) RefreshAndSave() error {
@@ -102,7 +97,17 @@ func (auth0Token *Auth0Token) RefreshAndSave() error {
 		return err
 	}
 
-	if err = json.Unmarshal(body, &auth0Token); err != nil {
+	if err = auth0Token.parseBody(body); err != nil {
+		return err
+	}
+
+	return auth0Token.Save()
+}
+
+func (auth0Token *Auth0Token) parseBody(body []byte) error {
+	var err error
+
+	if err = json.Unmarshal(body, auth0Token); err != nil {
 		return err
 	}
 
@@ -110,7 +115,11 @@ func (auth0Token *Auth0Token) RefreshAndSave() error {
 		return err
 	}
 
-	return auth0Token.Save()
+	if err = validate.Struct(auth0Token); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (auth0Token *Auth0Token) loadClaims() error {
@@ -127,6 +136,36 @@ func (auth0Token *Auth0Token) loadClaims() error {
 	}
 
 	if _, err = jwt.ParseWithClaims(auth0Token.AccessToken, &auth0Token.Claims, jwks.Keyfunc); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type InstallationToken struct {
+	*ApiKey `validate:"required"`
+	Id      string `json:"id" validate:"required"`
+	Org     string `json:"org" validate:"required"`
+	Email   string `json:"email" validate:"required"`
+}
+
+func (token *InstallationToken) Parse(encodedToken string) error {
+	var err error
+
+	if encodedToken == "" {
+		return fmt.Errorf("empty input token")
+	}
+
+	var data []byte
+	if data, err = base64.StdEncoding.DecodeString(encodedToken); err != nil {
+		return err
+	}
+
+	if err = json.Unmarshal(data, token); err != nil {
+		return err
+	}
+
+	if err = validate.Struct(token); err != nil {
 		return err
 	}
 
