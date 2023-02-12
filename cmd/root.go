@@ -23,22 +23,22 @@ import (
 )
 
 const (
-	GITHUB_REPO          = "cli"
-	GITHUB_OWNER         = "groundcover-com"
-	TOKEN_FLAG           = "token"
-	NAMESPACE_FLAG       = "namespace"
-	KUBECONFIG_FLAG      = "kubeconfig"
-	KUBECONTEXT_FLAG     = "kube-context"
-	HELM_RELEASE_FLAG    = "release-name"
-	CLUSTER_NAME_FLAG    = "cluster-name"
-	SKIP_CLI_UPDATE_FLAG = "skip-cli-update"
+	GITHUB_REPO           = "cli"
+	GITHUB_OWNER          = "groundcover-com"
+	TOKEN_FLAG            = "token"
+	NAMESPACE_FLAG        = "namespace"
+	KUBECONFIG_FLAG       = "kubeconfig"
+	KUBECONTEXT_FLAG      = "kube-context"
+	HELM_RELEASE_FLAG     = "release-name"
+	CLUSTER_NAME_FLAG     = "cluster-name"
+	SKIP_CLI_UPDATE_FLAG  = "skip-cli-update"
+	INVALID_TOKEN_MESSAGE = "Issue with authentication - try again to copy command line and rerun"
 )
 
 var (
 	JOIN_SLACK_LINK       = ui.GlobalWriter.UrlLink("https://groundcover.com/join-slack")
 	SUPPORT_SLACK_MESSAGE = fmt.Sprintf("questions? issues? ping us anytime %s", JOIN_SLACK_LINK)
 	JOIN_SLACK_MESSAGE    = fmt.Sprintf("join us on slack, we promise to keep things interesting %s", JOIN_SLACK_LINK)
-	INVALID_TOKEN_MESSAGE = fmt.Sprintf("Issue with authentication - try again to copy command line and rerun or join our slack community for assistance %s", JOIN_SLACK_LINK)
 )
 
 func init() {
