@@ -60,14 +60,21 @@ BANNER
 }
 
 parseArguments() {
-  while [[ "$#" -gt 0 ]]
-  do case $1 in
-      -t|--token) token="$2"
-      shift;;
-      *) error "Unknown parameter passed: $1"
-      exit 1;;
-  esac
-  shift
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+    -t | --token)
+      token="$2"
+      shift 2
+      ;;
+    -t=* | --token=*)
+      token="${1#*=}"
+      shift 1
+      ;;
+    *)
+      error "Unknown option: $1"
+      exit 1
+      ;;
+    esac
   done
 }
 
