@@ -151,7 +151,11 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return errors.New("timeout waiting for cluster to establish connectivity")
+		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
+		spinner.SetWarningSign()
+		spinner.SetStopFailMessage("timeout waiting for cluster to establish connectivity")
+		spinner.WriteStopFail()
+		return ErrSilentExecutionAbort
 	}
 
 	return err
@@ -197,7 +201,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 		spinner.SetWarningSign()
 		spinner.SetStopFailMessage(fmt.Sprintf("Timeout waiting for all nodes to be monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
 		spinner.WriteStopFail()
-		return nil
+		return ErrSilentExecutionAbort
 	}
 
 	spinner.SetStopFailMessage(fmt.Sprintf("Not all nodes are monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))

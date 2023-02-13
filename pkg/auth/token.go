@@ -21,6 +21,10 @@ const (
 
 var validate = validator.New()
 
+type Token interface {
+	Info() (id string, email string, org string)
+}
+
 type Auth0Token struct {
 	Claims       Claims `json:"-"`
 	ExpiresIn    int64  `json:"expires_in" validate:"required"`
@@ -122,6 +126,10 @@ func (auth0Token *Auth0Token) parseBody(body []byte) error {
 	return nil
 }
 
+func (auth0Token Auth0Token) Info() (string, string, string) {
+	return "", auth0Token.Claims.Email, auth0Token.Claims.Org
+}
+
 func (auth0Token *Auth0Token) loadClaims() error {
 	var err error
 
@@ -149,25 +157,30 @@ type InstallationToken struct {
 	Email   string `json:"email" validate:"required"`
 }
 
-func (token *InstallationToken) Parse(encodedToken string) error {
+func NewInstallationToken(encodedToken string) (*InstallationToken, error) {
 	var err error
 
 	if encodedToken == "" {
-		return fmt.Errorf("empty input token")
+		return nil, fmt.Errorf("empty input token")
 	}
 
 	var data []byte
 	if data, err = base64.StdEncoding.DecodeString(encodedToken); err != nil {
-		return err
+		return nil, err
 	}
 
+	token := &InstallationToken{}
 	if err = json.Unmarshal(data, token); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err = validate.Struct(token); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return token, nil
+}
+
+func (installationToken InstallationToken) Info() (string, string, string) {
+	return installationToken.Id, installationToken.Email, installationToken.Org
 }

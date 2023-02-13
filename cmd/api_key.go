@@ -13,8 +13,8 @@ var apiKeyCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		var apiKey auth.ApiKey
-		if err = apiKey.Load(); err != nil {
+		var apiKey *auth.ApiKey
+		if apiKey, err = auth.NewApiKey(); err != nil {
 			return errors.Wrap(err, "failed to load api key")
 		}
 

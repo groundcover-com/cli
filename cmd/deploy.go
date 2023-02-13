@@ -41,6 +41,7 @@ const (
 	REPOSITORY_URL_KEY_NAME_FLAG        = "git-repository-url-key-name"
 	GROUNDCOVER_URL                     = "https://app.groundcover.com"
 	HELM_REPO_URL                       = "https://helm.groundcover.com"
+	CLUSTER_URL_FORMAT                  = "%s/?clusterId=%s&viewType=Overview"
 	EXPERIMENTAL_PRESET_PATH            = "presets/agent/experimental.yaml"
 	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
 	WAIT_FOR_GET_LATEST_CHART_FORMAT    = "Waiting for downloading latest chart to complete"
@@ -87,17 +88,11 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	var err error
 
 	ctx := cmd.Context()
+	isAuthenticated := !viper.IsSet(TOKEN_FLAG)
 	namespace := viper.GetString(NAMESPACE_FLAG)
 	kubeconfig := viper.GetString(KUBECONFIG_FLAG)
 	kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 	releaseName := viper.GetString(HELM_RELEASE_FLAG)
-
-	var auth0Token auth.Auth0Token
-	if !viper.IsSet(TOKEN_FLAG) {
-		if err = auth0Token.Load(); err != nil {
-			return err
-		}
-	}
 
 	sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 	sentryKubeContext.SetOnCurrentScope()
@@ -184,24 +179,22 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), &auth0Token, clusterName, len(deployableNodes), storageProvision.PersistentStorage, sentryHelmContext)
+	var isInstallationValid bool
+	isInstallationValid, err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), clusterName, len(deployableNodes), storageProvision.PersistentStorage, sentryHelmContext)
 	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
-	clusterUrl := fmt.Sprintf("%s/?clusterId=%s&viewType=Overview", GROUNDCOVER_URL, clusterName)
-	clusterUrlLink := ui.GlobalWriter.UrlLink(clusterUrl)
-
-	if err != nil {
-		ui.GlobalWriter.PrintflnWithPrefixln("Installation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"", namespace)
-		ui.GlobalWriter.Printf("If pods in %q namespce are running, Check out: %s\n", namespace, clusterUrlLink)
-		return err
+	if err == nil && isAuthenticated {
+		isInstallationValid, err = validateClusterRegistered(ctx, clusterName)
 	}
 
-	ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
+	if isInstallationValid {
+		ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
+	}
 
-	if viper.IsSet(TOKEN_FLAG) {
-		ui.GlobalWriter.Printf("Return to browser tab or visit %s if you closed tab\n", clusterUrlLink)
-	} else {
-		utils.TryOpenBrowser(ui.GlobalWriter, "Check out: ", clusterUrl)
+	printOrOpenClusterUrl(clusterName, namespace, isInstallationValid, isAuthenticated)
+
+	if err != nil {
+		return err
 	}
 
 	ui.GlobalWriter.PrintlnWithPrefixln(JOIN_SLACK_MESSAGE)
@@ -386,33 +379,58 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, auth0Token *auth.Auth0Token, clusterName string, deployableNodesCount int, persistentStorage bool, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, clusterName string, deployableNodesCount int, persistentStorage bool, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	var err error
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating groundcover installation:")
 
 	if persistentStorage {
 		if err = waitForPvcs(ctx, kubeClient, namespace, sentryHelmContext); err != nil {
-			return err
+			return false, err
 		}
 	}
 
 	if err = waitForPortal(ctx, kubeClient, namespace, appVersion, sentryHelmContext); err != nil {
-		return err
+		return false, err
 	}
 
 	if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
-		return err
+		return false, err
 	}
 
-	if !viper.IsSet(TOKEN_FLAG) {
-		apiClient := api.NewClient(auth0Token)
-		if err = apiClient.PollIsClusterExist(ctx, clusterName); err != nil {
-			return err
-		}
+	return true, nil
+}
+
+func validateClusterRegistered(ctx context.Context, clusterName string) (bool, error) {
+	var err error
+
+	var auth0Token auth.Auth0Token
+	if err = auth0Token.Load(); err != nil {
+		return false, err
 	}
 
-	return nil
+	apiClient := api.NewClient(&auth0Token)
+
+	if err = apiClient.PollIsClusterExist(ctx, clusterName); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func printOrOpenClusterUrl(clusterName string, namespace string, isInstallationValid bool, isAuthenticated bool) {
+	clusterUrl := fmt.Sprintf(CLUSTER_URL_FORMAT, GROUNDCOVER_URL, clusterName)
+	clusterUrlLink := ui.GlobalWriter.UrlLink(clusterUrl)
+
+	switch {
+	case !isInstallationValid:
+		ui.GlobalWriter.PrintflnWithPrefixln("Installation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"", namespace)
+		ui.GlobalWriter.Printf("If pods in %q namespce are running, Check out: %s\n", namespace, clusterUrlLink)
+	case !isAuthenticated:
+		ui.GlobalWriter.Printf("Return to browser tab or visit %s if you closed tab\n", clusterUrlLink)
+	default:
+		utils.TryOpenBrowser(ui.GlobalWriter, "Check out: ", clusterUrl)
+	}
 }
 
 func getClusterName(kubeClient *k8s.Client) (string, error) {
@@ -474,8 +492,8 @@ func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelm
 func generateChartValues(chartValues map[string]interface{}, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
-	var apiKey auth.ApiKey
-	if err = apiKey.Load(); err != nil {
+	var apiKey *auth.ApiKey
+	if apiKey, err = auth.NewApiKey(); err != nil {
 		return nil, err
 	}
 

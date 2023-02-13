@@ -40,12 +40,12 @@ func (suite *AuthTokenTestSuite) TestParseInstallationTokenSuccess() {
 	encodedToken := base64.StdEncoding.EncodeToString(data)
 
 	//act
-	var installationToken auth.InstallationToken
-	err = installationToken.Parse(encodedToken)
+	var installationToken *auth.InstallationToken
+	installationToken, err = auth.NewInstallationToken(encodedToken)
 
 	// assert
 
-	expected := auth.InstallationToken{
+	expected := &auth.InstallationToken{
 		Id:     token["id"],
 		Org:    token["org"],
 		Email:  token["email"],
@@ -75,8 +75,7 @@ func (suite *AuthTokenTestSuite) TestParseInstallationTokenValidationError() {
 	encodedToken := base64.StdEncoding.EncodeToString(data)
 
 	//act
-	var installationToken auth.InstallationToken
-	err = installationToken.Parse(encodedToken)
+	_, err = auth.NewInstallationToken(encodedToken)
 
 	// assert
 	expected := []string{

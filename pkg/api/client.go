@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -57,7 +56,7 @@ func (client *Client) ApiKey() (*auth.ApiKey, error) {
 	}
 
 	var apiKey *auth.ApiKey
-	if err = json.Unmarshal(body, &apiKey); err != nil {
+	if err = apiKey.ParseBody(body); err != nil {
 		return nil, err
 	}
 

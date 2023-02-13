@@ -15,15 +15,26 @@ type ApiKey struct {
 	ApiKey string `json:"apiKey" validate:"required"`
 }
 
-func (apiKey *ApiKey) Load() error {
+func NewApiKey() (*ApiKey, error) {
 	var err error
 
 	var data []byte
 	if data, err = utils.PresistentStorage.Read(API_KEY_STORAGE_KEY); err != nil {
-		return err
+		return nil, err
 	}
 
-	if err = json.Unmarshal(data, &apiKey); err != nil {
+	apiKey := &ApiKey{}
+	if err = apiKey.ParseBody(data); err != nil {
+		return nil, err
+	}
+
+	return apiKey, nil
+}
+
+func (apiKey *ApiKey) ParseBody(body []byte) error {
+	var err error
+
+	if err = json.Unmarshal(body, &apiKey); err != nil {
 		return err
 	}
 

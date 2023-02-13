@@ -47,8 +47,8 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 func attemptAuth0Login(ctx context.Context) (*auth.Auth0Token, error) {
 	var err error
 
-	var deviceCode auth.DeviceCode
-	if err = deviceCode.Fetch(); err != nil {
+	var deviceCode *auth.DeviceCode
+	if deviceCode, err = auth.NewDeviceCode(); err != nil {
 		return nil, err
 	}
 

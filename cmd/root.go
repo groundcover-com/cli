@@ -161,34 +161,38 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 func validateAuthentication(cmd *cobra.Command, args []string) error {
 	var err error
 
+	isAuthenicationRequired := !viper.IsSet(TOKEN_FLAG)
+
 	if slices.Contains(skipAuthCommandNames, cmd.Name()) {
 		return nil
 	}
 
 	ui.GlobalWriter.Println("Validating groundcover authentication:")
 
-	if viper.IsSet(TOKEN_FLAG) {
-		if err = validateInstallationToken(); err != nil {
+	var token auth.Token
+	if isAuthenicationRequired {
+		if token, err = validateAuth0Token(); err != nil {
+			if ui.GlobalWriter.YesNoPrompt("authentication is required, do you want to login?", true) {
+				return runLoginCmd(cmd, args)
+			}
+			os.Exit(0)
+		}
+		ui.GlobalWriter.PrintSuccessMessageln("Device authentication is valid")
+	} else {
+		if token, err = validateInstallationToken(); err != nil {
 			ui.GlobalWriter.PrintErrorMessageln(INVALID_TOKEN_MESSAGE)
 			return err
 		}
 
 		ui.GlobalWriter.PrintSuccessMessageln("Token authentication success")
-		return nil
 	}
 
-	err = validateAuth0Token()
+	id, email, org := token.Info()
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: email})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.TOKEN_ID_TAG, id)
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, org)
 
-	if err == nil {
-		ui.GlobalWriter.PrintSuccessMessageln("Device authentication is valid")
-		return nil
-	}
-
-	if !ui.GlobalWriter.YesNoPrompt("authentication is required, do you want to login?", true) {
-		os.Exit(0)
-	}
-
-	return runLoginCmd(cmd, args)
+	return nil
 }
 
 func ExecuteContext(ctx context.Context) error {
@@ -227,27 +231,24 @@ func ExecuteContext(ctx context.Context) error {
 	return err
 }
 
-func validateInstallationToken() error {
+func validateInstallationToken() (*auth.InstallationToken, error) {
 	var err error
 
 	encodedToken := viper.GetString(TOKEN_FLAG)
 
-	var installationToken auth.InstallationToken
-	if err = installationToken.Parse(encodedToken); err != nil {
-		return err
+	var installationToken *auth.InstallationToken
+	if installationToken, err = auth.NewInstallationToken(encodedToken); err != nil {
+		return nil, err
 	}
 
 	if err = installationToken.ApiKey.Save(); err != nil {
-		return err
+		return nil, err
 	}
 
-	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: installationToken.Email})
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.TOKEN_ID_TAG, installationToken.Id)
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, installationToken.Org)
-	return nil
+	return installationToken, nil
 }
 
-func validateAuth0Token() error {
+func validateAuth0Token() (*auth.Auth0Token, error) {
 	var err error
 
 	var auth0Token auth.Auth0Token
@@ -258,10 +259,8 @@ func validateAuth0Token() error {
 	}
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.Claims.Email})
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.Claims.Org)
-	return nil
+	return &auth0Token, nil
 }

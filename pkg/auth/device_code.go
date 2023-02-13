@@ -28,7 +28,7 @@ type DeviceCode struct {
 	VerificationURIComplete string `json:"verification_uri_complete" validate:"required"`
 }
 
-func (deviceCode *DeviceCode) Fetch() error {
+func NewDeviceCode() (*DeviceCode, error) {
 	var err error
 
 	data := url.Values{}
@@ -38,18 +38,19 @@ func (deviceCode *DeviceCode) Fetch() error {
 
 	var body []byte
 	if body, err = DefaultClient.PostForm(DEVICE_CODE_ENDPOINT, data); err != nil {
-		return err
+		return nil, err
 	}
 
+	deviceCode := &DeviceCode{}
 	if err = json.Unmarshal(body, &deviceCode); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err = validate.Struct(deviceCode); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return deviceCode, nil
 }
 
 func (deviceCode *DeviceCode) PollToken(ctx context.Context, auth0Token *Auth0Token) error {
