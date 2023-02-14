@@ -178,24 +178,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	if err = installHelmRelease(ctx, helmClient, releaseName, chart, chartValues); err != nil {
 		return err
 	}
-
-	var isInstallationValid bool
-	err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), clusterName, len(deployableNodes), storageProvision.PersistentStorage, sentryHelmContext)
-	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
-
-	if err == nil && isAuthenticated {
-		err = validateClusterRegistered(ctx, clusterName)
-	}
-
-	isInstallationValid = err == nil
-
-	if isInstallationValid {
-		ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
-	}
-
-	printOrOpenClusterUrl(clusterName, namespace, isInstallationValid, isAuthenticated)
-
-	if err != nil {
+	if err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), clusterName, len(deployableNodes), storageProvision.PersistentStorage, isAuthenticated, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -381,8 +364,14 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, clusterName string, deployableNodesCount int, persistentStorage bool, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, clusterName string, deployableNodesCount int, persistentStorage bool, isAuthenticated bool, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
+
+	defer func() {
+		isInstallationValid := err == nil
+		reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
+		printOrOpenClusterUrl(clusterName, namespace, isInstallationValid, isAuthenticated)
+	}()
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating groundcover installation:")
 
@@ -399,6 +388,14 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 	if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
 		return err
 	}
+
+	if isAuthenticated {
+		if err = validateClusterRegistered(ctx, clusterName); err != nil {
+			return err
+		}
+	}
+
+	ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
 
 	return nil
 }
@@ -427,7 +424,7 @@ func printOrOpenClusterUrl(clusterName string, namespace string, isInstallationV
 	switch {
 	case !isInstallationValid:
 		ui.GlobalWriter.PrintflnWithPrefixln("Installation takes longer than expected, you can check the status using \"kubectl get pods -n %s\"", namespace)
-		ui.GlobalWriter.Printf("If pods in %q namespce are running, Check out: %s\n", namespace, clusterUrlLink)
+		ui.GlobalWriter.Printf("If pods in %q namespace are running, Check out: %s\n", namespace, clusterUrlLink)
 	case !isAuthenticated:
 		ui.GlobalWriter.Printf("Return to browser tab or visit %s if you closed tab\n", clusterUrlLink)
 	default:
