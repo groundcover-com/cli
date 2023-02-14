@@ -15,7 +15,7 @@ type ApiKey struct {
 	ApiKey string `json:"apiKey" validate:"required"`
 }
 
-func NewApiKey() (*ApiKey, error) {
+func LoadApiKey() (*ApiKey, error) {
 	var err error
 
 	var data []byte

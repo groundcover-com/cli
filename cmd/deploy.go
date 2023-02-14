@@ -180,12 +180,14 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	var isInstallationValid bool
-	isInstallationValid, err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), clusterName, len(deployableNodes), storageProvision.PersistentStorage, sentryHelmContext)
+	err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), clusterName, len(deployableNodes), storageProvision.PersistentStorage, sentryHelmContext)
 	reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
 	if err == nil && isAuthenticated {
-		isInstallationValid, err = validateClusterRegistered(ctx, clusterName)
+		err = validateClusterRegistered(ctx, clusterName)
 	}
+
+	isInstallationValid = err == nil
 
 	if isInstallationValid {
 		ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
@@ -379,43 +381,43 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, clusterName string, deployableNodesCount int, persistentStorage bool, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, clusterName string, deployableNodesCount int, persistentStorage bool, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating groundcover installation:")
 
 	if persistentStorage {
 		if err = waitForPvcs(ctx, kubeClient, namespace, sentryHelmContext); err != nil {
-			return false, err
+			return err
 		}
 	}
 
 	if err = waitForPortal(ctx, kubeClient, namespace, appVersion, sentryHelmContext); err != nil {
-		return false, err
+		return err
 	}
 
 	if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
-func validateClusterRegistered(ctx context.Context, clusterName string) (bool, error) {
+func validateClusterRegistered(ctx context.Context, clusterName string) error {
 	var err error
 
-	var auth0Token auth.Auth0Token
-	if err = auth0Token.Load(); err != nil {
-		return false, err
+	var auth0Token *auth.Auth0Token
+	if auth0Token, err = auth.LoadAuth0Token(); err != nil {
+		return err
 	}
 
-	apiClient := api.NewClient(&auth0Token)
+	apiClient := api.NewClient(auth0Token)
 
 	if err = apiClient.PollIsClusterExist(ctx, clusterName); err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 func printOrOpenClusterUrl(clusterName string, namespace string, isInstallationValid bool, isAuthenticated bool) {
@@ -424,7 +426,7 @@ func printOrOpenClusterUrl(clusterName string, namespace string, isInstallationV
 
 	switch {
 	case !isInstallationValid:
-		ui.GlobalWriter.PrintflnWithPrefixln("Installation takes longer then expected, you can check the status using \"kubectl get pods -n %s\"", namespace)
+		ui.GlobalWriter.PrintflnWithPrefixln("Installation takes longer than expected, you can check the status using \"kubectl get pods -n %s\"", namespace)
 		ui.GlobalWriter.Printf("If pods in %q namespce are running, Check out: %s\n", namespace, clusterUrlLink)
 	case !isAuthenticated:
 		ui.GlobalWriter.Printf("Return to browser tab or visit %s if you closed tab\n", clusterUrlLink)
@@ -493,7 +495,7 @@ func generateChartValues(chartValues map[string]interface{}, clusterName string,
 	var err error
 
 	var apiKey *auth.ApiKey
-	if apiKey, err = auth.NewApiKey(); err != nil {
+	if apiKey, err = auth.LoadApiKey(); err != nil {
 		return nil, err
 	}
 

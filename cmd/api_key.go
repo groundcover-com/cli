@@ -14,7 +14,7 @@ var apiKeyCmd = &cobra.Command{
 		var err error
 
 		var apiKey *auth.ApiKey
-		if apiKey, err = auth.NewApiKey(); err != nil {
+		if apiKey, err = auth.LoadApiKey(); err != nil {
 			return errors.Wrap(err, "failed to load api key")
 		}
 

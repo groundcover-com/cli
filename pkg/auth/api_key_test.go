@@ -47,7 +47,7 @@ func (suite *AuthApiKeyTestSuite) TestSaveAndLoadApiKeySuccess() {
 	err := apiKey.Save()
 	suite.NoError(err)
 
-	loadedApiKey, err := auth.NewApiKey()
+	loadedApiKey, err := auth.LoadApiKey()
 	suite.NoError(err)
 
 	// assert
@@ -69,7 +69,7 @@ func (suite *AuthApiKeyTestSuite) TestApiKeyValidationError() {
 	suite.NoError(err)
 
 	//act
-	_, err = auth.NewApiKey()
+	_, err = auth.LoadApiKey()
 
 	// assert
 	expected := []string{

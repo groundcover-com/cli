@@ -10,7 +10,6 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -171,7 +170,7 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 
 	var token auth.Token
 	if isAuthenicationRequired {
-		if token, err = validateAuth0Token(); err != nil {
+		if token, err = auth.LoadAuth0Token(); err != nil {
 			if ui.GlobalWriter.YesNoPrompt("authentication is required, do you want to login?", true) {
 				return runLoginCmd(cmd, args)
 			}
@@ -187,10 +186,9 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 		ui.GlobalWriter.PrintSuccessMessageln("Token authentication success")
 	}
 
-	id, email, org := token.Info()
-	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: email})
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.TOKEN_ID_TAG, id)
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, org)
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: token.GetEmail()})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.TOKEN_ID_TAG, token.GetId())
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, token.GetOrg())
 
 	return nil
 }
@@ -246,21 +244,4 @@ func validateInstallationToken() (*auth.InstallationToken, error) {
 	}
 
 	return installationToken, nil
-}
-
-func validateAuth0Token() (*auth.Auth0Token, error) {
-	var err error
-
-	var auth0Token auth.Auth0Token
-	err = auth0Token.Load()
-
-	if errors.Is(err, jwt.ErrTokenExpired) {
-		err = auth0Token.RefreshAndSave()
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &auth0Token, nil
 }
