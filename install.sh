@@ -30,6 +30,10 @@ BLUE="$(tput setaf 4 2>/dev/null || printf '')"
 YELLOW="$(tput setaf 3 2>/dev/null || printf '')"
 NO_COLOR="$(tput sgr0 2>/dev/null || printf '')"
 
+newline() {
+  printf "\n"
+}
+
 info() {
   printf '%s\n' "${BOLD}${GREY}>${NO_COLOR} $*"
 }
@@ -39,11 +43,11 @@ warn() {
 }
 
 error() {
-  printf '%s\n' "${RED}x $*${NO_COLOR}" >&2
+  printf '%s\n' "${RED}✕ $*${NO_COLOR}" >&2
 }
 
 completed() {
-  printf '%s\n' "${GREEN}✓${NO_COLOR} $*"
+  printf '%s\n' "${GREEN}✔${NO_COLOR} $*"
 }
 
 printBanner() {
@@ -248,5 +252,6 @@ then
   cleanup
   exec "${SHELL}" # Reload shell
 else
+  newline
   deployWithToken
 fi
