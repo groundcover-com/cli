@@ -10,7 +10,6 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,24 +22,29 @@ import (
 )
 
 const (
-	GITHUB_REPO          = "cli"
-	GITHUB_OWNER         = "groundcover-com"
-	NAMESPACE_FLAG       = "namespace"
-	KUBECONFIG_FLAG      = "kubeconfig"
-	KUBECONTEXT_FLAG     = "kube-context"
-	HELM_RELEASE_FLAG    = "release-name"
-	CLUSTER_NAME_FLAG    = "cluster-name"
-	SKIP_CLI_UPDATE_FLAG = "skip-cli-update"
+	GITHUB_REPO           = "cli"
+	GITHUB_OWNER          = "groundcover-com"
+	TOKEN_FLAG            = "token"
+	NAMESPACE_FLAG        = "namespace"
+	KUBECONFIG_FLAG       = "kubeconfig"
+	KUBECONTEXT_FLAG      = "kube-context"
+	HELM_RELEASE_FLAG     = "release-name"
+	CLUSTER_NAME_FLAG     = "cluster-name"
+	SKIP_CLI_UPDATE_FLAG  = "skip-cli-update"
+	INVALID_TOKEN_MESSAGE = "Issue with authentication - try again to copy command line and rerun"
 )
 
 var (
-	JOIN_SLACK_LINK       = "https://groundcover.com/join-slack"
-	SUPPORT_SLACK_MESSAGE = "questions? issues? ping us anytime "
-	JOIN_SLACK_MESSAGE    = "join us on slack, we promise to keep things interesting"
+	JOIN_SLACK_LINK       = ui.GlobalWriter.UrlLink("https://groundcover.com/join-slack")
+	SUPPORT_SLACK_MESSAGE = fmt.Sprintf("questions? issues? ping us anytime %s", JOIN_SLACK_LINK)
+	JOIN_SLACK_MESSAGE    = fmt.Sprintf("join us on slack, we promise to keep things interesting %s", JOIN_SLACK_LINK)
 )
 
 func init() {
 	home := homedir.HomeDir()
+
+	RootCmd.PersistentFlags().String(TOKEN_FLAG, "", "optional login token")
+	viper.BindPFlag(TOKEN_FLAG, RootCmd.PersistentFlags().Lookup(TOKEN_FLAG))
 
 	RootCmd.PersistentFlags().Bool(ui.ASSUME_YES_FLAG, false, "assume yes on interactive prompts")
 	viper.BindPFlag(ui.ASSUME_YES_FLAG, RootCmd.PersistentFlags().Lookup(ui.ASSUME_YES_FLAG))
@@ -156,24 +160,37 @@ func checkLatestVersionUpdate(ctx context.Context) (bool, *selfupdate.SelfUpdate
 func validateAuthentication(cmd *cobra.Command, args []string) error {
 	var err error
 
+	isAuthenicationRequired := !viper.IsSet(TOKEN_FLAG)
+
 	if slices.Contains(skipAuthCommandNames, cmd.Name()) {
 		return nil
 	}
 
 	ui.GlobalWriter.Println("Validating groundcover authentication:")
 
-	err = validateAuth0Token()
-
-	if err == nil {
+	var token auth.Token
+	if isAuthenicationRequired {
+		if token, err = auth.LoadAuth0Token(); err != nil {
+			if ui.GlobalWriter.YesNoPrompt("authentication is required, do you want to login?", true) {
+				return runLoginCmd(cmd, args)
+			}
+			os.Exit(0)
+		}
 		ui.GlobalWriter.PrintSuccessMessageln("Device authentication is valid")
-		return nil
+	} else {
+		if token, err = validateInstallationToken(); err != nil {
+			ui.GlobalWriter.PrintErrorMessageln(INVALID_TOKEN_MESSAGE)
+			return err
+		}
+
+		ui.GlobalWriter.PrintSuccessMessageln("Token authentication success")
 	}
 
-	if !ui.GlobalWriter.YesNoPrompt("authentication is required, do you want to login?", true) {
-		os.Exit(0)
-	}
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: token.GetEmail()})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.TOKEN_ID_TAG, token.GetId())
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, token.GetOrg())
 
-	return runLoginCmd(cmd, args)
+	return nil
 }
 
 func ExecuteContext(ctx context.Context) error {
@@ -206,28 +223,25 @@ func ExecuteContext(ctx context.Context) error {
 	}
 
 	ui.GlobalWriter.PrintErrorMessageln(err.Error())
-	ui.GlobalWriter.Println("")
-	ui.GlobalWriter.PrintUrl(SUPPORT_SLACK_MESSAGE, JOIN_SLACK_LINK)
+	ui.GlobalWriter.PrintlnWithPrefixln(SUPPORT_SLACK_MESSAGE)
 
 	sentry.CaptureMessage(fmt.Sprintf("%s execution failed - %s", sentryCommandContext.Name, err.Error()))
 	return err
 }
 
-func validateAuth0Token() error {
+func validateInstallationToken() (*auth.InstallationToken, error) {
 	var err error
 
-	var auth0Token auth.Auth0Token
-	err = auth0Token.Load()
+	encodedToken := viper.GetString(TOKEN_FLAG)
 
-	if errors.Is(err, jwt.ErrTokenExpired) {
-		err = auth0Token.RefreshAndSave()
+	var installationToken *auth.InstallationToken
+	if installationToken, err = auth.NewInstallationToken(encodedToken); err != nil {
+		return nil, err
 	}
 
-	if err != nil {
-		return err
+	if err = installationToken.ApiKey.Save(); err != nil {
+		return nil, err
 	}
 
-	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.Claims.Email})
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.Claims.Org)
-	return nil
+	return installationToken, nil
 }

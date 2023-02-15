@@ -61,7 +61,7 @@ func (client *Client) ClusterList() (map[string]interface{}, error) {
 	var err error
 
 	var body []byte
-	if body, err = client.Get(CLUSTER_LIST_ENDPOINT); err != nil {
+	if body, err = client.get(CLUSTER_LIST_ENDPOINT); err != nil {
 		return nil, err
 	}
 

@@ -30,6 +30,10 @@ BLUE="$(tput setaf 4 2>/dev/null || printf '')"
 YELLOW="$(tput setaf 3 2>/dev/null || printf '')"
 NO_COLOR="$(tput sgr0 2>/dev/null || printf '')"
 
+newline() {
+  printf "\n"
+}
+
 info() {
   printf '%s\n' "${BOLD}${GREY}>${NO_COLOR} $*"
 }
@@ -39,11 +43,11 @@ warn() {
 }
 
 error() {
-  printf '%s\n' "${RED}x $*${NO_COLOR}" >&2
+  printf '%s\n' "${RED}✕ $*${NO_COLOR}" >&2
 }
 
 completed() {
-  printf '%s\n' "${GREEN}✓${NO_COLOR} $*"
+  printf '%s\n' "${GREEN}✔${NO_COLOR} $*"
 }
 
 printBanner() {
@@ -57,6 +61,25 @@ cat << 'BANNER'
          #NO TRADE-OFFS
 
 BANNER
+}
+
+parseArguments() {
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+    -t | --token)
+      token="$2"
+      shift 2
+      ;;
+    -t=* | --token=*)
+      token="${1#*=}"
+      shift 1
+      ;;
+    *)
+      error "Unknown option: $1"
+      exit 1
+      ;;
+    esac
+  done
 }
 
 # initArch discovers the architecture for this system.
@@ -190,6 +213,10 @@ what now?\n\
 run ${BLUE}groundcover help${NO_COLOR}, or dive deeper with ${BLUE}${UNDERLINE}https://docs.groundcover.com/docs${NO_COLOR}.\n"
 }
 
+deployWithToken() {
+  "${INSTALL_DIR}/${BINARY_NAME}" deploy --token "${token}"
+}
+
 # fail_trap is executed if an error occurs.
 fail_trap() {
   result=$?
@@ -209,6 +236,7 @@ set -e
 
 
 printBanner
+parseArguments "$@"
 initArch
 initOS
 initLatestTag
@@ -218,6 +246,12 @@ if ! checkInstalledVersion; then
 fi
 appendShellPath
 completed "groundcover cli was successfully installed!"
-printWhatNow
-cleanup
-exec "${SHELL}" # Reload shell
+if [ -z "${token}" ]
+then
+  printWhatNow
+  cleanup
+  exec "${SHELL}" # Reload shell
+else
+  newline
+  deployWithToken
+fi
