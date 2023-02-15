@@ -31,6 +31,7 @@ const (
 	HELM_RELEASE_FLAG     = "release-name"
 	CLUSTER_NAME_FLAG     = "cluster-name"
 	SKIP_CLI_UPDATE_FLAG  = "skip-cli-update"
+	INSTALLATION_ID_FLAG  = "installation-id"
 	INVALID_TOKEN_MESSAGE = "Issue with authentication - try again to copy command line and rerun"
 )
 
@@ -186,6 +187,7 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 		ui.GlobalWriter.PrintSuccessMessageln("Token authentication success")
 	}
 
+	viper.Set(INSTALLATION_ID_FLAG, token.GetId())
 	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: token.GetEmail()})
 	sentry_utils.SetTagOnCurrentScope(sentry_utils.TOKEN_ID_TAG, token.GetId())
 	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, token.GetOrg())
