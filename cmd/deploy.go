@@ -93,6 +93,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	kubeconfig := viper.GetString(KUBECONFIG_FLAG)
 	kubecontext := viper.GetString(KUBECONTEXT_FLAG)
 	releaseName := viper.GetString(HELM_RELEASE_FLAG)
+	installationId := viper.GetString(INSTALLATION_ID_FLAG)
 
 	sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 	sentryKubeContext.SetOnCurrentScope()
@@ -162,7 +163,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		chartValues = release.Config
 	}
 
-	if chartValues, err = generateChartValues(chartValues, clusterName, storageProvision.PersistentStorage, deployableNodes, tolerations, sentryHelmContext); err != nil {
+	if chartValues, err = generateChartValues(chartValues, installationId, clusterName, storageProvision.PersistentStorage, deployableNodes, tolerations, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -178,6 +179,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	if err = installHelmRelease(ctx, helmClient, releaseName, chart, chartValues); err != nil {
 		return err
 	}
+
 	if err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), clusterName, len(deployableNodes), storageProvision.PersistentStorage, isAuthenticated, sentryHelmContext); err != nil {
 		return err
 	}
@@ -488,7 +490,7 @@ func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelm
 	return nil, err
 }
 
-func generateChartValues(chartValues map[string]interface{}, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func generateChartValues(chartValues map[string]interface{}, installationId string, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey *auth.ApiKey
@@ -498,6 +500,7 @@ func generateChartValues(chartValues map[string]interface{}, clusterName string,
 
 	defaultChartValues := map[string]interface{}{
 		"clusterId":            clusterName,
+		"installationId":       installationId,
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
