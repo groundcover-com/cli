@@ -22,6 +22,20 @@ We use the following categories for changes:
 
 ### Fixed
 
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.7.1] 2023-02-17
+
+### Added
+
+### Changed
+
+### Fixed
+
 - fix fetch api-key [#sc-7357]
 
 ### Removed
