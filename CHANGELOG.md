@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- fix fetch api-key [#sc-7357]
+
 ### Removed
 
 ### Deprecated

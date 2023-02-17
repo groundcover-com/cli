@@ -55,7 +55,7 @@ func (client *Client) ApiKey() (*auth.ApiKey, error) {
 		return nil, err
 	}
 
-	var apiKey *auth.ApiKey
+	apiKey := &auth.ApiKey{}
 	if err = apiKey.ParseBody(body); err != nil {
 		return nil, err
 	}
