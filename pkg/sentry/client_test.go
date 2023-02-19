@@ -1,6 +1,7 @@
 package sentry_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/getsentry/sentry-go"
@@ -35,16 +36,17 @@ func TestSentryClientSuite(t *testing.T) {
 
 func (suite *SentryClientTestSuite) TestGetSentryClientOptionsProd() {
 	//prepare
+	appName := "cli"
+	version := "1.0.0"
 	environment := "prod"
-	release := "cli@1.0.0"
 
 	//act
-	clientOptions := sentry_utils.GetSentryClientOptions(environment, release)
+	clientOptions := sentry_utils.GetSentryClientOptions(appName, environment, version)
 
 	// assert
 	expect := sentry.ClientOptions{
 		MaxBreadcrumbs: 10,
-		Release:        release,
+		Release:        fmt.Sprintf("%s@%s", appName, version),
 		Environment:    environment,
 		Dsn:            sentry_utils.PROD_DSN,
 	}
@@ -54,16 +56,17 @@ func (suite *SentryClientTestSuite) TestGetSentryClientOptionsProd() {
 
 func (suite *SentryClientTestSuite) TestGetSentryClientOptionsDev() {
 	//prepare
+	appName := "cli"
+	version := "1.0.0"
 	environment := "dev"
-	release := "cli@1.0.0"
 
 	//act
-	clientOptions := sentry_utils.GetSentryClientOptions(environment, release)
+	clientOptions := sentry_utils.GetSentryClientOptions(appName, environment, version)
 
 	// assert
 	expect := sentry.ClientOptions{
 		MaxBreadcrumbs: 10,
-		Release:        release,
+		Release:        fmt.Sprintf("%s@%s", appName, version),
 		Environment:    environment,
 		Dsn:            sentry_utils.DEV_DSN,
 	}

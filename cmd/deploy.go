@@ -17,6 +17,7 @@ import (
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
+	"groundcover.com/pkg/segment"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
@@ -192,6 +193,15 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster compatibility:")
 
+	event := segment.NewEvent("cluster_validation")
+	defer func() {
+		if err != nil {
+			event.Failure(err)
+		}
+
+		event.Success()
+	}()
+
 	var clusterSummary *k8s.ClusterSummary
 	if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
 		sentryKubeContext.ClusterReport = &k8s.ClusterReport{
@@ -222,6 +232,15 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContext *sentry_utils.KubeContext) (*k8s.NodesReport, error) {
 	var err error
 
+	event := segment.NewEvent("nodes_validation")
+	defer func() {
+		if err != nil {
+			event.Failure(err)
+		}
+
+		event.Success()
+	}()
+
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster nodes compatibility:")
 
 	var nodesSummeries []*k8s.NodeSummary
@@ -233,6 +252,12 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 	sentryKubeContext.SetOnCurrentScope()
 
 	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
+
+	event.
+		Set("nodesCount", len(nodesSummeries)).
+		Set("taintedNodesCount", len(nodesReport.TaintedNodes)).
+		Set("compatibleNodesCount", len(nodesReport.CompatibleNodes)).
+		Set("incompatibleNodesCount", len(nodesReport.IncompatibleNodes))
 
 	sentryKubeContext.SetNodesSamples(nodesReport)
 	sentryKubeContext.SetOnCurrentScope()
@@ -332,6 +357,16 @@ func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string
 func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseName string, chart *helm.Chart, chartValues map[string]interface{}) error {
 	var err error
 
+	event := segment.NewEvent("helm_installation")
+	event.Set("chartVersion", chart.Version())
+	defer func() {
+		if err != nil {
+			event.Failure(err)
+		}
+
+		event.Success()
+	}()
+
 	spinner := ui.GlobalWriter.NewSpinner("Installing groundcover helm release")
 	spinner.Start()
 	spinner.SetStopMessage("groundcover helm release is installed")
@@ -402,6 +437,15 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 
 func validateClusterRegistered(ctx context.Context, clusterName string) error {
 	var err error
+
+	event := segment.NewEvent("cluster_registration")
+	defer func() {
+		if err != nil {
+			event.Failure(err)
+		}
+
+		event.Success()
+	}()
 
 	var auth0Token *auth.Auth0Token
 	if auth0Token, err = auth.LoadAuth0Token(); err != nil {

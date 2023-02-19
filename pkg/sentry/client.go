@@ -1,6 +1,7 @@
 package sentry
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -20,11 +21,11 @@ const (
 	DEV_DSN                      = "https://6420be38b4544852a61df1d7ec56f442@o1295881.ingest.sentry.io/6521982"
 )
 
-func GetSentryClientOptions(environment, release string) sentry.ClientOptions {
+func GetSentryClientOptions(appName, environment, version string) sentry.ClientOptions {
 	clientOptions := sentry.ClientOptions{
 		MaxBreadcrumbs: 10,
 		Dsn:            PROD_DSN,
-		Release:        release,
+		Release:        fmt.Sprintf("%s@%s", appName, version),
 		Environment:    environment,
 	}
 
