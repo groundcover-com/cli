@@ -193,16 +193,17 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryKubeContext *sentry_utils.KubeContext) error {
 	var err error
 
-	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster compatibility:")
-
 	event := segment.NewEvent("cluster_validation")
 	defer func() {
 		if err != nil {
 			event.Failure(err)
+			return
 		}
 
 		event.Success()
 	}()
+
+	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster compatibility:")
 
 	var clusterSummary *k8s.ClusterSummary
 	if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
@@ -225,7 +226,8 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	}
 
 	if !clusterReport.IsCompatible {
-		return errors.New("can't continue with installation, cluster is not compatible for installation. Check solutions suggested by the CLI")
+		err = errors.New("can't continue with installation, cluster is not compatible for installation. Check solutions suggested by the CLI")
+		return err
 	}
 
 	return nil
@@ -238,6 +240,7 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 	defer func() {
 		if err != nil {
 			event.Failure(err)
+			return
 		}
 
 		event.Success()
@@ -364,6 +367,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	defer func() {
 		if err != nil {
 			event.Failure(err)
+			return
 		}
 
 		event.Success()
@@ -422,14 +426,14 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 		return err
 	}
 
-	if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
-		return err
-	}
-
 	if isAuthenticated {
 		if err = validateClusterRegistered(ctx, clusterName); err != nil {
 			return err
 		}
+	}
+
+	if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
+		return err
 	}
 
 	ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
@@ -444,6 +448,7 @@ func validateClusterRegistered(ctx context.Context, clusterName string) error {
 	defer func() {
 		if err != nil {
 			event.Failure(err)
+			return
 		}
 
 		event.Success()

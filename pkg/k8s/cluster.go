@@ -31,7 +31,7 @@ var (
 		"docker-desktop",
 	}
 
-	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 12}
+	MinimumServerVersionSupport = semver.Version{Major: 1, Minor: 25}
 	DefaultClusterRequirements  = &ClusterRequirements{
 		ServerVersion: MinimumServerVersionSupport,
 		BlockedTypes: []string{

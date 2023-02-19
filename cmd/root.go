@@ -169,19 +169,19 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	ui.GlobalWriter.Println("Validating groundcover authentication:")
-
-	var token auth.Token
-
 	event := segment.NewEvent("authentication_validation")
 	defer func() {
 		if err != nil {
 			event.Failure(err)
+			return
 		}
 
 		event.Success()
 	}()
 
+	ui.GlobalWriter.Println("Validating groundcover authentication:")
+
+	var token auth.Token
 	if isAuthenicationRequired {
 		event.Set("authType", "auth0")
 		if token, err = auth.LoadAuth0Token(); err != nil {

@@ -38,7 +38,7 @@ func main() {
 	}
 	defer sentry.Flush(sentry_utils.FLUSH_TIMEOUT)
 
-	if err = segment.Init(APP_NAME, environment, cmd.BinaryVersion); err != nil {
+	if err = segment.Init(APP_NAME, cmd.BinaryVersion); err != nil {
 		ui.GlobalWriter.PrintErrorMessageln(err.Error())
 		panic(err)
 	}

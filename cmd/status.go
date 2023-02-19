@@ -120,6 +120,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 	defer func() {
 		if err != nil {
 			event.Failure(err)
+			return
 		}
 
 		event.Success()
@@ -180,6 +181,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 	defer func() {
 		if err != nil {
 			event.Failure(err)
+			return
 		}
 
 		event.Success()
@@ -292,16 +294,17 @@ func listPodsStatuses(ctx context.Context, kubeClient *k8s.Client, namespace str
 func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
-	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
-
 	event := segment.NewEvent("pvcs_validation")
 	defer func() {
 		if err != nil {
 			event.Failure(err)
+			return
 		}
 
 		event.Success()
 	}()
+
+	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
 
 	spinner.SetStopMessage("Persistent Volumes are ready")
 	spinner.SetStopFailMessage("Not all Persistent Volumes are bound, timeout waiting for them to be ready")
@@ -351,7 +354,8 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return errors.New("timeout waiting for persistent volume claims to be ready\nif none were create try running with --no-pvc flag")
+		err = errors.New("timeout waiting for persistent volume claims to be ready\nif none were create try running with --no-pvc flag")
+		return err
 	}
 
 	return err

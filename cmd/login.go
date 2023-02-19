@@ -37,6 +37,7 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 	defer func() {
 		if err != nil {
 			event.Failure(err)
+			return
 		}
 
 		event.UserId = auth0Token.GetEmail()
