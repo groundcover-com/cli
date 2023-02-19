@@ -18,6 +18,36 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.7.1] 2023-02-17
+
+### Added
+
+### Changed
+
+### Fixed
+
+- fix fetch api-key [#sc-7357]
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.7.0] 2023-02-16
+
+### Added
+
 - add `token` flag to `deploy` command [#sc-7216]
 
 ### Changed
