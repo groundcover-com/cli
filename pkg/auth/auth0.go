@@ -141,6 +141,10 @@ func (auth0Token Auth0Token) GetEmail() string {
 	return auth0Token.Claims.Email
 }
 
+func (auth0Token Auth0Token) GetSessionId() string {
+	return ""
+}
+
 func (auth0Token *Auth0Token) loadClaims() error {
 	var err error
 

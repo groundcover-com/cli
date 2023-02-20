@@ -200,11 +200,12 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		segment.SetSessionId(token.GetId())
+		segment.SetSessionId(token.GetSessionId())
 		segment.NewUser(token.GetEmail(), token.GetOrg())
 		ui.GlobalWriter.PrintSuccessMessageln("Token authentication success")
 	}
 
+	event.Set("installationId", token.GetId())
 	viper.Set(INSTALLATION_ID_FLAG, token.GetId())
 	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: token.GetEmail()})
 	sentry_utils.SetTagOnCurrentScope(sentry_utils.TOKEN_ID_TAG, token.GetId())
