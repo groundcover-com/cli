@@ -40,13 +40,13 @@ type EventHandler struct {
 func NewEvent(name string) *EventHandler {
 	event := &EventHandler{}
 	event.Event = name
+
 	event.UserId = userId
 	if userId == "" {
-		event.AnonymousId = sessionId
+		event.AnonymousId = uuid.NewString()
 	}
+
 	event.Properties = analytics.NewProperties()
-	event.Properties.Set(SCOPE_PROPERTY_NAME, scope)
-	event.Properties.Set(SESSION_ID_PROPERTY_NAME, sessionId)
 
 	return event
 }
@@ -75,5 +75,7 @@ func (event *EventHandler) Success() error {
 
 func (event *EventHandler) enqueueWithStatus(status string) error {
 	event.Properties.Set(STATUS_PROPERTY_NAME, status)
+	event.Properties.Set(SCOPE_PROPERTY_NAME, scope)
+	event.Properties.Set(SESSION_ID_PROPERTY_NAME, sessionId)
 	return client.Enqueue(event.Track)
 }

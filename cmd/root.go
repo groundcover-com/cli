@@ -103,6 +103,9 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 		segment.SetScope(cmd.Name())
 		sentry_utils.SetTransactionOnCurrentScope(cmd.Name())
 
+		event := segment.NewEvent(cmd.Name())
+		defer event.Start()
+
 		if err = validateAuthentication(cmd, args); err != nil {
 			return err
 		}
