@@ -52,6 +52,11 @@ const (
 	GET_LATEST_CHART_POLLING_RETIRES    = 3
 	GET_LATEST_CHART_POLLING_INTERVAL   = time.Second * 1
 	GET_LATEST_CHART_POLLING_TIMEOUT    = time.Second * 10
+
+	NODES_VALIDATION_EVENT_NAME     = "nodes_validation"
+	HELM_INSTALLATION_EVENT_NAME    = "helm_installation"
+	CLUSTER_VALIDATION_EVENT_NAME   = "cluster_validation"
+	CLUSTER_REGISTRATION_EVENT_NAME = "cluster_registration"
 )
 
 func init() {
@@ -193,14 +198,9 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryKubeContext *sentry_utils.KubeContext) error {
 	var err error
 
-	event := segment.NewEvent("cluster_validation")
+	event := segment.NewEvent(CLUSTER_VALIDATION_EVENT_NAME)
 	defer func() {
-		if err != nil {
-			event.Failure(err)
-			return
-		}
-
-		event.Success()
+		event.StatusByError(err)
 	}()
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster compatibility:")
@@ -236,14 +236,9 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContext *sentry_utils.KubeContext) (*k8s.NodesReport, error) {
 	var err error
 
-	event := segment.NewEvent("nodes_validation")
+	event := segment.NewEvent(NODES_VALIDATION_EVENT_NAME)
 	defer func() {
-		if err != nil {
-			event.Failure(err)
-			return
-		}
-
-		event.Success()
+		event.StatusByError(err)
 	}()
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster nodes compatibility:")
@@ -362,15 +357,11 @@ func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string
 func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseName string, chart *helm.Chart, chartValues map[string]interface{}) error {
 	var err error
 
-	event := segment.NewEvent("helm_installation")
+	event := segment.NewEvent(HELM_INSTALLATION_EVENT_NAME)
 	event.Set("chartVersion", chart.Version())
+	event.Start()
 	defer func() {
-		if err != nil {
-			event.Failure(err)
-			return
-		}
-
-		event.Success()
+		event.StatusByError(err)
 	}()
 
 	spinner := ui.GlobalWriter.NewSpinner("Installing groundcover helm release")
@@ -444,14 +435,10 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 func validateClusterRegistered(ctx context.Context, clusterName string) error {
 	var err error
 
-	event := segment.NewEvent("cluster_registration")
+	event := segment.NewEvent(CLUSTER_REGISTRATION_EVENT_NAME)
+	event.Start()
 	defer func() {
-		if err != nil {
-			event.Failure(err)
-			return
-		}
-
-		event.Success()
+		event.StatusByError(err)
 	}()
 
 	var auth0Token *auth.Auth0Token

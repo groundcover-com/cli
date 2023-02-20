@@ -2,16 +2,18 @@ package segment
 
 import "github.com/segmentio/analytics-go/v3"
 
-const ORG_TARIAT_NAME = "orgName"
+const ORG_TRAIT_NAME = "orgName"
 
 var userId string
 
 func NewUser(email string, org string) error {
 	var err error
 
+	SetUser(email)
+
 	user := analytics.Identify{
 		UserId: email,
-		Traits: analytics.NewTraits().SetEmail(email).Set(ORG_TARIAT_NAME, org),
+		Traits: analytics.NewTraits().SetEmail(email).Set(ORG_TRAIT_NAME, org),
 	}
 
 	orgGroup := analytics.Group{
@@ -28,7 +30,6 @@ func NewUser(email string, org string) error {
 		return err
 	}
 
-	SetUser(email)
 	return nil
 }
 

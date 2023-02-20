@@ -1,6 +1,8 @@
 package segment
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/segmentio/analytics-go/v3"
 )
@@ -14,6 +16,7 @@ const (
 	ERROR_PROPERTY_NAME      = "error"
 	STATUS_PROPERTY_NAME     = "status"
 	SESSION_ID_PROPERTY_NAME = "sessionId"
+	EVENT_WITH_STATUS_FORMAT = "%s_%s"
 )
 
 var (
@@ -35,12 +38,15 @@ func SetSessionId(id string) {
 
 type EventHandler struct {
 	analytics.Track
+	name string
 }
 
 func NewEvent(name string) *EventHandler {
-	event := &EventHandler{}
-	event.Event = name
+	event := &EventHandler{
+		name: name,
+	}
 
+	event.Event = name
 	event.UserId = userId
 	if userId == "" {
 		event.AnonymousId = uuid.NewString()
@@ -73,9 +79,18 @@ func (event *EventHandler) Success() error {
 	return event.enqueueWithStatus(SUCCESS_STATUS)
 }
 
+func (event *EventHandler) StatusByError(err error) error {
+	if err != nil {
+		return event.Failure(err)
+	}
+
+	return event.Success()
+}
+
 func (event *EventHandler) enqueueWithStatus(status string) error {
 	event.Properties.Set(STATUS_PROPERTY_NAME, status)
 	event.Properties.Set(SCOPE_PROPERTY_NAME, scope)
 	event.Properties.Set(SESSION_ID_PROPERTY_NAME, sessionId)
+	event.Event = fmt.Sprintf(EVENT_WITH_STATUS_FORMAT, event.name, status)
 	return client.Enqueue(event.Track)
 }

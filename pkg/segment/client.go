@@ -1,8 +1,6 @@
 package segment
 
 import (
-	"time"
-
 	"github.com/segmentio/analytics-go/v3"
 )
 
@@ -14,7 +12,6 @@ var (
 func GetConfig(appName, version string) analytics.Config {
 	return analytics.Config{
 		BatchSize: 1,
-		Interval:  5 * time.Second,
 
 		DefaultContext: &analytics.Context{
 			App: analytics.AppInfo{

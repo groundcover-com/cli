@@ -14,6 +14,11 @@ import (
 	"groundcover.com/pkg/utils"
 )
 
+const (
+	AUTHENTICATION_EVENT_NAME            = "authentication"
+	AUTHENTICATION_VALIDATION_EVENT_NAME = "authentication_validation"
+)
+
 func init() {
 	AuthCmd.AddCommand(LoginCmd)
 	RootCmd.AddCommand(LoginCmd)
@@ -31,16 +36,11 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 
 	ctx := cmd.Context()
 
-	event := segment.NewEvent("authentication")
+	event := segment.NewEvent(AUTHENTICATION_EVENT_NAME)
 	event.Set("authType", "auth0")
-	err = event.Start()
+	event.Start()
 	defer func() {
-		if err != nil {
-			event.Failure(err)
-			return
-		}
-
-		event.Success()
+		event.StatusByError(err)
 	}()
 
 	if auth0Token, err = attemptAuth0Login(ctx); err != nil {

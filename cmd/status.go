@@ -33,6 +33,10 @@ const (
 	RUNNING_FIELD_SELECTOR     = "status.phase=Running"
 	WAIT_FOR_PVCS_FORMAT       = "Waiting until all PVCs are bound (%d/%d PVCs)"
 	EXPECTED_BOUND_PVCS        = 4
+
+	PVCS_VALIDATION_EVENT_NAME   = "pvcs_validation"
+	AGENTS_VALIDATION_EVENT_NAME = "agents_validation"
+	PORTAL_VALIDATION_EVENT_NAME = "portal_validation"
 )
 
 func init() {
@@ -116,14 +120,10 @@ var StatusCmd = &cobra.Command{
 func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
-	event := segment.NewEvent("portal_validation")
+	event := segment.NewEvent(PORTAL_VALIDATION_EVENT_NAME)
+	event.Start()
 	defer func() {
-		if err != nil {
-			event.Failure(err)
-			return
-		}
-
-		event.Success()
+		event.StatusByError(err)
 	}()
 
 	spinner := ui.GlobalWriter.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
@@ -177,14 +177,10 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
-	event := segment.NewEvent("agents_validation")
+	event := segment.NewEvent(AGENTS_VALIDATION_EVENT_NAME)
+	event.Start()
 	defer func() {
-		if err != nil {
-			event.Failure(err)
-			return
-		}
-
-		event.Success()
+		event.StatusByError(err)
 	}()
 
 	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
@@ -294,14 +290,10 @@ func listPodsStatuses(ctx context.Context, kubeClient *k8s.Client, namespace str
 func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
-	event := segment.NewEvent("pvcs_validation")
+	event := segment.NewEvent(PVCS_VALIDATION_EVENT_NAME)
+	event.Start()
 	defer func() {
-		if err != nil {
-			event.Failure(err)
-			return
-		}
-
-		event.Success()
+		event.StatusByError(err)
 	}()
 
 	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
