@@ -40,7 +40,6 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 			return
 		}
 
-		event.UserId = auth0Token.GetEmail()
 		event.Success()
 	}()
 
@@ -48,9 +47,14 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "failed to login")
 	}
 
-	segment.NewUser(auth0Token.GetEmail(), auth0Token.GetOrg())
-	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.GetEmail()})
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.GetOrg())
+	email := auth0Token.GetEmail()
+	org := auth0Token.GetOrg()
+
+	event.UserId = email
+	segment.NewUser(email, org)
+
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: email})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, org)
 
 	if err = fetchAndSaveApiKey(auth0Token); err != nil {
 		return errors.Wrap(err, "failed to fetch api key")

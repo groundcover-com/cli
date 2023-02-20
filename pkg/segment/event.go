@@ -60,6 +60,10 @@ func (event *EventHandler) Start() error {
 	return event.enqueueWithStatus(START_STATUS)
 }
 
+func (event *EventHandler) Abort() error {
+	return event.enqueueWithStatus(ABORT_STATUS)
+}
+
 func (event *EventHandler) Failure(err error) error {
 	event.Set(ERROR_PROPERTY_NAME, err.Error())
 	return event.enqueueWithStatus(FAILURE_STATUS)

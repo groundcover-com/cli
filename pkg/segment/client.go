@@ -6,16 +6,13 @@ import (
 	"github.com/segmentio/analytics-go/v3"
 )
 
-var client analytics.Client
-
-const (
-	WRITE_KEY = "FPPzr8mdiYq9Ry2YOEVFN751DvSdwwUZ"
+var (
+	client   analytics.Client
+	WriteKey string = "FPPzr8mdiYq9Ry2YOEVFN751DvSdwwUZ"
 )
 
-func Init(appName, version string) error {
-	var err error
-
-	config := analytics.Config{
+func GetConfig(appName, version string) analytics.Config {
+	return analytics.Config{
 		BatchSize: 1,
 		Interval:  5 * time.Second,
 
@@ -26,8 +23,12 @@ func Init(appName, version string) error {
 			},
 		},
 	}
+}
 
-	if client, err = analytics.NewWithConfig(WRITE_KEY, config); err != nil {
+func Init(config analytics.Config) error {
+	var err error
+
+	if client, err = analytics.NewWithConfig(WriteKey, config); err != nil {
 		return err
 	}
 

@@ -228,11 +228,13 @@ func ExecuteContext(ctx context.Context) error {
 	}
 
 	if errors.Is(err, ErrSilentExecutionAbort) {
+		event.Abort()
 		sentry.CaptureMessage(fmt.Sprintf("%s execution aborted silently", sentryCommandContext.Name))
 		return nil
 	}
 
 	if errors.Is(err, ErrExecutionAborted) {
+		event.Abort()
 		sentry.CaptureMessage(fmt.Sprintf("%s execution aborted", sentryCommandContext.Name))
 		return nil
 	}

@@ -17,23 +17,17 @@ const (
 	FLUSH_TIMEOUT                = time.Second * 2
 	DEFAULT_RESOURCES_PRESET_TAG = "resources.presets.default"
 	PERSISTENT_STORAGE_TAG       = "storage.persistent"
-	PROD_DSN                     = "https://a8ac7024755f47e5b5d4ae620499c7f6@o1295881.ingest.sentry.io/6521983"
-	DEV_DSN                      = "https://6420be38b4544852a61df1d7ec56f442@o1295881.ingest.sentry.io/6521982"
 )
 
+var Dsn string = "https://6420be38b4544852a61df1d7ec56f442@o1295881.ingest.sentry.io/6521982"
+
 func GetSentryClientOptions(appName, environment, version string) sentry.ClientOptions {
-	clientOptions := sentry.ClientOptions{
+	return sentry.ClientOptions{
 		MaxBreadcrumbs: 10,
-		Dsn:            PROD_DSN,
-		Release:        fmt.Sprintf("%s@%s", appName, version),
+		Dsn:            Dsn,
 		Environment:    environment,
+		Release:        fmt.Sprintf("%s@%s", appName, version),
 	}
-
-	if environment == "dev" {
-		clientOptions.Dsn = DEV_DSN
-	}
-
-	return clientOptions
 }
 
 func SetTagOnCurrentScope(key, value string) {

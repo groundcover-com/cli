@@ -16,6 +16,8 @@ builds:
       - arm64
     ldflags:
       - '-X groundcover.com/cmd.BinaryVersion={{ .Version }}'
+      - '-X groundcover.com/pkg/sentry.Dsn={{ .Env.SENTRY_DSN }}'
+      - '-X groundcover.com/pkg/segment.WriteKey={{ .Env.SEGMENT_WRITE_KEY }}'
 archives:
   -
     format: tar.gz

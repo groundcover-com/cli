@@ -34,7 +34,7 @@ func TestSentryClientSuite(t *testing.T) {
 	suite.Run(t, &SentryClientTestSuite{})
 }
 
-func (suite *SentryClientTestSuite) TestGetSentryClientOptionsProd() {
+func (suite *SentryClientTestSuite) TestGetSentryClientOptionsSuccess() {
 	//prepare
 	appName := "cli"
 	version := "1.0.0"
@@ -46,29 +46,9 @@ func (suite *SentryClientTestSuite) TestGetSentryClientOptionsProd() {
 	// assert
 	expect := sentry.ClientOptions{
 		MaxBreadcrumbs: 10,
-		Release:        fmt.Sprintf("%s@%s", appName, version),
 		Environment:    environment,
-		Dsn:            sentry_utils.PROD_DSN,
-	}
-
-	suite.Equal(expect, clientOptions)
-}
-
-func (suite *SentryClientTestSuite) TestGetSentryClientOptionsDev() {
-	//prepare
-	appName := "cli"
-	version := "1.0.0"
-	environment := "dev"
-
-	//act
-	clientOptions := sentry_utils.GetSentryClientOptions(appName, environment, version)
-
-	// assert
-	expect := sentry.ClientOptions{
-		MaxBreadcrumbs: 10,
+		Dsn:            sentry_utils.Dsn,
 		Release:        fmt.Sprintf("%s@%s", appName, version),
-		Environment:    environment,
-		Dsn:            sentry_utils.DEV_DSN,
 	}
 
 	suite.Equal(expect, clientOptions)
