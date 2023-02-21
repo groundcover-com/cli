@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -45,7 +45,7 @@ func (client *Client) PostForm(endpoint string, data url.Values) ([]byte, error)
 	defer response.Body.Close()
 
 	var body []byte
-	if body, err = ioutil.ReadAll(response.Body); err != nil {
+	if body, err = io.ReadAll(response.Body); err != nil {
 		return nil, err
 	}
 
