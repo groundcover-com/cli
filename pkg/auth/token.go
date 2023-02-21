@@ -14,13 +14,15 @@ type Token interface {
 	GetId() string
 	GetOrg() string
 	GetEmail() string
+	GetSessionId() string
 }
 
 type InstallationToken struct {
-	*ApiKey `validate:"required"`
-	Id      string `json:"id" validate:"required"`
-	Org     string `json:"org" validate:"required"`
-	Email   string `json:"email" validate:"required"`
+	*ApiKey   `validate:"required"`
+	Id        string `json:"id" validate:"required"`
+	Org       string `json:"org" validate:"required"`
+	Email     string `json:"email" validate:"required"`
+	SessionId string `json:"sessionId" validate:"required"`
 }
 
 func NewInstallationToken(encodedToken string) (*InstallationToken, error) {
@@ -57,4 +59,8 @@ func (installationToken InstallationToken) GetOrg() string {
 
 func (installationToken InstallationToken) GetEmail() string {
 	return installationToken.Email
+}
+
+func (installationToken InstallationToken) GetSessionId() string {
+	return installationToken.SessionId
 }

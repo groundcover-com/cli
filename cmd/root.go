@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"groundcover.com/pkg/auth"
+	"groundcover.com/pkg/segment"
 	"groundcover.com/pkg/selfupdate"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
@@ -99,7 +100,11 @@ groundcover, more data at: https://docs.groundcover.com/docs`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		segment.SetScope(cmd.Name())
 		sentry_utils.SetTransactionOnCurrentScope(cmd.Name())
+
+		event := segment.NewEvent(cmd.Name())
+		defer event.Start()
 
 		if err = validateAuthentication(cmd, args); err != nil {
 			return err
@@ -167,26 +172,38 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	event := segment.NewEvent(AUTHENTICATION_VALIDATION_EVENT_NAME)
+	defer func() {
+		event.StatusByError(err)
+	}()
+
 	ui.GlobalWriter.Println("Validating groundcover authentication:")
 
 	var token auth.Token
 	if isAuthenicationRequired {
+		event.Set("authType", "auth0")
 		if token, err = auth.LoadAuth0Token(); err != nil {
 			if ui.GlobalWriter.YesNoPrompt("authentication is required, do you want to login?", true) {
 				return runLoginCmd(cmd, args)
 			}
 			os.Exit(0)
 		}
+
+		segment.SetUser(token.GetEmail())
 		ui.GlobalWriter.PrintSuccessMessageln("Device authentication is valid")
 	} else {
+		event.Set("authType", "installationToken")
 		if token, err = validateInstallationToken(); err != nil {
 			ui.GlobalWriter.PrintErrorMessageln(INVALID_TOKEN_MESSAGE)
 			return err
 		}
 
+		segment.SetSessionId(token.GetSessionId())
+		segment.NewUser(token.GetEmail(), token.GetOrg())
 		ui.GlobalWriter.PrintSuccessMessageln("Token authentication success")
 	}
 
+	event.Set("installationId", token.GetId())
 	viper.Set(INSTALLATION_ID_FLAG, token.GetId())
 	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: token.GetEmail()})
 	sentry_utils.SetTagOnCurrentScope(sentry_utils.TOKEN_ID_TAG, token.GetId())
@@ -199,20 +216,24 @@ func ExecuteContext(ctx context.Context) error {
 	start := time.Now()
 	err := RootCmd.ExecuteContext(ctx)
 
+	event := segment.NewEvent(segment.GetScope())
 	sentryCommandContext := sentry_utils.NewCommandContext(start)
 	sentryCommandContext.SetOnCurrentScope()
 
 	if err == nil {
+		event.Success()
 		sentry.CaptureMessage(fmt.Sprintf("%s executed successfully", sentryCommandContext.Name))
 		return nil
 	}
 
 	if errors.Is(err, ErrSilentExecutionAbort) {
+		event.Abort()
 		sentry.CaptureMessage(fmt.Sprintf("%s execution aborted silently", sentryCommandContext.Name))
 		return nil
 	}
 
 	if errors.Is(err, ErrExecutionAborted) {
+		event.Abort()
 		sentry.CaptureMessage(fmt.Sprintf("%s execution aborted", sentryCommandContext.Name))
 		return nil
 	}
@@ -228,6 +249,7 @@ func ExecuteContext(ctx context.Context) error {
 	ui.GlobalWriter.PrintlnWithPrefixln(SUPPORT_SLACK_MESSAGE)
 
 	sentry.CaptureMessage(fmt.Sprintf("%s execution failed - %s", sentryCommandContext.Name, err.Error()))
+	event.Failure(err)
 	return err
 }
 

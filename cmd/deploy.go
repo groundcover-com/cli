@@ -17,6 +17,7 @@ import (
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
+	"groundcover.com/pkg/segment"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
@@ -51,6 +52,11 @@ const (
 	GET_LATEST_CHART_POLLING_RETIRES    = 3
 	GET_LATEST_CHART_POLLING_INTERVAL   = time.Second * 1
 	GET_LATEST_CHART_POLLING_TIMEOUT    = time.Second * 10
+
+	NODES_VALIDATION_EVENT_NAME     = "nodes_validation"
+	HELM_INSTALLATION_EVENT_NAME    = "helm_installation"
+	CLUSTER_VALIDATION_EVENT_NAME   = "cluster_validation"
+	CLUSTER_REGISTRATION_EVENT_NAME = "cluster_registration"
 )
 
 func init() {
@@ -192,6 +198,11 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryKubeContext *sentry_utils.KubeContext) error {
 	var err error
 
+	event := segment.NewEvent(CLUSTER_VALIDATION_EVENT_NAME)
+	defer func() {
+		event.StatusByError(err)
+	}()
+
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster compatibility:")
 
 	var clusterSummary *k8s.ClusterSummary
@@ -215,7 +226,8 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	}
 
 	if !clusterReport.IsCompatible {
-		return errors.New("can't continue with installation, cluster is not compatible for installation. Check solutions suggested by the CLI")
+		err = errors.New("can't continue with installation, cluster is not compatible for installation. Check solutions suggested by the CLI")
+		return err
 	}
 
 	return nil
@@ -223,6 +235,11 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 
 func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContext *sentry_utils.KubeContext) (*k8s.NodesReport, error) {
 	var err error
+
+	event := segment.NewEvent(NODES_VALIDATION_EVENT_NAME)
+	defer func() {
+		event.StatusByError(err)
+	}()
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster nodes compatibility:")
 
@@ -235,6 +252,12 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 	sentryKubeContext.SetOnCurrentScope()
 
 	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
+
+	event.
+		Set("nodesCount", len(nodesSummeries)).
+		Set("taintedNodesCount", len(nodesReport.TaintedNodes)).
+		Set("compatibleNodesCount", len(nodesReport.CompatibleNodes)).
+		Set("incompatibleNodesCount", len(nodesReport.IncompatibleNodes))
 
 	sentryKubeContext.SetNodesSamples(nodesReport)
 	sentryKubeContext.SetOnCurrentScope()
@@ -334,6 +357,13 @@ func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string
 func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseName string, chart *helm.Chart, chartValues map[string]interface{}) error {
 	var err error
 
+	event := segment.NewEvent(HELM_INSTALLATION_EVENT_NAME)
+	event.Set("chartVersion", chart.Version())
+	event.Start()
+	defer func() {
+		event.StatusByError(err)
+	}()
+
 	spinner := ui.GlobalWriter.NewSpinner("Installing groundcover helm release")
 	spinner.Start()
 	spinner.SetStopMessage("groundcover helm release is installed")
@@ -387,14 +417,14 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 		return err
 	}
 
-	if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
-		return err
-	}
-
 	if isAuthenticated {
 		if err = validateClusterRegistered(ctx, clusterName); err != nil {
 			return err
 		}
+	}
+
+	if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
+		return err
 	}
 
 	ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
@@ -404,6 +434,12 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 
 func validateClusterRegistered(ctx context.Context, clusterName string) error {
 	var err error
+
+	event := segment.NewEvent(CLUSTER_REGISTRATION_EVENT_NAME)
+	event.Start()
+	defer func() {
+		event.StatusByError(err)
+	}()
 
 	var auth0Token *auth.Auth0Token
 	if auth0Token, err = auth.LoadAuth0Token(); err != nil {

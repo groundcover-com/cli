@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- add analytics [#sc-7298]
+
 ### Changed
 
 ### Fixed

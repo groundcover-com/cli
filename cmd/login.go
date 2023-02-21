@@ -8,9 +8,15 @@ import (
 	"github.com/spf13/cobra"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
+	"groundcover.com/pkg/segment"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
+)
+
+const (
+	AUTHENTICATION_EVENT_NAME            = "authentication"
+	AUTHENTICATION_VALIDATION_EVENT_NAME = "authentication_validation"
 )
 
 func init() {
@@ -26,16 +32,29 @@ var LoginCmd = &cobra.Command{
 
 func runLoginCmd(cmd *cobra.Command, args []string) error {
 	var err error
+	var auth0Token *auth.Auth0Token
 
 	ctx := cmd.Context()
 
-	var auth0Token *auth.Auth0Token
+	event := segment.NewEvent(AUTHENTICATION_EVENT_NAME)
+	event.Set("authType", "auth0")
+	event.Start()
+	defer func() {
+		event.StatusByError(err)
+	}()
+
 	if auth0Token, err = attemptAuth0Login(ctx); err != nil {
 		return errors.Wrap(err, "failed to login")
 	}
 
-	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: auth0Token.Claims.Email})
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, auth0Token.Claims.Org)
+	email := auth0Token.GetEmail()
+	org := auth0Token.GetOrg()
+
+	event.UserId = email
+	segment.NewUser(email, org)
+
+	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: email})
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, org)
 
 	if err = fetchAndSaveApiKey(auth0Token); err != nil {
 		return errors.Wrap(err, "failed to fetch api key")

@@ -31,3 +31,6 @@ jobs:
         with:
           version: ~> 1.9
           args: build --snapshot --rm-dist
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SEGMENT_WRITE_KEY: ${{ secrets.SEGMENT_WRITE_KEY }}

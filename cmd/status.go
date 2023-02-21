@@ -12,6 +12,7 @@ import (
 	"golang.org/x/exp/maps"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
+	"groundcover.com/pkg/segment"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
 	v1 "k8s.io/api/core/v1"
@@ -32,6 +33,10 @@ const (
 	RUNNING_FIELD_SELECTOR     = "status.phase=Running"
 	WAIT_FOR_PVCS_FORMAT       = "Waiting until all PVCs are bound (%d/%d PVCs)"
 	EXPECTED_BOUND_PVCS        = 4
+
+	PVCS_VALIDATION_EVENT_NAME   = "pvcs_validation"
+	AGENTS_VALIDATION_EVENT_NAME = "agents_validation"
+	PORTAL_VALIDATION_EVENT_NAME = "portal_validation"
 )
 
 func init() {
@@ -113,6 +118,14 @@ var StatusCmd = &cobra.Command{
 }
 
 func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, sentryHelmContext *sentry_utils.HelmContext) error {
+	var err error
+
+	event := segment.NewEvent(PORTAL_VALIDATION_EVENT_NAME)
+	event.Start()
+	defer func() {
+		event.StatusByError(err)
+	}()
+
 	spinner := ui.GlobalWriter.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
 	spinner.SetStopMessage("Cluster established connectivity")
 	spinner.SetStopFailMessage("Cluster failed to establish connectivity")
@@ -142,7 +155,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 		return ui.RetryableError(err)
 	}
 
-	err := spinner.Poll(ctx, isPortalRunningFunc, PODS_POLLING_INTERVAL, PORTAL_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
+	err = spinner.Poll(ctx, isPortalRunningFunc, PODS_POLLING_INTERVAL, PORTAL_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
 
 	if err == nil {
 		return nil
@@ -162,6 +175,14 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 }
 
 func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
+	var err error
+
+	event := segment.NewEvent(AGENTS_VALIDATION_EVENT_NAME)
+	event.Start()
+	defer func() {
+		event.StatusByError(err)
+	}()
+
 	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
 	spinner.SetStopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
 
@@ -187,10 +208,13 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 		return ui.RetryableError(err)
 	}
 
-	err := spinner.Poll(ctx, isAlligatorRunningFunc, PODS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
+	err = spinner.Poll(ctx, isAlligatorRunningFunc, PODS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
 
 	sentryHelmContext.RunningAlligators = fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
 	sentryHelmContext.SetOnCurrentScope()
+	event.
+		Set("alligatorsCount", expectedAlligatorsCount).
+		Set("runningAlligatorsCount", runningAlligators)
 
 	if err == nil {
 		return nil
@@ -264,6 +288,14 @@ func listPodsStatuses(ctx context.Context, kubeClient *k8s.Client, namespace str
 }
 
 func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {
+	var err error
+
+	event := segment.NewEvent(PVCS_VALIDATION_EVENT_NAME)
+	event.Start()
+	defer func() {
+		event.StatusByError(err)
+	}()
+
 	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
 
 	spinner.SetStopMessage("Persistent Volumes are ready")
@@ -299,10 +331,13 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 		return ui.RetryableError(err)
 	}
 
-	err := spinner.Poll(ctx, isPvcsReadyFunc, PODS_POLLING_INTERVAL, PVC_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
+	err = spinner.Poll(ctx, isPvcsReadyFunc, PODS_POLLING_INTERVAL, PVC_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
 
 	sentryHelmContext.BoundPvcs = maps.Keys(pvcs)
 	sentryHelmContext.SetOnCurrentScope()
+	event.
+		Set("boundPvcsCount", len(pvcs)).
+		Set("pvcsCount", EXPECTED_BOUND_PVCS)
 
 	if err == nil {
 		return nil
@@ -311,7 +346,8 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return errors.New("timeout waiting for persistent volume claims to be ready\nif none were create try running with --no-pvc flag")
+		err = errors.New("timeout waiting for persistent volume claims to be ready\nif none were create try running with --no-pvc flag")
+		return err
 	}
 
 	return err
