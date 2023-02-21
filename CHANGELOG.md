@@ -24,6 +24,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- skip iat check [#sc-7376]
+
 ### Removed
 
 ### Deprecated
