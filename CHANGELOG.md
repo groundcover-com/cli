@@ -22,6 +22,20 @@ We use the following categories for changes:
 
 ### Fixed
 
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.8.1] 2023-02-21
+
+### Added
+
+### Changed
+
+### Fixed
+
 - skip iat check [#sc-7376]
 
 ### Removed
