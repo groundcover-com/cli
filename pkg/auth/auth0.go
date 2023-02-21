@@ -31,6 +31,11 @@ type Claims struct {
 	Email string `json:"https://client.info/email" validate:"required"`
 }
 
+func (c Claims) Valid() error {
+	c.IssuedAt = nil
+	return c.RegisteredClaims.Valid()
+}
+
 func LoadAuth0Token() (*Auth0Token, error) {
 	var err error
 
