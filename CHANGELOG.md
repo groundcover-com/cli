@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.8.0] 2023-02-21
+
+### Added
+
 - add analytics [#sc-7298]
 
 ### Changed
