@@ -14,9 +14,12 @@ const (
 	TOKEN_ID_TAG                 = "token.id"
 	ORGANIZATION_TAG             = "organization"
 	CHART_VERSION_TAG            = "chart.version"
-	FLUSH_TIMEOUT                = time.Second * 2
 	DEFAULT_RESOURCES_PRESET_TAG = "resources.presets.default"
 	PERSISTENT_STORAGE_TAG       = "storage.persistent"
+	CLUSTER_NAME_TAG             = "cluster.name"
+	NODES_COUNT_TAG              = "nodes.count"
+	EXPECTED_NODES_COUNT_TAG     = "nodes.expected_count"
+	FLUSH_TIMEOUT                = time.Second * 2
 )
 
 var Dsn string = "https://6420be38b4544852a61df1d7ec56f442@o1295881.ingest.sentry.io/6521982"
