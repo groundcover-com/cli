@@ -211,6 +211,8 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 	err = spinner.Poll(ctx, isAlligatorRunningFunc, PODS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
 
 	sentryHelmContext.RunningAlligators = fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.EXPECTED_NODES_COUNT_TAG, fmt.Sprintf("%d", expectedAlligatorsCount))
+
 	sentryHelmContext.SetOnCurrentScope()
 	event.
 		Set("alligatorsCount", expectedAlligatorsCount).

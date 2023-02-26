@@ -125,6 +125,8 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
 	sentryHelmContext.SetOnCurrentScope()
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.CLUSTER_NAME_TAG, clusterName)
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.NODES_COUNT_TAG, fmt.Sprintf("%d", nodesReport.NodesCount()))
 
 	var helmClient *helm.Client
 	if helmClient, err = helm.NewHelmClient(namespace, kubecontext); err != nil {
@@ -140,6 +142,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.EXPECTED_NODES_COUNT_TAG, fmt.Sprintf("%d", len(deployableNodes)))
 
 	var isUpgrade bool
 	var release *helm.Release
