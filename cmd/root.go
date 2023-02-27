@@ -78,8 +78,9 @@ var (
 		VersionCmd.Name(),
 	}
 
-	ErrExecutionAborted     = errors.New("execution aborted")
-	ErrSilentExecutionAbort = errors.New("silent execution abort")
+	ErrExecutionAborted        = errors.New("execution aborted")
+	ErrSilentExecutionAbort    = errors.New("silent execution abort")
+	ErrExecutionPartialSuccess = errors.New("execution partial success")
 )
 
 var RootCmd = &cobra.Command{
@@ -223,6 +224,13 @@ func ExecuteContext(ctx context.Context) error {
 	if err == nil {
 		event.Success()
 		sentry.CaptureMessage(fmt.Sprintf("%s executed successfully", sentryCommandContext.Name))
+		return nil
+	}
+
+	if errors.Is(err, ErrExecutionPartialSuccess) {
+		event.PartialSuccess()
+		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
+		sentry.CaptureMessage(fmt.Sprintf("%s execution partial success", sentryCommandContext.Name))
 		return nil
 	}
 
