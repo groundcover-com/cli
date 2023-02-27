@@ -33,6 +33,7 @@ We use the following categories for changes:
 ### Added
 
 - added tags to report [#sc-6938]
+- partial success flow [#sc-7483]
 
 ### Changed
 

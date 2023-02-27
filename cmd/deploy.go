@@ -193,6 +193,8 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	printOrOpenClusterUrl(clusterName, namespace, isAuthenticated)
+
 	ui.GlobalWriter.PrintlnWithPrefixln(JOIN_SLACK_MESSAGE)
 
 	return nil
@@ -402,11 +404,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, clusterName string, deployableNodesCount int, persistentStorage bool, isAuthenticated bool, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
-	defer func() {
-		isInstallationValid := err == nil
-		reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
-		printOrOpenClusterUrl(clusterName, namespace, isInstallationValid, isAuthenticated)
-	}()
+	defer reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating groundcover installation:")
 
@@ -458,18 +456,14 @@ func validateClusterRegistered(ctx context.Context, clusterName string) error {
 	return nil
 }
 
-func printOrOpenClusterUrl(clusterName string, namespace string, isInstallationValid bool, isAuthenticated bool) {
+func printOrOpenClusterUrl(clusterName string, namespace string, isAuthenticated bool) {
 	clusterUrl := fmt.Sprintf(CLUSTER_URL_FORMAT, GROUNDCOVER_URL, clusterName)
 	clusterUrlLink := ui.GlobalWriter.UrlLink(clusterUrl)
 
-	switch {
-	case !isInstallationValid:
-		ui.GlobalWriter.PrintflnWithPrefixln("Installation takes longer than expected, you can check the status using \"kubectl get pods -n %s\"", namespace)
-		ui.GlobalWriter.Printf("If pods in %q namespace are running, Check out: %s\n", namespace, clusterUrlLink)
-	case !isAuthenticated:
-		ui.GlobalWriter.Printf("Return to browser tab or visit %s if you closed tab\n", clusterUrlLink)
-	default:
+	if isAuthenticated {
 		utils.TryOpenBrowser(ui.GlobalWriter, "Check out: ", clusterUrl)
+	} else {
+		ui.GlobalWriter.Printf("Return to browser tab or visit %s if you closed tab\n", clusterUrlLink)
 	}
 }
 

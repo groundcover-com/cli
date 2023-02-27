@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
@@ -25,14 +24,16 @@ const (
 	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 3
 	PODS_POLLING_INTERVAL      = time.Second * 10
 	PVC_POLLING_TIMEOUT        = time.Minute * 10
-	WAIT_FOR_PORTAL_FORMAT     = "Waiting until cluster establish connectivity"
-	WAIT_FOR_ALLIGATORS_FORMAT = "Waiting until all nodes are monitored (%d/%d Nodes)"
 	ALLIGATOR_LABEL_SELECTOR   = "app=alligator"
 	BACKEND_LABEL_SELECTOR     = "app!=alligator"
 	PORTAL_LABEL_SELECTOR      = "app=portal"
 	RUNNING_FIELD_SELECTOR     = "status.phase=Running"
-	WAIT_FOR_PVCS_FORMAT       = "Waiting until all PVCs are bound (%d/%d PVCs)"
 	EXPECTED_BOUND_PVCS        = 4
+
+	WAIT_FOR_PORTAL_FORMAT      = "Waiting until cluster establish connectivity"
+	WAIT_FOR_PVCS_FORMAT        = "Waiting until all PVCs are bound (%d/%d PVCs)"
+	WAIT_FOR_ALLIGATORS_FORMAT  = "Waiting until all nodes are monitored (%d/%d Nodes)"
+	TIMEOUT_INSTALLATION_FORMAT = "Installation takes longer than expected, you can check the status using \"kubectl get pods -n %s\""
 
 	PVCS_VALIDATION_EVENT_NAME   = "pvcs_validation"
 	AGENTS_VALIDATION_EVENT_NAME = "agents_validation"
@@ -128,7 +129,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 
 	spinner := ui.GlobalWriter.NewSpinner(WAIT_FOR_PORTAL_FORMAT)
 	spinner.SetStopMessage("Cluster established connectivity")
-	spinner.SetStopFailMessage("Cluster failed to establish connectivity")
+	spinner.SetStopFailMessage(fmt.Sprintf(TIMEOUT_INSTALLATION_FORMAT, namespace))
 
 	spinner.Start()
 	defer spinner.WriteStop()
@@ -161,14 +162,10 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 		return nil
 	}
 
-	spinner.WriteStopFail()
+	defer spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
-		spinner.SetWarningSign()
-		spinner.SetStopFailMessage("timeout waiting for cluster to establish connectivity")
-		spinner.WriteStopFail()
-		return ErrSilentExecutionAbort
+		return ErrExecutionPartialSuccess
 	}
 
 	return err
@@ -185,6 +182,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 
 	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
 	spinner.SetStopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
+	spinner.SetStopFailMessage(fmt.Sprintf(TIMEOUT_INSTALLATION_FORMAT, namespace))
 
 	spinner.Start()
 	defer spinner.WriteStop()
@@ -222,16 +220,16 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 		return nil
 	}
 
-	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
-		spinner.SetWarningSign()
-		spinner.SetStopFailMessage(fmt.Sprintf("Timeout waiting for all nodes to be monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
-		spinner.WriteStopFail()
-		return ErrSilentExecutionAbort
-	}
+	defer spinner.WriteStopFail()
 
-	spinner.SetStopFailMessage(fmt.Sprintf("Not all nodes are monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
-	spinner.WriteStopFail()
+	if errors.Is(err, ui.ErrSpinnerTimeout) {
+		if runningAlligators > 0 {
+			spinner.SetWarningSign()
+			spinner.SetStopFailMessage(fmt.Sprintf("groundcover managed to provision %d/%d nodes", runningAlligators, expectedAlligatorsCount))
+		}
+
+		return ErrExecutionPartialSuccess
+	}
 
 	return err
 }
