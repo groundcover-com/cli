@@ -13,9 +13,10 @@ var (
 )
 
 func GetConfig(appName, version string) analytics.Config {
+	devNullLogger := log.New(io.Discard, "", log.LstdFlags)
 	return analytics.Config{
 		BatchSize: 1,
-		Logger:    analytics.StdLogger(log.New(io.Discard, "", log.LstdFlags)),
+		Logger:    analytics.StdLogger(devNullLogger),
 		DefaultContext: &analytics.Context{
 			App: analytics.AppInfo{
 				Name:    appName,
