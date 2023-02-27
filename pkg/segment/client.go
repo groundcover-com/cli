@@ -1,6 +1,9 @@
 package segment
 
 import (
+	"io"
+	"log"
+
 	"github.com/segmentio/analytics-go/v3"
 )
 
@@ -12,7 +15,7 @@ var (
 func GetConfig(appName, version string) analytics.Config {
 	return analytics.Config{
 		BatchSize: 1,
-
+		Logger:    analytics.StdLogger(log.New(io.Discard, "", log.LstdFlags)),
 		DefaultContext: &analytics.Context{
 			App: analytics.AppInfo{
 				Name:    appName,
