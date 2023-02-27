@@ -17,11 +17,28 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.8.2] 2023-02-27
+
+### Added
+
 - added tags to report [#sc-6938]
 
 ### Changed
 
 ### Fixed
+
+- suppress analytics logger [#sc-7482]
 
 ### Removed
 
