@@ -227,8 +227,9 @@ func ExecuteContext(ctx context.Context) error {
 	}
 
 	if errors.Is(err, ErrSilentExecutionAbort) {
-		event.Abort()
-		sentry.CaptureMessage(fmt.Sprintf("%s execution aborted silently", sentryCommandContext.Name))
+		event.PartialSuccess()
+		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
+		sentry.CaptureMessage(fmt.Sprintf("%s execution partial success", sentryCommandContext.Name))
 		return nil
 	}
 

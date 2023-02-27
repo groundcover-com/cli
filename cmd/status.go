@@ -185,6 +185,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 
 	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
 	spinner.SetStopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
+	spinner.SetStopFailMessage(fmt.Sprintf("Installation takes longer than expected, you can check the status using \"kubectl get pods -n %s\"", namespace))
 
 	spinner.Start()
 	defer spinner.WriteStop()
@@ -223,15 +224,15 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 	}
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
-		spinner.SetWarningSign()
-		spinner.SetStopFailMessage(fmt.Sprintf("Timeout waiting for all nodes to be monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
+		if runningAlligators > 1 {
+			sentry_utils.SetLevelOnCurrentScope(sentry.LevelWarning)
+			spinner.SetWarningSign()
+			spinner.SetStopFailMessage(fmt.Sprintf("groundcover managed to provision %d/%d nodes", runningAlligators, expectedAlligatorsCount))
+		}
+
 		spinner.WriteStopFail()
 		return ErrSilentExecutionAbort
 	}
-
-	spinner.SetStopFailMessage(fmt.Sprintf("Not all nodes are monitored (%d/%d Nodes)", runningAlligators, expectedAlligatorsCount))
-	spinner.WriteStopFail()
 
 	return err
 }

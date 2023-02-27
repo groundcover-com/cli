@@ -12,6 +12,7 @@ const (
 	START_STATUS             = "start"
 	FAILURE_STATUS           = "failure"
 	SUCCESS_STATUS           = "success"
+	PARTIAL_SUCCESS_STATUS   = "partial-success"
 	SCOPE_PROPERTY_NAME      = "scope"
 	ERROR_PROPERTY_NAME      = "error"
 	STATUS_PROPERTY_NAME     = "status"
@@ -77,6 +78,10 @@ func (event *EventHandler) Failure(err error) error {
 
 func (event *EventHandler) Success() error {
 	return event.enqueueWithStatus(SUCCESS_STATUS)
+}
+
+func (event *EventHandler) PartialSuccess() error {
+	return event.enqueueWithStatus(PARTIAL_SUCCESS_STATUS)
 }
 
 func (event *EventHandler) StatusByError(err error) error {
