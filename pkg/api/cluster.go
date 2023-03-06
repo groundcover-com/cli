@@ -16,6 +16,13 @@ const (
 	CLUSTER_POLLING_INTERVAL = time.Second * 10
 )
 
+type ClusterInfo struct {
+	Name     string `json:"name"`
+	Online   bool   `json:"online"`
+	Licensed bool   `json:"licensed"`
+	Status   string `json:"status"`
+}
+
 func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string) error {
 	var err error
 
@@ -27,13 +34,13 @@ func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string
 	defer spinner.WriteStop()
 
 	isClusterExistInSassFunc := func() error {
-		var clusterList map[string]interface{}
+		var clusterList []ClusterInfo
 		if clusterList, err = client.ClusterList(); err != nil {
 			return err
 		}
 
-		for _clusterName := range clusterList {
-			if _clusterName == clusterName {
+		for _, cluster := range clusterList {
+			if cluster.Name == clusterName && cluster.Online {
 				return nil
 			}
 		}
@@ -57,7 +64,7 @@ func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string
 	return err
 }
 
-func (client *Client) ClusterList() (map[string]interface{}, error) {
+func (client *Client) ClusterList() ([]ClusterInfo, error) {
 	var err error
 
 	var body []byte
@@ -65,7 +72,7 @@ func (client *Client) ClusterList() (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	var clusterList map[string]interface{}
+	var clusterList []ClusterInfo
 	if err = json.Unmarshal(body, &clusterList); err != nil {
 		return nil, err
 	}
