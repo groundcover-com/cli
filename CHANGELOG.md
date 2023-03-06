@@ -20,6 +20,20 @@ We use the following categories for changes:
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.8.3] 2023-03-06
+
+### Added
+
+### Changed
+
 - use new cluster list schema [#sc-7574]
 
 ### Fixed
