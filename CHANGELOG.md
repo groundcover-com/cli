@@ -20,6 +20,8 @@ We use the following categories for changes:
 
 ### Changed
 
+- use new cluster list schema [#sc-7574]
+
 ### Fixed
 
 ### Removed
