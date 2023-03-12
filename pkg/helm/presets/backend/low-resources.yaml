@@ -69,5 +69,5 @@ shepherd:
       cpu: 5m
       memory: 32Mi
     limits:
-      cpu: 32m
+      cpu: 100m
       memory: 128Mi
