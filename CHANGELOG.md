@@ -28,6 +28,21 @@ We use the following categories for changes:
 
 ### Security
 
+
+## [0.8.34] 2023-03-13
+
+### Added
+
+### Changed
+- updated wait time for alligators to run [#sc-7651]
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.8.3] 2023-03-06
 
 ### Added
