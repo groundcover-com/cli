@@ -19,16 +19,26 @@ import (
 )
 
 const (
-	PODS_POLLING_RETIRES       = 20
-	PORTAL_POLLING_TIMEOUT     = time.Minute * 7
-	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 5
-	PODS_POLLING_INTERVAL      = time.Second * 15
-	PVC_POLLING_TIMEOUT        = time.Minute * 10
-	ALLIGATOR_LABEL_SELECTOR   = "app=alligator"
-	BACKEND_LABEL_SELECTOR     = "app!=alligator"
-	PORTAL_LABEL_SELECTOR      = "app=portal"
-	RUNNING_FIELD_SELECTOR     = "status.phase=Running"
-	EXPECTED_BOUND_PVCS        = 4
+	PODS_POLLING_RETRIES  = 20
+	PODS_POLLING_INTERVAL = time.Second * 15
+
+	PORTAL_POLLING_INTERVAL = time.Second * 15
+	PORTAL_POLLING_RETRIES  = 28
+	PORTAL_POLLING_TIMEOUT  = time.Minute * 7
+
+	PVC_POLLING_INTERVAL = time.Second * 15
+	PVC_POLLING_RETRIES  = 40
+	PVC_POLLING_TIMEOUT  = time.Minute * 10
+
+	ALLIGATORS_POLLING_INTERVAL = time.Second * 15
+	ALLIGATORS_POLLING_RETRIES  = 20
+	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 5
+
+	ALLIGATOR_LABEL_SELECTOR = "app=alligator"
+	BACKEND_LABEL_SELECTOR   = "app!=alligator"
+	PORTAL_LABEL_SELECTOR    = "app=portal"
+	RUNNING_FIELD_SELECTOR   = "status.phase=Running"
+	EXPECTED_BOUND_PVCS      = 4
 
 	WAIT_FOR_PORTAL_FORMAT      = "Waiting until cluster establish connectivity"
 	WAIT_FOR_PVCS_FORMAT        = "Waiting until all PVCs are bound (%d/%d PVCs)"
@@ -156,7 +166,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 		return ui.RetryableError(err)
 	}
 
-	err = spinner.Poll(ctx, isPortalRunningFunc, PODS_POLLING_INTERVAL, PORTAL_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
+	err = spinner.Poll(ctx, isPortalRunningFunc, PORTAL_POLLING_INTERVAL, PORTAL_POLLING_TIMEOUT, PORTAL_POLLING_RETRIES)
 
 	if err == nil {
 		return nil
@@ -206,7 +216,7 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 		return ui.RetryableError(err)
 	}
 
-	err = spinner.Poll(ctx, isAlligatorRunningFunc, PODS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
+	err = spinner.Poll(ctx, isAlligatorRunningFunc, ALLIGATORS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT, ALLIGATORS_POLLING_RETRIES)
 
 	runningAlligatorsStr := fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
 	sentryHelmContext.RunningAlligators = runningAlligatorsStr
@@ -333,7 +343,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 		return ui.RetryableError(err)
 	}
 
-	err = spinner.Poll(ctx, isPvcsReadyFunc, PODS_POLLING_INTERVAL, PVC_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
+	err = spinner.Poll(ctx, isPvcsReadyFunc, PVC_POLLING_INTERVAL, PVC_POLLING_TIMEOUT, PVC_POLLING_RETRIES)
 
 	sentryHelmContext.BoundPvcs = maps.Keys(pvcs)
 	sentryHelmContext.SetOnCurrentScope()

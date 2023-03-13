@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	APPLY_POLLING_RETRIES  = 1
-	APPLY_POLLING_TIMEOUT  = time.Minute * 3
-	APPLY_POLLING_INTERVAL = time.Second
+	APPLY_POLLING_RETRIES  = 30
+	APPLY_POLLING_TIMEOUT  = time.Minute * 1
+	APPLY_POLLING_INTERVAL = time.Second * 2
 )
 
 var (
