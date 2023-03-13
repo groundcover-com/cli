@@ -21,8 +21,8 @@ import (
 const (
 	PODS_POLLING_RETIRES       = 20
 	PORTAL_POLLING_TIMEOUT     = time.Minute * 7
-	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 3
-	PODS_POLLING_INTERVAL      = time.Second * 10
+	ALLIGATORS_POLLING_TIMEOUT = time.Minute * 5
+	PODS_POLLING_INTERVAL      = time.Second * 15
 	PVC_POLLING_TIMEOUT        = time.Minute * 10
 	ALLIGATOR_LABEL_SELECTOR   = "app=alligator"
 	BACKEND_LABEL_SELECTOR     = "app!=alligator"
@@ -208,8 +208,10 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 
 	err = spinner.Poll(ctx, isAlligatorRunningFunc, PODS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT, PODS_POLLING_RETIRES)
 
-	sentryHelmContext.RunningAlligators = fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
+	runningAlligatorsStr := fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
+	sentryHelmContext.RunningAlligators = runningAlligatorsStr
 	sentry_utils.SetTagOnCurrentScope(sentry_utils.EXPECTED_NODES_COUNT_TAG, fmt.Sprintf("%d", expectedAlligatorsCount))
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.RUNNING_ALLIGATORS_TAG, runningAlligatorsStr)
 
 	sentryHelmContext.SetOnCurrentScope()
 	event.
