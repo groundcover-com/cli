@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	HELM_DEPLOY_POLLING_RETRIES         = 30
-	HELM_DEPLOY_POLLING_INTERVAL        = time.Second * 10
+	HELM_DEPLOY_POLLING_RETRIES         = 2
+	HELM_DEPLOY_POLLING_INTERVAL        = time.Second * 1
 	HELM_DEPLOY_POLLING_TIMEOUT         = time.Minute * 5
 	VALUES_FLAG                         = "values"
 	EXPERIMENTAL_FLAG                   = "experimental"

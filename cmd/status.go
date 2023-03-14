@@ -19,9 +19,6 @@ import (
 )
 
 const (
-	PODS_POLLING_RETRIES  = 20
-	PODS_POLLING_INTERVAL = time.Second * 15
-
 	PORTAL_POLLING_INTERVAL = time.Second * 15
 	PORTAL_POLLING_RETRIES  = 28
 	PORTAL_POLLING_TIMEOUT  = time.Minute * 7
