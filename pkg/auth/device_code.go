@@ -13,7 +13,7 @@ import (
 
 const (
 	DEVICE_CODE_ENDPOINT            = "device/code"
-	DEVICE_CODE_POLLING_RETIRES     = 10
+	DEVICE_CODE_POLLING_RETRIES     = 10
 	DEVICE_CODE_POLLING_TIMEOUT     = time.Minute * 1
 	DEVICE_CODE_POLLING_INTERVAL    = time.Second * 7
 	AUTH0_ACCOUNT_NOT_INVITED_ERROR = "access_denied: User has yet to receive an invitation."
@@ -85,7 +85,7 @@ func (deviceCode *DeviceCode) PollToken(ctx context.Context, auth0Token *Auth0To
 		return err
 	}
 
-	err = spinner.Poll(ctx, fetchTokenFunc, DEVICE_CODE_POLLING_INTERVAL, DEVICE_CODE_POLLING_TIMEOUT, DEVICE_CODE_POLLING_RETIRES)
+	err = spinner.Poll(ctx, fetchTokenFunc, DEVICE_CODE_POLLING_INTERVAL, DEVICE_CODE_POLLING_TIMEOUT, DEVICE_CODE_POLLING_RETRIES)
 
 	if err == nil {
 		return nil

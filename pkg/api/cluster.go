@@ -11,7 +11,7 @@ import (
 
 const (
 	CLUSTER_LIST_ENDPOINT    = "cluster/list"
-	CLUSTER_POLLING_RETRIES  = 20
+	CLUSTER_POLLING_RETRIES  = 18
 	CLUSTER_POLLING_TIMEOUT  = time.Minute * 3
 	CLUSTER_POLLING_INTERVAL = time.Second * 10
 )

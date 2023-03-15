@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	HELM_DEPLOY_POLLING_RETIRES         = 2
+	HELM_DEPLOY_POLLING_RETRIES         = 2
 	HELM_DEPLOY_POLLING_INTERVAL        = time.Second * 1
 	HELM_DEPLOY_POLLING_TIMEOUT         = time.Minute * 5
 	VALUES_FLAG                         = "values"
@@ -49,7 +49,7 @@ const (
 	WAIT_FOR_GET_LATEST_CHART_SUCCESS   = "Downloading latest chart completed successfully"
 	WAIT_FOR_GET_LATEST_CHART_FAILURE   = "Latest chart download failed:"
 	WAIT_FOR_GET_LATEST_CHART_TIMEOUT   = "Latest chart download timeout"
-	GET_LATEST_CHART_POLLING_RETIRES    = 3
+	GET_LATEST_CHART_POLLING_RETRIES    = 10
 	GET_LATEST_CHART_POLLING_INTERVAL   = time.Second * 1
 	GET_LATEST_CHART_POLLING_TIMEOUT    = time.Second * 10
 
@@ -383,7 +383,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 		return nil
 	}
 
-	err = spinner.Poll(ctx, helmUpgradeFunc, HELM_DEPLOY_POLLING_INTERVAL, HELM_DEPLOY_POLLING_TIMEOUT, HELM_DEPLOY_POLLING_RETIRES)
+	err = spinner.Poll(ctx, helmUpgradeFunc, HELM_DEPLOY_POLLING_INTERVAL, HELM_DEPLOY_POLLING_TIMEOUT, HELM_DEPLOY_POLLING_RETRIES)
 
 	if err == nil {
 		return nil
@@ -504,7 +504,7 @@ func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelm
 		return nil
 	}
 
-	err = spinner.Poll(ctx, getLatestChartFunc, GET_LATEST_CHART_POLLING_INTERVAL, GET_LATEST_CHART_POLLING_TIMEOUT, GET_LATEST_CHART_POLLING_RETIRES)
+	err = spinner.Poll(ctx, getLatestChartFunc, GET_LATEST_CHART_POLLING_INTERVAL, GET_LATEST_CHART_POLLING_TIMEOUT, GET_LATEST_CHART_POLLING_RETRIES)
 
 	if err == nil {
 		sentryHelmContext.ChartVersion = chart.Version().String()
