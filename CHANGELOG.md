@@ -19,7 +19,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
-
+- removed promscale resources, and updated shepherd-collector's [#sc-7727]
 ### Fixed
 
 ### Removed

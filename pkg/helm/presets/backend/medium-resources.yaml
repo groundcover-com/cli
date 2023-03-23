@@ -54,20 +54,11 @@ victoria-metrics-single:
         cpu: 300m
         memory: 1024Mi
 
-promscale:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 128Mi
-
 shepherd:
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 150m
+      memory: 256Mi
     limits:
       cpu: 200m
-      memory: 128Mi
+      memory: 256Mi
