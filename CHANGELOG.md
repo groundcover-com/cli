@@ -19,7 +19,23 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.8.6] 2023-03-23
+
+### Added
+
+### Changed
+
 - removed promscale resources, and updated shepherd-collector's [#sc-7727]
+
 ### Fixed
 
 ### Removed
@@ -33,7 +49,9 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - updated wait time for alligators to run [#sc-7650]
+
 ### Fixed
 
 ### Removed
@@ -47,7 +65,9 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - updated wait time for alligators to run [#sc-7651]
+
 ### Fixed
 
 ### Removed
