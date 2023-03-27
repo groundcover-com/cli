@@ -32,6 +32,7 @@ const (
 	EXPERIMENTAL_FLAG                   = "experimental"
 	NO_PVC_FLAG                         = "no-pvc"
 	LOW_RESOURCES_FLAG                  = "low-resources"
+	ENABLE_CUSTOM_METRICS_FLAG          = "custom-metrics"
 	STORE_ISSUES_LOGS_ONLY_FLAG         = "store-issues-logs-only"
 	STORE_ISSUES_LOGS_ONLY_KEY          = "storeIssuesLogsOnly"
 	CHART_NAME                          = "groundcover/groundcover"
@@ -44,6 +45,7 @@ const (
 	HELM_REPO_URL                       = "https://helm.groundcover.com"
 	CLUSTER_URL_FORMAT                  = "%s/?clusterId=%s&viewType=Overview"
 	EXPERIMENTAL_PRESET_PATH            = "presets/agent/experimental.yaml"
+	CUSTOM_METRICS_PRESET_PATH          = "presets/backend/custom-metrics.yaml"
 	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
 	WAIT_FOR_GET_LATEST_CHART_FORMAT    = "Waiting for downloading latest chart to complete"
 	WAIT_FOR_GET_LATEST_CHART_SUCCESS   = "Downloading latest chart completed successfully"
@@ -76,6 +78,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().Bool(STORE_ISSUES_LOGS_ONLY_FLAG, false, "store issues logs only")
 	viper.BindPFlag(STORE_ISSUES_LOGS_ONLY_FLAG, DeployCmd.PersistentFlags().Lookup(STORE_ISSUES_LOGS_ONLY_FLAG))
+
+	DeployCmd.PersistentFlags().Bool(ENABLE_CUSTOM_METRICS_FLAG, false, "enable custom metrics scraping")
+	viper.BindPFlag(ENABLE_CUSTOM_METRICS_FLAG, DeployCmd.PersistentFlags().Lookup(ENABLE_CUSTOM_METRICS_FLAG))
 
 	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
 	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
@@ -577,6 +582,11 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 	useExperimental := viper.GetBool(EXPERIMENTAL_FLAG)
 	if useExperimental {
 		overridePaths = append(overridePaths, EXPERIMENTAL_PRESET_PATH)
+	}
+
+	enableCustomMetrics := viper.GetBool(ENABLE_CUSTOM_METRICS_FLAG)
+	if enableCustomMetrics {
+		overridePaths = append(overridePaths, CUSTOM_METRICS_PRESET_PATH)
 	}
 
 	if !persistentStorage {
