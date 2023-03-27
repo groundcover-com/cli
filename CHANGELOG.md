@@ -28,6 +28,20 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.8.7] 2023-03-27
+
+### Added
+- custom metrics flag [#sc-7824]
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.8.6] 2023-03-23
 
 ### Added
