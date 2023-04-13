@@ -18,6 +18,9 @@ We use the following categories for changes:
 
 ### Added
 
+- add `mode` flag to `deploy` command [#sc-8011]
+- legacy mode on outdated kernel version [#sc-8011]
+
 ### Changed
 
 ### Fixed
@@ -31,7 +34,9 @@ We use the following categories for changes:
 ## [0.8.7] 2023-03-27
 
 ### Added
+
 - custom metrics flag [#sc-7824]
+
 ### Changed
 
 ### Fixed

@@ -18,7 +18,7 @@ const (
 	ARM64_ARCH                             = "arm64"
 	SCHEDULABLE_REPORT_MESSAGE_FORMAT      = "Node is schedulable (%d/%d Nodes)"
 	CPU_REPORT_MESSAGE_FORMAT              = "Sufficient node CPU (%d/%d Nodes)"
-	KERNEL_REPORT_MESSAGE_FORMAT           = "Kernel version >= %s (%d/%d Nodes)"
+	KERNEL_REPORT_MESSAGE_FORMAT           = "Kernel version %s (%d/%d Nodes)"
 	MEMORY_REPORT_MESSAGE_FORMAT           = "Sufficient node memory (%d/%d Nodes)"
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "Cloud provider supported (%d/%d Nodes)"
 	ARCHITECTURE_REPORT_MESSAGE_FORMAT     = "Node architecture supported (%d/%d Nodes)"
@@ -27,15 +27,19 @@ const (
 )
 
 var (
+	ErrLegacyKernel = errors.New("legacy kernel")
+
 	KERNEL_VERSION_REGEX = regexp.MustCompile("^(?P<major>[0-9]).(?P<minor>[0-9]+).(?P<patch>[0-9]+)")
 
-	MinimumKernelVersionSupport = semver.Version{Major: 4, Minor: 14}
+	LegacyKernelVersionRange = ">=4.14.0"
+	StableKernelVersionRange = ">=5.3.0"
 
 	DefaultNodeRequirements = &NodeMinimumRequirements{
-		AllowedOperatingSystems: []string{"linux"},
-		AllowedArchitectures:    []string{AMD64_ARCH, ARM64_ARCH},
-		BlockedProviders:        []string{"fargate"},
-		KernelVersion:           MinimumKernelVersionSupport,
+		AllowedOperatingSystems:  []string{"linux"},
+		AllowedArchitectures:     []string{AMD64_ARCH, ARM64_ARCH},
+		BlockedProviders:         []string{"fargate"},
+		LegacyKernelVersionRange: semver.MustParseRange(LegacyKernelVersionRange),
+		StableKernelVersionRange: semver.MustParseRange(StableKernelVersionRange),
 	}
 )
 
@@ -87,15 +91,17 @@ func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary
 }
 
 type NodeMinimumRequirements struct {
-	CPUAmount               *resource.Quantity
-	MemoryAmount            *resource.Quantity
-	KernelVersion           semver.Version
-	BlockedProviders        []string
-	AllowedArchitectures    []string
-	AllowedOperatingSystems []string
+	CPUAmount                *resource.Quantity
+	MemoryAmount             *resource.Quantity
+	BlockedProviders         []string
+	AllowedArchitectures     []string
+	AllowedOperatingSystems  []string
+	LegacyKernelVersionRange semver.Range
+	StableKernelVersionRange semver.Range
 }
 
 type NodesReport struct {
+	IsLegacyKernel         bool
 	Schedulable            Requirement
 	KernelVersionAllowed   Requirement
 	ProviderAllowed        Requirement
@@ -148,11 +154,15 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 		}
 
 		if err = nodeRequirements.validateNodeKernelVersion(nodeSummary); err != nil {
-			requirementErrors = append(requirementErrors, err.Error())
-			nodesReport.KernelVersionAllowed.ErrorMessages = append(
-				nodesReport.KernelVersionAllowed.ErrorMessages,
-				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
-			)
+			if errors.Is(err, ErrLegacyKernel) {
+				nodesReport.IsLegacyKernel = true
+			} else {
+				requirementErrors = append(requirementErrors, err.Error())
+				nodesReport.KernelVersionAllowed.ErrorMessages = append(
+					nodesReport.KernelVersionAllowed.ErrorMessages,
+					fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
+				)
+			}
 		}
 
 		if err = nodeRequirements.validateNodeArchitecture(nodeSummary); err != nil {
@@ -214,7 +224,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 	nodesReport.KernelVersionAllowed.IsNonCompatible = len(nodesReport.KernelVersionAllowed.ErrorMessages) == nodesCount
 	nodesReport.KernelVersionAllowed.Message = fmt.Sprintf(
 		KERNEL_REPORT_MESSAGE_FORMAT,
-		MinimumKernelVersionSupport,
+		LegacyKernelVersionRange,
 		len(nodesSummeries)-len(nodesReport.KernelVersionAllowed.ErrorMessages),
 		len(nodesSummeries),
 	)
@@ -270,11 +280,15 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeKernelVersion(nodeS
 		return fmt.Errorf("%s is unknown kernel version", nodeSummary.Kernel)
 	}
 
-	if nodeRequirements.KernelVersion.GT(kernelVersion) {
-		return fmt.Errorf("%s is unsupported kernel version", nodeSummary.Kernel)
+	if nodeRequirements.StableKernelVersionRange(kernelVersion) {
+		return nil
 	}
 
-	return nil
+	if nodeRequirements.LegacyKernelVersionRange(kernelVersion) {
+		return ErrLegacyKernel
+	}
+
+	return fmt.Errorf("%s is unsupported kernel version", nodeSummary.Kernel)
 }
 
 func (nodeRequirements *NodeMinimumRequirements) validateNodeArchitecture(nodeSummary *NodeSummary) error {

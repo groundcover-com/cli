@@ -29,7 +29,7 @@ const (
 	HELM_DEPLOY_POLLING_INTERVAL        = time.Second * 1
 	HELM_DEPLOY_POLLING_TIMEOUT         = time.Minute * 5
 	VALUES_FLAG                         = "values"
-	EXPERIMENTAL_FLAG                   = "experimental"
+	MODE_FLAG                           = "mode"
 	NO_PVC_FLAG                         = "no-pvc"
 	LOW_RESOURCES_FLAG                  = "low-resources"
 	ENABLE_CUSTOM_METRICS_FLAG          = "custom-metrics"
@@ -44,16 +44,17 @@ const (
 	GROUNDCOVER_URL                     = "https://app.groundcover.com"
 	HELM_REPO_URL                       = "https://helm.groundcover.com"
 	CLUSTER_URL_FORMAT                  = "%s/?clusterId=%s&viewType=Overview"
-	EXPERIMENTAL_PRESET_PATH            = "presets/agent/experimental.yaml"
 	CUSTOM_METRICS_PRESET_PATH          = "presets/backend/custom-metrics.yaml"
 	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
 	WAIT_FOR_GET_LATEST_CHART_FORMAT    = "Waiting for downloading latest chart to complete"
 	WAIT_FOR_GET_LATEST_CHART_SUCCESS   = "Downloading latest chart completed successfully"
 	WAIT_FOR_GET_LATEST_CHART_FAILURE   = "Latest chart download failed:"
 	WAIT_FOR_GET_LATEST_CHART_TIMEOUT   = "Latest chart download timeout"
+	LEGACY_KERNEL_MODE_MESSAGE_FORMAT   = "Kernel is outdated, agent deployment in legacy mode.\n   Additional protocol support and a reduced footprint can be achieved on %s kernel"
 	GET_LATEST_CHART_POLLING_RETRIES    = 10
 	GET_LATEST_CHART_POLLING_INTERVAL   = time.Second * 1
 	GET_LATEST_CHART_POLLING_TIMEOUT    = time.Second * 10
+	LEGACY_MODE                         = "legacy"
 
 	NODES_VALIDATION_EVENT_NAME     = "nodes_validation"
 	HELM_INSTALLATION_EVENT_NAME    = "helm_installation"
@@ -67,8 +68,8 @@ func init() {
 	DeployCmd.PersistentFlags().StringSliceP(VALUES_FLAG, "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
 	viper.BindPFlag(VALUES_FLAG, DeployCmd.PersistentFlags().Lookup(VALUES_FLAG))
 
-	DeployCmd.PersistentFlags().Bool(EXPERIMENTAL_FLAG, false, "enable groundcover experimental features")
-	viper.BindPFlag(EXPERIMENTAL_FLAG, DeployCmd.PersistentFlags().Lookup(EXPERIMENTAL_FLAG))
+	DeployCmd.PersistentFlags().String(MODE_FLAG, "stable", "deployment mode [options: stable, legacy, experimental]")
+	viper.BindPFlag(MODE_FLAG, DeployCmd.PersistentFlags().Lookup(MODE_FLAG))
 
 	DeployCmd.PersistentFlags().Bool(NO_PVC_FLAG, false, "use emptyDir storage instead of PVC")
 	viper.BindPFlag(NO_PVC_FLAG, DeployCmd.PersistentFlags().Lookup(NO_PVC_FLAG))
@@ -121,6 +122,11 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	var nodesReport *k8s.NodesReport
 	if nodesReport, err = validateNodes(ctx, kubeClient, sentryKubeContext); err != nil {
 		return err
+	}
+
+	if nodesReport.IsLegacyKernel {
+		ui.GlobalWriter.PrintWarningMessageln(fmt.Sprintf(LEGACY_KERNEL_MODE_MESSAGE_FORMAT, k8s.StableKernelVersionRange))
+		viper.Set(MODE_FLAG, LEGACY_MODE)
 	}
 
 	var clusterName string
@@ -539,6 +545,7 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 	defaultChartValues := map[string]interface{}{
 		"clusterId":            clusterName,
 		"installationId":       installationId,
+		"mode":                 viper.GetString(MODE_FLAG),
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
@@ -577,11 +584,6 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 		if backendPresetPath != helm.NO_PRESET {
 			overridePaths = append(overridePaths, backendPresetPath)
 		}
-	}
-
-	useExperimental := viper.GetBool(EXPERIMENTAL_FLAG)
-	if useExperimental {
-		overridePaths = append(overridePaths, EXPERIMENTAL_PRESET_PATH)
 	}
 
 	enableCustomMetrics := viper.GetBool(ENABLE_CUSTOM_METRICS_FLAG)
