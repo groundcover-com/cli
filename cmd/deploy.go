@@ -69,7 +69,7 @@ func init() {
 	DeployCmd.PersistentFlags().StringSliceP(VALUES_FLAG, "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
 	viper.BindPFlag(VALUES_FLAG, DeployCmd.PersistentFlags().Lookup(VALUES_FLAG))
 
-	DeployCmd.PersistentFlags().String(MODE_FLAG, "stable", "deployment mode [options: stable, legacy, experimental]")
+	DeployCmd.PersistentFlags().String(MODE_FLAG, "", "deployment mode [options: stable, legacy, experimental]")
 	viper.BindPFlag(MODE_FLAG, DeployCmd.PersistentFlags().Lookup(MODE_FLAG))
 
 	DeployCmd.PersistentFlags().Bool(NO_PVC_FLAG, false, "use emptyDir storage instead of PVC")
@@ -546,10 +546,13 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 	defaultChartValues := map[string]interface{}{
 		"clusterId":            clusterName,
 		"installationId":       installationId,
-		"mode":                 viper.GetString(MODE_FLAG),
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
+	}
+
+	if mode := viper.GetString(MODE_FLAG); mode != "" {
+		defaultChartValues["mode"] = mode
 	}
 
 	// we always want to override tolerations
