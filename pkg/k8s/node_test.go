@@ -38,7 +38,7 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 					NodeInfo: v1.NodeSystemInfo{
 						Architecture:    "amd64",
 						OperatingSystem: "linux",
-						KernelVersion:   "4.14.0",
+						KernelVersion:   "5.3.0",
 						OSImage:         "amazon linux",
 					},
 				},
@@ -85,7 +85,7 @@ func (suite *KubeNodeTestSuite) SetupSuite() {
 					NodeInfo: v1.NodeSystemInfo{
 						Architecture:    "amd64",
 						OperatingSystem: "linux",
-						KernelVersion:   "4.14.0",
+						KernelVersion:   "5.2.0",
 						OSImage:         "amazon linux",
 					},
 				},
@@ -121,7 +121,7 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 			Name:            "compatible",
 			Architecture:    "amd64",
 			OperatingSystem: "linux",
-			Kernel:          "4.14.0",
+			Kernel:          "5.3.0",
 			OSImage:         "amazon linux",
 			Provider:        "aws://eu-west-3/i-53df4efedd",
 		},
@@ -141,7 +141,7 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 			Name:            "pending",
 			Architecture:    "amd64",
 			OperatingSystem: "linux",
-			Kernel:          "4.14.0",
+			Kernel:          "5.2.0",
 			OSImage:         "amazon linux",
 			Provider:        "aws://eu-west-3/i-53df4efedg",
 			Taints: []v1.Taint{
@@ -171,6 +171,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 	// assert
 
 	expected := &k8s.NodesReport{
+		IsLegacyKernel:  true,
 		CompatibleNodes: nodesSummeries[:1],
 		TaintedNodes: []*k8s.IncompatibleNode{
 			{
@@ -193,7 +194,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 		},
 		KernelVersionAllowed: k8s.Requirement{
 			IsCompatible:  false,
-			Message:       "Kernel version >= 4.14.0 (2/3 Nodes)",
+			Message:       "Kernel version >=4.14.0 (2/3 Nodes)",
 			ErrorMessages: []string{"node: incompatible - 4.13.0 is unsupported kernel version"},
 		},
 		ProviderAllowed: k8s.Requirement{
@@ -249,7 +250,7 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 		KernelVersionAllowed: k8s.Requirement{
 			IsCompatible:    false,
 			IsNonCompatible: true,
-			Message:         "Kernel version >= 4.14.0 (0/1 Nodes)",
+			Message:         "Kernel version >=4.14.0 (0/1 Nodes)",
 			ErrorMessages:   []string{"node: incompatible - 4.13.0 is unsupported kernel version"},
 		},
 		ProviderAllowed: k8s.Requirement{
