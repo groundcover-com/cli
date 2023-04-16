@@ -55,6 +55,7 @@ const (
 	GET_LATEST_CHART_POLLING_INTERVAL   = time.Second * 1
 	GET_LATEST_CHART_POLLING_TIMEOUT    = time.Second * 10
 	LEGACY_MODE                         = "legacy"
+	STABLE_MODE                         = "stable"
 
 	NODES_VALIDATION_EVENT_NAME     = "nodes_validation"
 	HELM_INSTALLATION_EVENT_NAME    = "helm_installation"
