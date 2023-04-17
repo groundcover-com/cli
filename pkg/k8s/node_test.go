@@ -167,7 +167,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 	suite.NoError(err)
 
 	// act
-	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
+	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummeries)
 
 	// assert
 
@@ -235,7 +235,7 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 	suite.NoError(err)
 
 	// act
-	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries[1:2])
+	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummeries[1:2])
 
 	// assert
 

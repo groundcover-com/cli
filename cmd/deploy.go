@@ -270,7 +270,7 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 	sentryKubeContext.NodesCount = len(nodesSummeries)
 	sentryKubeContext.SetOnCurrentScope()
 
-	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
+	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummeries)
 
 	event.
 		Set("nodesCount", len(nodesSummeries)).
@@ -607,7 +607,8 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 		overridePaths = append(overridePaths, KUBE_STATE_METRICS_PRESET_PATH)
 	}
 
-	if semver.MustParseRange(">=5.11.0")(nodesReport.MaximalKernelVersion()) {
+	kernelRange := semver.MustParseRange(">=5.11.0")
+	if kernelRange(nodesReport.MaximalKernelVersion()) {
 		overridePaths = append(overridePaths, AGENT_KERNEL_5_11_PRESET_PATH)
 	}
 

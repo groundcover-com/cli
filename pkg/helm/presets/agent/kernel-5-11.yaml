@@ -3,6 +3,6 @@ agent:
   alligator:
     resources:
       requests:
-        memory: 1g
+        memory: 1Gi
       limits:
-        memory: 1g
+        memory: 1Gi

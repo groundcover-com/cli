@@ -27,8 +27,6 @@ const (
 )
 
 var (
-	ErrLegacyKernel = errors.New("legacy kernel")
-
 	KERNEL_VERSION_REGEX = regexp.MustCompile("^(?P<major>[0-9]).(?P<minor>[0-9]+).(?P<patch>[0-9]+)")
 
 	LegacyKernelVersionRange = ">=4.14.0"
@@ -141,7 +139,7 @@ type IncompatibleNode struct {
 	RequirementErrors []string
 }
 
-func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*NodeSummary) *NodesReport {
+func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummeries []*NodeSummary) *NodesReport {
 	var err error
 	var nodesReport NodesReport
 	var backendIsSchedulable bool
@@ -167,8 +165,7 @@ func (nodeRequirements *NodeMinimumRequirements) Validate(nodesSummeries []*Node
 		}
 
 		var kernelVersion semver.Version
-		kernelVersion, err = nodeRequirements.validateNodeKernelVersion(nodeSummary)
-		if err != nil && !errors.Is(err, ErrLegacyKernel) {
+		if kernelVersion, err = nodeRequirements.validateNodeKernelVersion(nodeSummary); err != nil {
 			requirementErrors = append(requirementErrors, err.Error())
 			nodesReport.KernelVersionAllowed.ErrorMessages = append(
 				nodesReport.KernelVersionAllowed.ErrorMessages,
@@ -299,12 +296,8 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeKernelVersion(nodeS
 		return kernelVersion, fmt.Errorf("%s is unknown kernel version", nodeSummary.Kernel)
 	}
 
-	if nodeRequirements.StableKernelVersionRange(kernelVersion) {
+	if nodeRequirements.StableKernelVersionRange.OR(nodeRequirements.LegacyKernelVersionRange)(kernelVersion) {
 		return kernelVersion, nil
-	}
-
-	if nodeRequirements.LegacyKernelVersionRange(kernelVersion) {
-		return kernelVersion, ErrLegacyKernel
 	}
 
 	return kernelVersion, fmt.Errorf("%s is unsupported kernel version", nodeSummary.Kernel)
