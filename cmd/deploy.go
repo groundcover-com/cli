@@ -607,8 +607,7 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 		overridePaths = append(overridePaths, KUBE_STATE_METRICS_PRESET_PATH)
 	}
 
-	kernelRange := semver.MustParseRange(">=5.11.0")
-	if kernelRange(nodesReport.MaximalKernelVersion()) {
+	if semver.MustParseRange(">=5.11.0")(nodesReport.MaximalKernelVersion()) {
 		overridePaths = append(overridePaths, AGENT_KERNEL_5_11_PRESET_PATH)
 	}
 
