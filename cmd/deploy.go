@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/fatih/color"
 	"github.com/getsentry/sentry-go"
 	"github.com/imdario/mergo"
@@ -45,6 +46,7 @@ const (
 	GROUNDCOVER_URL                     = "https://app.groundcover.com"
 	HELM_REPO_URL                       = "https://helm.groundcover.com"
 	CLUSTER_URL_FORMAT                  = "%s/?clusterId=%s&viewType=Overview"
+	AGENT_KERNEL_5_11_PRESET_PATH       = "presets/agent/kernel-5-11.yaml"
 	CUSTOM_METRICS_PRESET_PATH          = "presets/backend/custom-metrics.yaml"
 	KUBE_STATE_METRICS_PRESET_PATH      = "presets/backend/kube-state-metrics.yaml"
 	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
@@ -130,11 +132,6 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if nodesReport.IsLegacyKernel {
-		ui.GlobalWriter.PrintWarningMessageln(fmt.Sprintf(LEGACY_KERNEL_MODE_MESSAGE_FORMAT, k8s.StableKernelVersionRange))
-		viper.Set(MODE_FLAG, LEGACY_MODE)
-	}
-
 	var clusterName string
 	if clusterName, err = getClusterName(kubeClient); err != nil {
 		return err
@@ -189,7 +186,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		chartValues = release.Config
 	}
 
-	if chartValues, err = generateChartValues(chartValues, installationId, clusterName, storageProvision.PersistentStorage, deployableNodes, tolerations, sentryHelmContext); err != nil {
+	if chartValues, err = generateChartValues(chartValues, installationId, clusterName, storageProvision.PersistentStorage, deployableNodes, tolerations, nodesReport, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -273,7 +270,7 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 	sentryKubeContext.NodesCount = len(nodesSummeries)
 	sentryKubeContext.SetOnCurrentScope()
 
-	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
+	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummeries)
 
 	event.
 		Set("nodesCount", len(nodesSummeries)).
@@ -540,7 +537,7 @@ func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelm
 	return nil, err
 }
 
-func generateChartValues(chartValues map[string]interface{}, installationId string, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func generateChartValues(chartValues map[string]interface{}, installationId string, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	var apiKey *auth.ApiKey
@@ -554,6 +551,11 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
 		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
+	}
+
+	if nodesReport.IsLegacyKernel() {
+		ui.GlobalWriter.PrintWarningMessageln(fmt.Sprintf(LEGACY_KERNEL_MODE_MESSAGE_FORMAT, k8s.StableKernelVersionRange))
+		viper.Set(MODE_FLAG, LEGACY_MODE)
 	}
 
 	if mode := viper.GetString(MODE_FLAG); mode != "" {
@@ -603,6 +605,10 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 	enableKubeStateMetrics := viper.GetBool(ENABLE_KUBE_STATE_METRICS_FLAG)
 	if enableKubeStateMetrics {
 		overridePaths = append(overridePaths, KUBE_STATE_METRICS_PRESET_PATH)
+	}
+
+	if semver.MustParseRange(">=5.11.0")(nodesReport.MaximalKernelVersion()) {
+		overridePaths = append(overridePaths, AGENT_KERNEL_5_11_PRESET_PATH)
 	}
 
 	if !persistentStorage {

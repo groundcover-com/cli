@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/stretchr/testify/suite"
 	"groundcover.com/pkg/k8s"
 	v1 "k8s.io/api/core/v1"
@@ -166,12 +167,15 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 	suite.NoError(err)
 
 	// act
-	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries)
+	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummeries)
 
 	// assert
 
 	expected := &k8s.NodesReport{
-		IsLegacyKernel:  true,
+		KernelVersions: semver.Versions{
+			semver.Version{Major: 5, Minor: 2, Patch: 0},
+			semver.Version{Major: 5, Minor: 3, Patch: 0},
+		},
 		CompatibleNodes: nodesSummeries[:1],
 		TaintedNodes: []*k8s.IncompatibleNode{
 			{
@@ -231,7 +235,7 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 	suite.NoError(err)
 
 	// act
-	nodesReport := k8s.DefaultNodeRequirements.Validate(nodesSummeries[1:2])
+	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummeries[1:2])
 
 	// assert
 

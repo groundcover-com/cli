@@ -1,0 +1,8 @@
+---
+agent:
+  alligator:
+    resources:
+      requests:
+        memory: 1Gi
+      limits:
+        memory: 1Gi
