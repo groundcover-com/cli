@@ -296,7 +296,7 @@ func (nodeRequirements *NodeMinimumRequirements) validateNodeKernelVersion(nodeS
 		return kernelVersion, fmt.Errorf("%s is unknown kernel version", nodeSummary.Kernel)
 	}
 
-	if nodeRequirements.StableKernelVersionRange.OR(nodeRequirements.LegacyKernelVersionRange)(kernelVersion) {
+	if nodeRequirements.LegacyKernelVersionRange(kernelVersion) {
 		return kernelVersion, nil
 	}
 
