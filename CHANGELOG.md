@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.0] 2023-04-17
+
+### Added
+
 - add `mode` flag to `deploy` command [#sc-8011]
 - legacy mode on outdated kernel version [#sc-8011]
 - kube state metrics flag [#sc-8036]
