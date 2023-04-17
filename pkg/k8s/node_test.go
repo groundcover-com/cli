@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/stretchr/testify/suite"
 	"groundcover.com/pkg/k8s"
 	v1 "k8s.io/api/core/v1"
@@ -171,7 +172,10 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 	// assert
 
 	expected := &k8s.NodesReport{
-		IsLegacyKernel:  true,
+		KernelVersions: semver.Versions{
+			semver.Version{Major: 5, Minor: 2, Patch: 0},
+			semver.Version{Major: 5, Minor: 3, Patch: 0},
+		},
 		CompatibleNodes: nodesSummeries[:1],
 		TaintedNodes: []*k8s.IncompatibleNode{
 			{

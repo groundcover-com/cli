@@ -21,6 +21,7 @@ We use the following categories for changes:
 - add `mode` flag to `deploy` command [#sc-8011]
 - legacy mode on outdated kernel version [#sc-8011]
 - kube state metrics flag [#sc-8036]
+- kernel 5.11 agent memory limits [#sc-8063]
 
 ### Changed
 
