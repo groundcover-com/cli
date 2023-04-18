@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- ignore incompatible nodes in kernel versions [#sc-8109]
+
 ### Removed
 
 ### Deprecated
