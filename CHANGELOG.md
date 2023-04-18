@@ -22,6 +22,20 @@ We use the following categories for changes:
 
 ### Fixed
 
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.1] 2023-04-18
+
+### Added
+
+### Changed
+
+### Fixed
+
 - ignore incompatible nodes in kernel versions [#sc-8109]
 
 ### Removed
