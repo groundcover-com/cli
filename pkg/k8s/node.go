@@ -171,12 +171,6 @@ func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummeri
 				nodesReport.KernelVersionAllowed.ErrorMessages,
 				fmt.Sprintf("node: %s - %s", nodeSummary.Name, err.Error()),
 			)
-		} else {
-			kernelVersionString := kernelVersion.String()
-			if _, exists := kernelVersionsSet[kernelVersionString]; !exists {
-				kernelVersionsSet[kernelVersionString] = struct{}{}
-				nodesReport.KernelVersions = append(nodesReport.KernelVersions, kernelVersion)
-			}
 		}
 
 		if err = nodeRequirements.validateNodeArchitecture(nodeSummary); err != nil {
@@ -204,6 +198,12 @@ func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummeri
 				},
 			)
 			continue
+		}
+
+		kernelVersionString := kernelVersion.String()
+		if _, exists := kernelVersionsSet[kernelVersionString]; !exists {
+			kernelVersionsSet[kernelVersionString] = struct{}{}
+			nodesReport.KernelVersions = append(nodesReport.KernelVersions, kernelVersion)
 		}
 
 		if err = nodeRequirements.validateNodeSchedulable(nodeSummary); err != nil {

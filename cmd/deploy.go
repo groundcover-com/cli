@@ -560,6 +560,7 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 
 	if mode := viper.GetString(MODE_FLAG); mode != "" {
 		defaultChartValues["mode"] = mode
+		sentry_utils.SetTagOnCurrentScope(sentry_utils.MODE_TAG, mode)
 	}
 
 	// we always want to override tolerations

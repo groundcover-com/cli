@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	MODE_TAG                     = "mode"
 	TAINTED_TAG                  = "tainted"
 	ERASE_DATA_TAG               = "erase"
 	UPGRADE_TAG                  = "upgrade"
