@@ -17,7 +17,7 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
-- Added big cluster preset [#sc-8158]
+- Added high cluster preset [#sc-8158]
 
 ### Changed
 
