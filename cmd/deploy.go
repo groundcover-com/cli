@@ -262,18 +262,18 @@ func validateNodes(ctx context.Context, kubeClient *k8s.Client, sentryKubeContex
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster nodes compatibility:")
 
-	var nodesSummeries []*k8s.NodeSummary
-	if nodesSummeries, err = kubeClient.GetNodesSummeries(ctx); err != nil {
+	var nodesSummaries []*k8s.NodeSummary
+	if nodesSummaries, err = kubeClient.GetNodesSummaries(ctx); err != nil {
 		return nil, err
 	}
 
-	sentryKubeContext.NodesCount = len(nodesSummeries)
+	sentryKubeContext.NodesCount = len(nodesSummaries)
 	sentryKubeContext.SetOnCurrentScope()
 
-	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummeries)
+	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummaries)
 
 	event.
-		Set("nodesCount", len(nodesSummeries)).
+		Set("nodesCount", len(nodesSummaries)).
 		Set("taintedNodesCount", len(nodesReport.TaintedNodes)).
 		Set("compatibleNodesCount", len(nodesReport.CompatibleNodes)).
 		Set("incompatibleNodesCount", len(nodesReport.IncompatibleNodes))

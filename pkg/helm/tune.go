@@ -10,6 +10,8 @@ import (
 const (
 	NO_PRESET = ""
 
+	BIG_CLUSTER_NODE_COUNT = 30
+
 	AGENT_MEDIUM_CPU_THRESHOLD    = "1000m"
 	AGENT_MEDIUM_MEMORY_THRESHOLD = "1024Mi"
 	AGENT_HIGH_CPU_THRESHOLD      = "3000m"
@@ -25,6 +27,7 @@ const (
 	BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD   = "60000Mi"
 	BACKEND_LOW_RESOURCES_PATH            = "presets/backend/low-resources.yaml"
 	BACKEND_MEDIUM_RESOURCES_PATH         = "presets/backend/medium-resources.yaml"
+	BACKEND_BIG_RESOURCES_PATH            = "presets/backend/big-resources.yaml"
 )
 
 //go:embed presets/*
@@ -35,6 +38,7 @@ type AllocatableResources struct {
 	MinMemory   *resource.Quantity
 	TotalCpu    *resource.Quantity
 	TotalMemory *resource.Quantity
+	NodeCount   int
 }
 
 func GetAgentResourcePresetPath(allocatableResources *AllocatableResources) string {
@@ -74,6 +78,8 @@ func GetBackendResourcePresetPath(allocatableResources *AllocatableResources) st
 		presetPath = BACKEND_LOW_RESOURCES_PATH
 	case totalAllocatableCpu <= highCpuThreshold.AsApproximateFloat64(), totalAllocatableMemory <= highMemoryThreshold.AsApproximateFloat64():
 		presetPath = BACKEND_MEDIUM_RESOURCES_PATH
+	case allocatableResources.NodeCount >= BIG_CLUSTER_NODE_COUNT:
+		presetPath = BACKEND_BIG_RESOURCES_PATH
 	default:
 		return NO_PRESET
 	}
@@ -81,15 +87,16 @@ func GetBackendResourcePresetPath(allocatableResources *AllocatableResources) st
 	return presetPath
 }
 
-func CalcAllocatableResources(nodesSummeries []*k8s.NodeSummary) *AllocatableResources {
+func CalcAllocatableResources(nodesSummaries []*k8s.NodeSummary) *AllocatableResources {
 	allocatableResources := &AllocatableResources{
-		MinCpu:      nodesSummeries[0].CPU,
-		MinMemory:   nodesSummeries[0].Memory,
+		MinCpu:      nodesSummaries[0].CPU,
+		MinMemory:   nodesSummaries[0].Memory,
 		TotalCpu:    &resource.Quantity{},
 		TotalMemory: &resource.Quantity{},
+		NodeCount:   len(nodesSummaries),
 	}
 
-	for _, nodeSummary := range nodesSummeries {
+	for _, nodeSummary := range nodesSummaries {
 		if len(nodeSummary.Taints) > 0 || nodeSummary.IsArm64() {
 			continue
 		}
