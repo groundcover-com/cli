@@ -17,6 +17,21 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+
+## [0.9.2] 2023-04-24
+
+### Added
 - Added high cluster preset [#sc-8158]
 
 ### Changed
