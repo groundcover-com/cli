@@ -61,7 +61,7 @@ func (nodeSummary *NodeSummary) IsAmd64() bool {
 	return nodeSummary.Architecture == AMD64_ARCH
 }
 
-func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary, error) {
+func (kubeClient *Client) GetNodesSummaries(ctx context.Context) ([]*NodeSummary, error) {
 	var err error
 
 	var nodeList *v1.NodeList
@@ -69,7 +69,7 @@ func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary
 		return nil, err
 	}
 
-	var nodeSummeries []*NodeSummary
+	var nodeSummaries []*NodeSummary
 	for _, node := range nodeList.Items {
 		nodeSummary := &NodeSummary{
 			Taints:          node.Spec.Taints,
@@ -82,10 +82,10 @@ func (kubeClient *Client) GetNodesSummeries(ctx context.Context) ([]*NodeSummary
 			CPU:             node.Status.Allocatable.Cpu(),
 			Memory:          node.Status.Allocatable.Memory(),
 		}
-		nodeSummeries = append(nodeSummeries, nodeSummary)
+		nodeSummaries = append(nodeSummaries, nodeSummary)
 	}
 
-	return nodeSummeries, nil
+	return nodeSummaries, nil
 }
 
 type NodeMinimumRequirements struct {
@@ -139,15 +139,15 @@ type IncompatibleNode struct {
 	RequirementErrors []string
 }
 
-func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummeries []*NodeSummary) *NodesReport {
+func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummaries []*NodeSummary) *NodesReport {
 	var err error
 	var nodesReport NodesReport
 	var backendIsSchedulable bool
 
-	nodesCount := len(nodesSummeries)
+	nodesCount := len(nodesSummaries)
 	kernelVersionsSet := make(map[string]struct{})
 
-	for _, nodeSummary := range nodesSummeries {
+	for _, nodeSummary := range nodesSummaries {
 		var requirementErrors []string
 
 		if !backendIsSchedulable {
@@ -230,8 +230,8 @@ func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummeri
 	nodesReport.ProviderAllowed.IsNonCompatible = len(nodesReport.ProviderAllowed.ErrorMessages) == nodesCount
 	nodesReport.ProviderAllowed.Message = fmt.Sprintf(
 		PROVIDER_REPORT_MESSAGE_FORMAT,
-		len(nodesSummeries)-len(nodesReport.ProviderAllowed.ErrorMessages),
-		len(nodesSummeries),
+		len(nodesSummaries)-len(nodesReport.ProviderAllowed.ErrorMessages),
+		len(nodesSummaries),
 	)
 
 	nodesReport.KernelVersionAllowed.IsCompatible = len(nodesReport.KernelVersionAllowed.ErrorMessages) == 0
@@ -239,16 +239,16 @@ func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummeri
 	nodesReport.KernelVersionAllowed.Message = fmt.Sprintf(
 		KERNEL_REPORT_MESSAGE_FORMAT,
 		LegacyKernelVersionRange,
-		len(nodesSummeries)-len(nodesReport.KernelVersionAllowed.ErrorMessages),
-		len(nodesSummeries),
+		len(nodesSummaries)-len(nodesReport.KernelVersionAllowed.ErrorMessages),
+		len(nodesSummaries),
 	)
 
 	nodesReport.ArchitectureAllowed.IsCompatible = len(nodesReport.ArchitectureAllowed.ErrorMessages) == 0
 	nodesReport.ArchitectureAllowed.IsNonCompatible = len(nodesReport.ArchitectureAllowed.ErrorMessages) == nodesCount
 	nodesReport.ArchitectureAllowed.Message = fmt.Sprintf(
 		ARCHITECTURE_REPORT_MESSAGE_FORMAT,
-		len(nodesSummeries)-len(nodesReport.ArchitectureAllowed.ErrorMessages),
-		len(nodesSummeries),
+		len(nodesSummaries)-len(nodesReport.ArchitectureAllowed.ErrorMessages),
+		len(nodesSummaries),
 	)
 
 	if !backendIsSchedulable {
@@ -261,16 +261,16 @@ func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummeri
 	nodesReport.OperatingSystemAllowed.IsNonCompatible = len(nodesReport.OperatingSystemAllowed.ErrorMessages) == nodesCount
 	nodesReport.OperatingSystemAllowed.Message = fmt.Sprintf(
 		OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT,
-		len(nodesSummeries)-len(nodesReport.OperatingSystemAllowed.ErrorMessages),
-		len(nodesSummeries),
+		len(nodesSummaries)-len(nodesReport.OperatingSystemAllowed.ErrorMessages),
+		len(nodesSummaries),
 	)
 
 	nodesReport.Schedulable.IsCompatible = len(nodesReport.Schedulable.ErrorMessages) == 0
 	nodesReport.Schedulable.IsNonCompatible = len(nodesReport.Schedulable.ErrorMessages) == nodesCount
 	nodesReport.Schedulable.Message = fmt.Sprintf(
 		SCHEDULABLE_REPORT_MESSAGE_FORMAT,
-		len(nodesSummeries)-len(nodesReport.Schedulable.ErrorMessages),
-		len(nodesSummeries),
+		len(nodesSummaries)-len(nodesReport.Schedulable.ErrorMessages),
+		len(nodesSummaries),
 	)
 
 	semver.Sort(nodesReport.KernelVersions)

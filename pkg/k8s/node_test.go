@@ -105,13 +105,13 @@ func TestKubeNodeTestSuite(t *testing.T) {
 	suite.Run(t, &KubeNodeTestSuite{})
 }
 
-func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
+func (suite *KubeNodeTestSuite) TestGetNodesSummariesSuccess() {
 	// prepare
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
 	// act
-	nodesSummeries, err := suite.KubeClient.GetNodesSummeries(ctx)
+	nodesSummaries, err := suite.KubeClient.GetNodesSummaries(ctx)
 	suite.NoError(err)
 
 	// assert
@@ -155,7 +155,7 @@ func (suite *KubeNodeTestSuite) TestGetNodesSummeriesSuccess() {
 		},
 	}
 
-	suite.Equal(expected, nodesSummeries)
+	suite.Equal(expected, nodesSummaries)
 }
 
 func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
@@ -163,11 +163,11 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	nodesSummeries, err := suite.KubeClient.GetNodesSummeries(ctx)
+	nodesSummaries, err := suite.KubeClient.GetNodesSummaries(ctx)
 	suite.NoError(err)
 
 	// act
-	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummeries)
+	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummaries)
 
 	// assert
 
@@ -176,10 +176,10 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 			semver.Version{Major: 5, Minor: 2, Patch: 0},
 			semver.Version{Major: 5, Minor: 3, Patch: 0},
 		},
-		CompatibleNodes: nodesSummeries[:1],
+		CompatibleNodes: nodesSummaries[:1],
 		TaintedNodes: []*k8s.IncompatibleNode{
 			{
-				NodeSummary: nodesSummeries[2],
+				NodeSummary: nodesSummaries[2],
 				RequirementErrors: []string{
 					"taints are set",
 				},
@@ -187,7 +187,7 @@ func (suite *KubeNodeTestSuite) TestGenerateNodeReportSuccess() {
 		},
 		IncompatibleNodes: []*k8s.IncompatibleNode{
 			{
-				NodeSummary: nodesSummeries[1],
+				NodeSummary: nodesSummaries[1],
 				RequirementErrors: []string{
 					"fargate is unsupported provider",
 					"4.13.0 is unsupported kernel version",
@@ -231,18 +231,18 @@ func (suite *KubeNodeTestSuite) TestNonCompatibleSuccess() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	nodesSummeries, err := suite.KubeClient.GetNodesSummeries(ctx)
+	nodesSummaries, err := suite.KubeClient.GetNodesSummaries(ctx)
 	suite.NoError(err)
 
 	// act
-	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummeries[1:2])
+	nodesReport := k8s.DefaultNodeRequirements.GenerateNodeReport(nodesSummaries[1:2])
 
 	// assert
 
 	expected := &k8s.NodesReport{
 		IncompatibleNodes: []*k8s.IncompatibleNode{
 			{
-				NodeSummary: nodesSummeries[1],
+				NodeSummary: nodesSummaries[1],
 				RequirementErrors: []string{
 					"fargate is unsupported provider",
 					"4.13.0 is unsupported kernel version",
