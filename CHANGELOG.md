@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- loki ingestion rate limit tuning [#sc-8227]
+
 ### Changed
 
 ### Fixed
@@ -28,10 +30,10 @@ We use the following categories for changes:
 
 ### Security
 
-
 ## [0.9.2] 2023-04-24
 
 ### Added
+
 - Added high cluster preset [#sc-8158]
 
 ### Changed

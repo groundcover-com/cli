@@ -18,6 +18,12 @@ portal:
       memory: 64Mi
 
 loki:
+  config:
+    limits_config:
+      ingestion_rate_mb: 4
+      ingestion_burst_size_mb: 8
+      per_stream_rate_limit: 3MB # Default was 3MB
+      per_stream_rate_limit_burst: 6MB # Default was 15MB
   resources:
     requests:
       cpu: 5m
@@ -36,7 +42,7 @@ timescaledb-single:
       memory: 768Mi
 
 victoria-metrics-agent:
-  resources: 
+  resources:
     requests:
       cpu: 16m
       memory: 32Mi
@@ -46,7 +52,7 @@ victoria-metrics-agent:
 
 victoria-metrics-single:
   server:
-    resources:            
+    resources:
       requests:
         cpu: 5m
         memory: 32Mi
