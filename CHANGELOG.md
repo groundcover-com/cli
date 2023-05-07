@@ -18,7 +18,7 @@ We use the following categories for changes:
 
 ### Added
 
-- loki ingestion rate limit tuning [#sc-8227]
+- tune clickhouse and otel-collector resources [#sc-8227]
 
 ### Changed
 
