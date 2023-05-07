@@ -21,7 +21,23 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.4] 2023-05-08
+
+### Added
+
+### Changed
+
+### Fixed
+
 - fixed pvc creation check bug [#sc-8388]
+
 ### Removed
 
 ### Deprecated
