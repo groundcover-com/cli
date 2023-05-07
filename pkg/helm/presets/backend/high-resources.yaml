@@ -17,14 +17,16 @@ portal:
       cpu: 100m
       memory: 256Mi
 
-loki:
+clickhouse:
   resources:
     requests:
-      cpu: 250m
-      memory: 750Mi
+      cpu: 600m
+      memory: 4096Mi
     limits:
-      cpu: 1000m
-      memory: 5000Mi
+      memory: 6000Mi
+
+opentelemetry-collector:
+  replicaCount: 2
 
 timescaledb-single:
   resources:
@@ -36,7 +38,7 @@ timescaledb-single:
       memory: 2500Mi
 
 victoria-metrics-agent:
-  resources: 
+  resources:
     requests:
       cpu: 100m
       memory: 128Mi

@@ -28,10 +28,26 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.9.3] 2023-05-07
+
+### Added
+
+- tune clickhouse and otel-collector resources [#sc-8227]
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
 
 ## [0.9.2] 2023-04-24
 
 ### Added
+
 - Added high cluster preset [#sc-8158]
 
 ### Changed
