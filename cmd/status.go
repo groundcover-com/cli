@@ -332,7 +332,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 
 		spinner.WriteMessage(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, len(pvcs), EXPECTED_BOUND_PVCS))
 
-		if len(pvcs) == EXPECTED_BOUND_PVCS {
+		if len(pvcs) >= EXPECTED_BOUND_PVCS {
 			return nil
 		}
 
