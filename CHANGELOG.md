@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.3] 2023-05-07
+
+### Added
+
 - tune clickhouse and otel-collector resources [#sc-8227]
 
 ### Changed
