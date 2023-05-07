@@ -23,7 +23,7 @@ clickhouse:
       cpu: 600m
       memory: 4096Mi
     limits:
-      memory: 4096Mi
+      memory: 6000Mi
 
 opentelemetry-collector:
   replicaCount: 2
