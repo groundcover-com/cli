@@ -21,7 +21,7 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
-
+- fixed pvc creation check bug [#sc-8388]
 ### Removed
 
 ### Deprecated
