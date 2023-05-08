@@ -19,7 +19,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
-- increase low preset of clickhouse memory [#sc-8405]
+
 ### Fixed
 
 ### Removed
@@ -28,13 +28,14 @@ We use the following categories for changes:
 
 ### Security
 
-
 ## [0.9.5] 2023-05-08
 
 ### Added
 
 ### Changed
+
 - increase low preset of clickhouse memory [#sc-8405]
+
 ### Fixed
 
 ### Removed
