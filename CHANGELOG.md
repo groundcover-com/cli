@@ -19,7 +19,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
-
+- increase low preset of clickhouse memory [#sc-8405]
 ### Fixed
 
 ### Removed
