@@ -22,6 +22,20 @@ We use the following categories for changes:
 
 ### Fixed
 
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.5] 2023-05-08
+
+### Added
+
+### Changed
+
+### Fixed
+
 - clickhouse emptydir mode [#sc-8445]
 
 ### Removed
