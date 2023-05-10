@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- clickhouse emptydir mode [#sc-8445]
+
 ### Removed
 
 ### Deprecated
