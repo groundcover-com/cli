@@ -20,7 +20,11 @@ We use the following categories for changes:
 
 ### Changed
 
+- increase clickhouse mem limit to 2g [#sc-8481]
+
 ### Fixed
+
+- print low-resources mode message on backend [#sc-8481]
 
 ### Removed
 
