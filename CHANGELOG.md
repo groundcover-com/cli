@@ -20,6 +20,20 @@ We use the following categories for changes:
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.7] 2023-05-14
+
+### Added
+
+### Changed
+
 - increase clickhouse mem limit to 2g [#sc-8481]
 
 ### Fixed
@@ -32,7 +46,7 @@ We use the following categories for changes:
 
 ### Security
 
-## [0.9.5] 2023-05-08
+## [0.9.6] 2023-05-08
 
 ### Added
 
