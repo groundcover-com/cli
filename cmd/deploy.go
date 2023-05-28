@@ -175,12 +175,6 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		storageProvision.Reason = "user used --no-pvc flag"
 	}
 
-	if storageProvision.PersistentStorage {
-		sentry_utils.SetTagOnCurrentScope(sentry_utils.PERSISTENT_STORAGE_TAG, "true")
-	} else {
-		sentry_utils.SetTagOnCurrentScope(sentry_utils.PERSISTENT_STORAGE_TAG, "false")
-	}
-
 	var chartValues map[string]interface{}
 	if isUpgrade {
 		chartValues = release.Config
@@ -189,6 +183,28 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	if chartValues, err = generateChartValues(chartValues, installationId, clusterName, storageProvision.PersistentStorage, deployableNodes, tolerations, nodesReport, sentryHelmContext); err != nil {
 		return err
 	}
+
+	backendEnabled := true
+	if backendValues, ok := chartValues["backend"]; ok {
+		if isEnabled, ok := backendValues.(map[string]interface{})["enabled"]; ok {
+			if !isEnabled.(bool) {
+				backendEnabled = false
+				storageProvision.PersistentStorage = false
+				storageProvision.Reason = "agent only installation"
+			}
+		}
+	}
+
+	agentEnabled := true
+	if agentValues, ok := chartValues["agent"]; ok {
+		if isEnabled, ok := agentValues.(map[string]interface{})["enabled"]; ok {
+			if !isEnabled.(bool) {
+				agentEnabled = false
+			}
+		}
+	}
+
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.PERSISTENT_STORAGE_TAG, strconv.FormatBool(storageProvision.PersistentStorage))
 
 	var shouldInstall bool
 	if shouldInstall, err = promptInstallSummary(isUpgrade, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), storageProvision, sentryHelmContext); err != nil {
@@ -203,7 +219,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), clusterName, len(deployableNodes), storageProvision.PersistentStorage, isAuthenticated, sentryHelmContext); err != nil {
+	if err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), clusterName, len(deployableNodes), storageProvision.PersistentStorage, isAuthenticated, agentEnabled, backendEnabled, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -415,7 +431,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, clusterName string, deployableNodesCount int, persistentStorage bool, isAuthenticated bool, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, clusterName string, deployableNodesCount int, persistentStorage, isAuthenticated, agentEnabled, backendEnabled bool, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	defer reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
@@ -428,8 +444,10 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 		}
 	}
 
-	if err = waitForPortal(ctx, kubeClient, namespace, appVersion, sentryHelmContext); err != nil {
-		return err
+	if backendEnabled {
+		if err = waitForPortal(ctx, kubeClient, namespace, appVersion, sentryHelmContext); err != nil {
+			return err
+		}
 	}
 
 	if isAuthenticated {
@@ -438,8 +456,10 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 		}
 	}
 
-	if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
-		return err
+	if agentEnabled {
+		if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
+			return err
+		}
 	}
 
 	ui.GlobalWriter.PrintlnWithPrefixln("That was easy. groundcover installed!")
