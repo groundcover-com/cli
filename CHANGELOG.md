@@ -30,6 +30,19 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.9.8] 2023-05-25
+### Added
+
+### Changed
+
+### Fixed
+- otel low resources calibration [#sc-8658]
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.9.7] 2023-05-14
 
 ### Added
