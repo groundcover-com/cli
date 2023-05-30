@@ -44,6 +44,8 @@ We use the following categories for changes:
 
 ### Security
 
+- upgrade go modules [#sc-8190]
+
 ## [0.9.8] 2023-05-25
 
 ### Added
