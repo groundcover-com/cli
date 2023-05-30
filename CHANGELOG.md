@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- validation support standalone agent and backend installation [#sc-8224]
+
 ### Changed
 
 ### Fixed
