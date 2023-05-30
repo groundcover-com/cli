@@ -6,7 +6,7 @@ replace groundcover.com => ./pkg/
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/getsentry/sentry-go v0.19.0
+	github.com/getsentry/sentry-go v0.13.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
@@ -27,7 +27,6 @@ require (
 	github.com/MicahParks/keyfunc v1.9.0
 	github.com/containerd/containerd v1.7.1
 	github.com/fatih/color v1.15.0
-	github.com/fatih/structs v1.1.0
 	github.com/go-playground/validator/v10 v10.14.0
 	github.com/google/uuid v1.3.0
 	github.com/imdario/mergo v0.3.13
