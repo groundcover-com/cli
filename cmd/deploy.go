@@ -187,7 +187,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	backendEnabled := true
 	if backendValues, ok := chartValues["backend"]; ok {
 		if isEnabled, ok := backendValues.(map[string]interface{})["enabled"]; ok {
-			if !isEnabled.(bool) {
+			if enabled, ok := isEnabled.(bool); ok && !enabled {
 				backendEnabled = false
 				storageProvision.PersistentStorage = false
 				storageProvision.Reason = "agent only installation"
@@ -198,7 +198,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	agentEnabled := true
 	if agentValues, ok := chartValues["agent"]; ok {
 		if isEnabled, ok := agentValues.(map[string]interface{})["enabled"]; ok {
-			if !isEnabled.(bool) {
+			if enabled, ok := isEnabled.(bool); ok && !enabled {
 				agentEnabled = false
 			}
 		}
