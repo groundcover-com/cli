@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.9] 2023-05-30
+
+### Added
+
 - validation support standalone agent and backend installation [#sc-8224]
 
 ### Changed
@@ -31,12 +45,15 @@ We use the following categories for changes:
 ### Security
 
 ## [0.9.8] 2023-05-25
+
 ### Added
 
 ### Changed
 
 ### Fixed
+
 - otel low resources calibration [#sc-8658]
+
 ### Removed
 
 ### Deprecated
