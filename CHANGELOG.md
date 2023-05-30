@@ -30,13 +30,18 @@ We use the following categories for changes:
 
 ### Security
 
+- upgrade go modules [#sc-8190]
+
 ## [0.9.8] 2023-05-25
+
 ### Added
 
 ### Changed
 
 ### Fixed
+
 - otel low resources calibration [#sc-8658]
+
 ### Removed
 
 ### Deprecated
