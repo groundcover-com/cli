@@ -28,10 +28,105 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.9.8] 2023-05-25
+### Added
+
+### Changed
+
+### Fixed
+- otel low resources calibration [#sc-8658]
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.7] 2023-05-14
+
+### Added
+
+### Changed
+
+- increase clickhouse mem limit to 2g [#sc-8481]
+
+### Fixed
+
+- print low-resources mode message on backend [#sc-8481]
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.6] 2023-05-08
+
+### Added
+
+### Changed
+
+### Fixed
+
+- clickhouse emptydir mode [#sc-8445]
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.5] 2023-05-08
+
+### Added
+
+### Changed
+
+- increase low preset of clickhouse memory [#sc-8405]
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.4] 2023-05-08
+
+### Added
+
+### Changed
+
+### Fixed
+
+- fixed pvc creation check bug [#sc-8388]
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.9.3] 2023-05-07
+
+### Added
+
+- tune clickhouse and otel-collector resources [#sc-8227]
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
 
 ## [0.9.2] 2023-04-24
 
 ### Added
+
 - Added high cluster preset [#sc-8158]
 
 ### Changed

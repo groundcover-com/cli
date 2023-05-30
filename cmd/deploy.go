@@ -616,7 +616,7 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 		overridePaths = append(overridePaths, helm.EMPTYDIR_STORAGE_PATH)
 	}
 
-	if slices.Contains(overridePaths, helm.AGENT_LOW_RESOURCES_PATH) {
+	if slices.Contains(overridePaths, helm.AGENT_LOW_RESOURCES_PATH) || slices.Contains(overridePaths, helm.BACKEND_LOW_RESOURCES_PATH) {
 		clusterType := "low resources"
 
 		for _, localClusterType := range k8s.LocalClusterTypes {
