@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
+	"github.com/fatih/structs"
 	"github.com/getsentry/sentry-go"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
@@ -37,7 +38,7 @@ func NewCommandContext(start time.Time) *CommandContext {
 }
 
 func (context CommandContext) SetOnCurrentScope() {
-	sentry.CurrentHub().Scope().SetContext(COMMAND_CONTEXT_NAME, &context)
+	sentry.CurrentHub().Scope().SetContext(COMMAND_CONTEXT_NAME, structs.Map(&context))
 }
 
 type KubeContext struct {
@@ -85,7 +86,7 @@ func (context *KubeContext) SetNodesSamples(nodesReport *k8s.NodesReport) {
 }
 
 func (context KubeContext) SetOnCurrentScope() {
-	sentry.CurrentHub().Scope().SetContext(KUBE_CONTEXT_NAME, &context)
+	sentry.CurrentHub().Scope().SetContext(KUBE_CONTEXT_NAME, structs.Map(&context))
 }
 
 type HelmContext struct {
@@ -113,7 +114,7 @@ func NewHelmContext(releaseName, chartName, repoUrl string) *HelmContext {
 }
 
 func (context HelmContext) SetOnCurrentScope() {
-	sentry.CurrentHub().Scope().SetContext(HELM_CONTEXT_NAME, &context)
+	sentry.CurrentHub().Scope().SetContext(HELM_CONTEXT_NAME, structs.Map(&context))
 }
 
 type SelfUpdateContext struct {
@@ -129,5 +130,5 @@ func NewSelfUpdateContext(currentVersion, latestVersion semver.Version) *SelfUpd
 }
 
 func (context SelfUpdateContext) SetOnCurrentScope() {
-	sentry.CurrentHub().Scope().SetContext(SELF_UPDATE_CONTEXT_NAME, &context)
+	sentry.CurrentHub().Scope().SetContext(SELF_UPDATE_CONTEXT_NAME, structs.Map(&context))
 }
