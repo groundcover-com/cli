@@ -19,7 +19,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
-
+- increase opentelemetry-collector low resources memory preset [#sc-8916]
 ### Fixed
 
 ### Removed
