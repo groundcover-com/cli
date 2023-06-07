@@ -17,6 +17,7 @@ import (
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/helm"
+	"groundcover.com/pkg/helm/presets/agent"
 	"groundcover.com/pkg/k8s"
 	"groundcover.com/pkg/segment"
 	sentry_utils "groundcover.com/pkg/sentry"
@@ -31,6 +32,7 @@ const (
 	HELM_DEPLOY_POLLING_TIMEOUT         = time.Minute * 5
 	VALUES_FLAG                         = "values"
 	MODE_FLAG                           = "mode"
+	IN_CLOUD_FLAG                       = "in-cloud"
 	NO_PVC_FLAG                         = "no-pvc"
 	LOW_RESOURCES_FLAG                  = "low-resources"
 	ENABLE_CUSTOM_METRICS_FLAG          = "custom-metrics"
@@ -75,6 +77,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().String(MODE_FLAG, "", "deployment mode [options: stable, legacy, experimental]")
 	viper.BindPFlag(MODE_FLAG, DeployCmd.PersistentFlags().Lookup(MODE_FLAG))
+
+	DeployCmd.PersistentFlags().String(IN_CLOUD_FLAG, "", "inCloud enterprise environment identifier")
+	viper.BindPFlag(IN_CLOUD_FLAG, DeployCmd.PersistentFlags().Lookup(IN_CLOUD_FLAG))
 
 	DeployCmd.PersistentFlags().Bool(NO_PVC_FLAG, false, "use emptyDir storage instead of PVC")
 	viper.BindPFlag(NO_PVC_FLAG, DeployCmd.PersistentFlags().Lookup(NO_PVC_FLAG))
@@ -584,9 +589,9 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 	}
 
 	// we always want to override tolerations
-	agent, ok := chartValues["agent"]
+	agentValues, ok := chartValues["agent"]
 	if ok {
-		agentMap, ok := agent.(map[string]interface{})
+		agentMap, ok := agentValues.(map[string]interface{})
 		if ok {
 			agentMap["tolerations"] = tolerations
 		}
@@ -666,7 +671,19 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 		return nil, err
 	}
 
-	valuesOverride[STORE_ISSUES_LOGS_ONLY_KEY] = viper.GetBool(STORE_ISSUES_LOGS_ONLY_FLAG)
+	if viper.IsSet(STORE_ISSUES_LOGS_ONLY_FLAG) {
+		valuesOverride[STORE_ISSUES_LOGS_ONLY_KEY] = viper.GetBool(STORE_ISSUES_LOGS_ONLY_FLAG)
+	}
+
+	inCloudEnabled := viper.IsSet(IN_CLOUD_FLAG)
+	if inCloudEnabled {
+		environment := viper.GetString(IN_CLOUD_FLAG)
+		inCloudValuesOverride := agent.InCloudPreset(environment)
+
+		if err = mergo.Merge(&valuesOverride, inCloudValuesOverride, mergo.WithSliceDeepCopy); err != nil {
+			return nil, err
+		}
+	}
 
 	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
