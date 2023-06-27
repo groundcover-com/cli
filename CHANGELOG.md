@@ -20,6 +20,8 @@ We use the following categories for changes:
 
 ### Changed
 
+- tune agent medium preset [#sc-9454]
+
 ### Fixed
 
 ### Removed
