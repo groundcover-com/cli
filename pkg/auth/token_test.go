@@ -94,12 +94,10 @@ func (suite *AuthTokenTestSuite) TestParseInstallationTokenValidationError() {
 		"Key: 'InstallationToken.Org' Error:Field validation for 'Org' failed on the 'required' tag",
 		"Key: 'InstallationToken.Email' Error:Field validation for 'Email' failed on the 'required' tag",
 		"Key: 'InstallationToken.SessionId' Error:Field validation for 'SessionId' failed on the 'required' tag",
-		"Key: 'InstallationToken.Tenant' Error:Field validation for 'Tenant' failed on the 'required' tag",
-		"Key: 'InstallationToken.TenantUUID' Error:Field validation for 'TenantUUID' failed on the 'required' tag",
 	}
 
 	validationErrors, _ := err.(validator.ValidationErrors)
-	suite.Len(validationErrors, 7)
+	suite.Len(validationErrors, 5)
 
 	var errs []string
 	for _, validationError := range validationErrors {

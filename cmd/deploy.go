@@ -119,7 +119,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	sentryKubeContext.SetOnCurrentScope()
 
 	var tenantUUID string
-	if tenantUUID = viper.GetString(TENANT_UUID_FLAG); tenantUUID == "" {
+	if tenantUUID = viper.GetString(TENANT_UUID_FLAG); isAuthenticated && tenantUUID == "" {
 		var tenant *api.TenantInfo
 		if tenant, err = fetchTenant(); err != nil {
 			return err
@@ -200,7 +200,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		chartValues = release.Config
 	}
 
-	if chartValues, err = generateChartValues(chartValues, installationId, clusterName, storageProvision.PersistentStorage, deployableNodes, tolerations, nodesReport, sentryHelmContext); err != nil {
+	if chartValues, err = generateChartValues(chartValues, apiKey, installationId, clusterName, storageProvision.PersistentStorage, deployableNodes, tolerations, nodesReport, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -577,7 +577,7 @@ func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelm
 	return nil, err
 }
 
-func generateChartValues(chartValues map[string]interface{}, installationId string, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
+func generateChartValues(chartValues map[string]interface{}, apiKey, installationId, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
 	defaultChartValues := map[string]interface{}{
@@ -585,7 +585,7 @@ func generateChartValues(chartValues map[string]interface{}, installationId stri
 		"installationId":       installationId,
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
-		"global":               map[string]interface{}{"groundcover_token": viper.GetString(API_KEY_FLAG)},
+		"global":               map[string]interface{}{"groundcover_token": apiKey},
 	}
 
 	if nodesReport.IsLegacyKernel() {

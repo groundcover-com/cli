@@ -23,8 +23,8 @@ type InstallationToken struct {
 	Org        string `json:"org" validate:"required"`
 	Email      string `json:"email" validate:"required"`
 	SessionId  string `json:"sessionId" validate:"required"`
-	Tenant     string `json:"tenant" validate:"required"`
-	TenantUUID string `json:"tenantUUID" validate:"required"`
+	Tenant     string `json:"tenant"`
+	TenantUUID string `json:"tenantUUID"`
 }
 
 func NewInstallationToken(encodedToken string) (*InstallationToken, error) {
