@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.0] 2023-06-27
+
+### Added
+
 - support multi tenancy deployment [#sc-9443]
 
 ### Changed
