@@ -30,6 +30,22 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.10.1] 2023-06-27
+
+### Added
+
+### Changed
+
+- tune agent medium preset [#sc-9454]
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.10.0] 2023-06-27
 
 ### Added
