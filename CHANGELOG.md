@@ -20,6 +20,20 @@ We use the following categories for changes:
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.1] 2023-06-27
+
+### Added
+
+### Changed
+
 - tune agent medium preset [#sc-9454]
 
 ### Fixed
