@@ -28,11 +28,13 @@ func (suite *AuthTokenTestSuite) TestParseInstallationTokenSuccess() {
 	var err error
 
 	token := map[string]string{
-		"id":        "myid",
-		"apiKey":    "testApiKey",
-		"org":       "example.com",
-		"email":     "user@example.com",
-		"sessionId": uuid.NewString(),
+		"id":         "myid",
+		"apiKey":     "testApiKey",
+		"org":        "example.com",
+		"email":      "user@example.com",
+		"sessionId":  uuid.NewString(),
+		"tenant":     "example.com",
+		"tenantUUID": uuid.NewString(),
 	}
 
 	var data []byte
@@ -48,11 +50,13 @@ func (suite *AuthTokenTestSuite) TestParseInstallationTokenSuccess() {
 	// assert
 
 	expected := &auth.InstallationToken{
-		Id:        token["id"],
-		Org:       token["org"],
-		Email:     token["email"],
-		SessionId: token["sessionId"],
-		ApiKey:    &auth.ApiKey{ApiKey: token["apiKey"]},
+		Id:         token["id"],
+		Org:        token["org"],
+		Email:      token["email"],
+		SessionId:  token["sessionId"],
+		Tenant:     token["tenant"],
+		TenantUUID: token["tenantUUID"],
+		ApiKey:     &auth.ApiKey{ApiKey: token["apiKey"]},
 	}
 
 	suite.NoError(err)
@@ -65,11 +69,13 @@ func (suite *AuthTokenTestSuite) TestParseInstallationTokenValidationError() {
 	var err error
 
 	token := map[string]string{
-		"id-bad":        "myid",
-		"apiKey-bad":    "testApiKey",
-		"org-bad":       "example.com",
-		"email-bad":     "user@example.com",
-		"sessionId-bad": uuid.NewString(),
+		"id-bad":         "myid",
+		"apiKey-bad":     "testApiKey",
+		"org-bad":        "example.com",
+		"email-bad":      "user@example.com",
+		"sessionId-bad":  uuid.NewString(),
+		"tenant-bad":     "example.com",
+		"tenantUUID-bad": uuid.NewString(),
 	}
 
 	var data []byte
@@ -88,10 +94,12 @@ func (suite *AuthTokenTestSuite) TestParseInstallationTokenValidationError() {
 		"Key: 'InstallationToken.Org' Error:Field validation for 'Org' failed on the 'required' tag",
 		"Key: 'InstallationToken.Email' Error:Field validation for 'Email' failed on the 'required' tag",
 		"Key: 'InstallationToken.SessionId' Error:Field validation for 'SessionId' failed on the 'required' tag",
+		"Key: 'InstallationToken.Tenant' Error:Field validation for 'Tenant' failed on the 'required' tag",
+		"Key: 'InstallationToken.TenantUUID' Error:Field validation for 'TenantUUID' failed on the 'required' tag",
 	}
 
 	validationErrors, _ := err.(validator.ValidationErrors)
-	suite.Len(validationErrors, 5)
+	suite.Len(validationErrors, 7)
 
 	var errs []string
 	for _, validationError := range validationErrors {

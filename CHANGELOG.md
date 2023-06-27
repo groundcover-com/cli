@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- support multi tenancy deployment [#sc-9443]
+
 ### Changed
 
 ### Fixed

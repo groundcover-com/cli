@@ -26,6 +26,8 @@ const (
 	GITHUB_REPO           = "cli"
 	GITHUB_OWNER          = "groundcover-com"
 	TOKEN_FLAG            = "token"
+	API_KEY_FLAG          = "api-key"
+	TENANT_UUID_FLAG      = "tenant-uuid"
 	NAMESPACE_FLAG        = "namespace"
 	KUBECONFIG_FLAG       = "kubeconfig"
 	KUBECONTEXT_FLAG      = "kube-context"
@@ -44,6 +46,12 @@ var (
 
 func init() {
 	home := homedir.HomeDir()
+
+	RootCmd.PersistentFlags().String(API_KEY_FLAG, "", "optional api-key")
+	viper.BindPFlag(API_KEY_FLAG, RootCmd.PersistentFlags().Lookup(API_KEY_FLAG))
+
+	RootCmd.PersistentFlags().String(TENANT_UUID_FLAG, "", "optional tenant-uuid")
+	viper.BindPFlag(TENANT_UUID_FLAG, RootCmd.PersistentFlags().Lookup(TENANT_UUID_FLAG))
 
 	RootCmd.PersistentFlags().String(TOKEN_FLAG, "", "optional login token")
 	viper.BindPFlag(TOKEN_FLAG, RootCmd.PersistentFlags().Lookup(TOKEN_FLAG))
@@ -271,9 +279,7 @@ func validateInstallationToken() (*auth.InstallationToken, error) {
 		return nil, err
 	}
 
-	if err = installationToken.ApiKey.Save(); err != nil {
-		return nil, err
-	}
-
+	viper.Set(API_KEY_FLAG, installationToken.ApiKey.ApiKey)
+	viper.Set(TENANT_UUID_FLAG, installationToken.TenantUUID)
 	return installationToken, nil
 }

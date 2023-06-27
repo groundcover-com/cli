@@ -118,6 +118,26 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	sentryKubeContext := sentry_utils.NewKubeContext(kubeconfig, kubecontext)
 	sentryKubeContext.SetOnCurrentScope()
 
+	var tenantUUID string
+	if tenantUUID = viper.GetString(TENANT_UUID_FLAG); tenantUUID == "" {
+		var tenant *api.TenantInfo
+		if tenant, err = fetchTenant(); err != nil {
+			return err
+		}
+
+		tenantUUID = tenant.UUID
+	}
+
+	var apiKey string
+	if apiKey = viper.GetString(API_KEY_FLAG); apiKey == "" {
+		var authApiKey *auth.ApiKey
+		if authApiKey, err = fetchApiKey(tenantUUID); err != nil {
+			return err
+		}
+
+		apiKey = authApiKey.ApiKey
+	}
+
 	var kubeClient *k8s.Client
 	if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 		return err
@@ -219,7 +239,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), clusterName, len(deployableNodes), storageProvision.PersistentStorage, isAuthenticated, agentEnabled, backendEnabled, sentryHelmContext); err != nil {
+	if err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), tenantUUID, clusterName, len(deployableNodes), storageProvision.PersistentStorage, isAuthenticated, agentEnabled, backendEnabled, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -431,7 +451,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, clusterName string, deployableNodesCount int, persistentStorage, isAuthenticated, agentEnabled, backendEnabled bool, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion, tenantUUID, clusterName string, deployableNodesCount int, persistentStorage, isAuthenticated, agentEnabled, backendEnabled bool, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	defer reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
@@ -451,7 +471,7 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 	}
 
 	if isAuthenticated {
-		if err = validateClusterRegistered(ctx, clusterName); err != nil {
+		if err = validateClusterRegistered(ctx, tenantUUID, clusterName); err != nil {
 			return err
 		}
 	}
@@ -467,7 +487,7 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, app
 	return nil
 }
 
-func validateClusterRegistered(ctx context.Context, clusterName string) error {
+func validateClusterRegistered(ctx context.Context, tenantUUID, clusterName string) error {
 	var err error
 
 	event := segment.NewEvent(CLUSTER_REGISTRATION_EVENT_NAME)
@@ -483,7 +503,7 @@ func validateClusterRegistered(ctx context.Context, clusterName string) error {
 
 	apiClient := api.NewClient(auth0Token)
 
-	if err = apiClient.PollIsClusterExist(ctx, clusterName); err != nil {
+	if err = apiClient.PollIsClusterExist(ctx, tenantUUID, clusterName); err != nil {
 		return err
 	}
 
@@ -560,17 +580,12 @@ func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelm
 func generateChartValues(chartValues map[string]interface{}, installationId string, clusterName string, persistentStorage bool, deployableNodes []*k8s.NodeSummary, tolerations []map[string]interface{}, nodesReport *k8s.NodesReport, sentryHelmContext *sentry_utils.HelmContext) (map[string]interface{}, error) {
 	var err error
 
-	var apiKey *auth.ApiKey
-	if apiKey, err = auth.LoadApiKey(); err != nil {
-		return nil, err
-	}
-
 	defaultChartValues := map[string]interface{}{
 		"clusterId":            clusterName,
 		"installationId":       installationId,
 		"commitHashKeyName":    viper.GetString(COMMIT_HASH_KEY_NAME_FLAG),
 		"repositoryUrlKeyName": viper.GetString(REPOSITORY_URL_KEY_NAME_FLAG),
-		"global":               map[string]interface{}{"groundcover_token": apiKey.ApiKey},
+		"global":               map[string]interface{}{"groundcover_token": viper.GetString(API_KEY_FLAG)},
 	}
 
 	if nodesReport.IsLegacyKernel() {
