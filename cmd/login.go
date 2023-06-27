@@ -6,6 +6,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/maps"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/segment"
@@ -56,10 +57,6 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: email})
 	sentry_utils.SetTagOnCurrentScope(sentry_utils.ORGANIZATION_TAG, org)
 
-	if err = fetchAndSaveApiKey(auth0Token); err != nil {
-		return errors.Wrap(err, "failed to fetch api key")
-	}
-
 	return nil
 }
 
@@ -85,19 +82,52 @@ func attemptAuth0Login(ctx context.Context) (*auth.Auth0Token, error) {
 	return &auth0Token, err
 }
 
-func fetchAndSaveApiKey(auth0Token *auth.Auth0Token) error {
+func fetchTenant() (*api.TenantInfo, error) {
 	var err error
+
+	var auth0Token *auth.Auth0Token
+	if auth0Token, err = auth.LoadAuth0Token(); err != nil {
+		return nil, err
+	}
+
+	apiClient := api.NewClient(auth0Token)
+
+	var tenants []api.TenantInfo
+	if tenants, err = apiClient.TenantList(); err != nil {
+		return nil, errors.Wrap(err, "failed to load api key")
+	}
+
+	switch len(tenants) {
+	case 0:
+		return nil, errors.New("no active tenants")
+	case 1:
+		return &tenants[0], nil
+	default:
+		tenantsByName := make(map[string]*api.TenantInfo, len(tenants))
+
+		for _, tenant := range tenants {
+			tenantsByName[tenant.TenantName] = &tenant
+		}
+
+		tenantName := ui.GlobalWriter.SelectPrompt("Select tenant:", maps.Keys(tenantsByName))
+		return tenantsByName[tenantName], nil
+	}
+}
+
+func fetchApiKey(tenantUUID string) (*auth.ApiKey, error) {
+	var err error
+
+	var auth0Token *auth.Auth0Token
+	if auth0Token, err = auth.LoadAuth0Token(); err != nil {
+		return nil, err
+	}
 
 	apiClient := api.NewClient(auth0Token)
 
 	var apiKey *auth.ApiKey
-	if apiKey, err = apiClient.ApiKey(); err != nil {
-		return err
+	if apiKey, err = apiClient.ApiKey(tenantUUID); err != nil {
+		return nil, err
 	}
 
-	if err = apiKey.Save(); err != nil {
-		return err
-	}
-
-	return nil
+	return apiKey, nil
 }

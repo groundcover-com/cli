@@ -47,11 +47,23 @@ func NewClient(auth0Token *auth.Auth0Token) *Client {
 	}
 }
 
-func (client *Client) ApiKey() (*auth.ApiKey, error) {
+func (client *Client) ApiKey(tenantUUID string) (*auth.ApiKey, error) {
 	var err error
 
+	var url *url.URL
+	if url, err = client.JoinPath(auth.GENERATE_API_KEY_ENDPOINT); err != nil {
+		return nil, err
+	}
+
+	var request *http.Request
+	if request, err = http.NewRequest("POST", url.String(), nil); err != nil {
+		return nil, err
+	}
+
+	request.Header.Add(TenantUUIDHeader, tenantUUID)
+
 	var body []byte
-	if body, err = client.post(auth.GENERATE_API_KEY_ENDPOINT, "", nil); err != nil {
+	if body, err = client.do(request); err != nil {
 		return nil, err
 	}
 
@@ -65,6 +77,22 @@ func (client *Client) ApiKey() (*auth.ApiKey, error) {
 
 func (client *Client) JoinPath(endpoint string) (*url.URL, error) {
 	return client.baseUrl.Parse(endpoint)
+}
+
+func (client *Client) do(request *http.Request) ([]byte, error) {
+	var err error
+	var response *http.Response
+
+	if response, err = client.httpClient.Do(request); err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return nil, NewResponseError(response)
+	}
+
+	return ioutil.ReadAll(response.Body)
 }
 
 func (client *Client) get(endpoint string) ([]byte, error) {

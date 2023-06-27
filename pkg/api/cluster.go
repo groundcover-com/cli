@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/url"
 	"time"
 
 	"groundcover.com/pkg/ui"
@@ -23,7 +25,7 @@ type ClusterInfo struct {
 	Status   string `json:"status"`
 }
 
-func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string) error {
+func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, clusterName string) error {
 	var err error
 
 	spinner := ui.GlobalWriter.NewSpinner("Waiting until groundcover is connected to cloud platform")
@@ -35,7 +37,7 @@ func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string
 
 	isClusterExistInSassFunc := func() error {
 		var clusterList []ClusterInfo
-		if clusterList, err = client.ClusterList(); err != nil {
+		if clusterList, err = client.ClusterList(tenantUUID); err != nil {
 			return err
 		}
 
@@ -64,11 +66,23 @@ func (client *Client) PollIsClusterExist(ctx context.Context, clusterName string
 	return err
 }
 
-func (client *Client) ClusterList() ([]ClusterInfo, error) {
+func (client *Client) ClusterList(tenantUUID string) ([]ClusterInfo, error) {
 	var err error
 
+	var url *url.URL
+	if url, err = client.JoinPath(CLUSTER_LIST_ENDPOINT); err != nil {
+		return nil, err
+	}
+
+	var request *http.Request
+	if request, err = http.NewRequest("GET", url.String(), nil); err != nil {
+		return nil, err
+	}
+
+	request.Header.Add(TenantUUIDHeader, tenantUUID)
+
 	var body []byte
-	if body, err = client.get(CLUSTER_LIST_ENDPOINT); err != nil {
+	if body, err = client.do(request); err != nil {
 		return nil, err
 	}
 

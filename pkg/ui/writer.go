@@ -155,6 +155,23 @@ func (w *Writer) MultiSelectPrompt(message string, options, defaults []string) [
 	return response
 }
 
+func (w *Writer) SelectPrompt(message string, options []string) string {
+	if viper.GetBool(ASSUME_YES_FLAG) {
+		return options[0]
+	}
+
+	prompt := &survey.Select{
+		Options: options,
+		Default: options[0],
+		Message: message,
+	}
+
+	var response string
+	survey.AskOne(prompt, &response)
+	w.addMessage(fmt.Sprintf("%s %v", message, response))
+	return response
+}
+
 func (w *Writer) timeFormat(message string) string {
 	timeFormatted := time.Now().Format(time.RFC3339)
 
