@@ -20,7 +20,7 @@ We use the following categories for changes:
 
 ### Changed
 
-- tune agent medium preset [#sc-9454]
+- increase opentelemetry-collector low resources memory preset [#sc-8916]
 
 ### Fixed
 
