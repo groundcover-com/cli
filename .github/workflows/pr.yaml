@@ -1,7 +1,10 @@
 name: cli-pr
 
 on:
- pull_request:
+  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   goreleaser:
@@ -15,21 +18,21 @@ jobs:
         with:
           fetch-depth: 0
       - name: Dependency Review
-        uses: actions/dependency-review-action@v2
+        uses: actions/dependency-review-action@v3
         with:
           fail-on-severity: low
       -
         name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           cache: true
           go-version-file: go.mod
           cache-dependency-path: go.sum
       -
         name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v4
         with:
-          version: ~> 1.9
+          version: ~> 1.18
           args: build --snapshot --rm-dist
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
