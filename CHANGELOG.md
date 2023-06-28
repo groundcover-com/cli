@@ -19,7 +19,41 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - increase opentelemetry-collector low resources memory preset [#sc-8916]
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.1] 2023-06-27
+
+### Added
+
+### Changed
+
+- tune agent medium preset [#sc-9454]
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.0] 2023-06-27
+
+### Added
+
+- support multi tenancy deployment [#sc-9443]
+
+### Changed
+
 ### Fixed
 
 ### Removed

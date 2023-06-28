@@ -18,11 +18,13 @@ type Token interface {
 }
 
 type InstallationToken struct {
-	*ApiKey   `validate:"required"`
-	Id        string `json:"id" validate:"required"`
-	Org       string `json:"org" validate:"required"`
-	Email     string `json:"email" validate:"required"`
-	SessionId string `json:"sessionId" validate:"required"`
+	*ApiKey    `validate:"required"`
+	Id         string `json:"id" validate:"required"`
+	Org        string `json:"org" validate:"required"`
+	Email      string `json:"email" validate:"required"`
+	SessionId  string `json:"sessionId" validate:"required"`
+	Tenant     string `json:"tenant"`
+	TenantUUID string `json:"tenantUUID"`
 }
 
 func NewInstallationToken(encodedToken string) (*InstallationToken, error) {

@@ -1,20 +1,10 @@
 ---
 agent:
-  experimental: false
   alligator:
     resources:
       requests:
-        cpu: 200m
-        memory: 250Mi
+        cpu: 100m
+        memory: 256Mi
       limits:
-        cpu: 200m
-        memory: 250Mi
-  tracy:
-    enabled: true
-    resources:
-      requests:
-        cpu: 250m
-        memory: 750Mi
-      limits:
-        cpu: 250m
-        memory: 750Mi
+        cpu: 600m
+        memory: 1Gi
