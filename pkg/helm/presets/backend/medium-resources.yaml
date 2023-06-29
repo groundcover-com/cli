@@ -50,7 +50,7 @@ victoria-metrics-agent:
       memory: 128Mi
     limits:
       cpu: 100m
-      memory: 128Mi
+      memory: 256Mi
 
 victoria-metrics-single:
   server:

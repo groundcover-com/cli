@@ -38,13 +38,16 @@ timescaledb-single:
       memory: 2500Mi
 
 victoria-metrics-agent:
+  extraArgs:
+    remoteWrite.maxHourlySeries: "1000000"
+    remoteWrite.maxDailySeries: "10000000"
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 600m
+      cpu: 300m
       memory: 512Mi
+    limits:
+      cpu: 750m
+      memory: 1Gi
 
 victoria-metrics-single:
   server:

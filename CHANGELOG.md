@@ -20,6 +20,7 @@ We use the following categories for changes:
 
 ### Changed
 
+- tune vmagent resources [#sc-9511]
 - increase opentelemetry-collector low resources memory preset [#sc-8916]
 
 ### Fixed

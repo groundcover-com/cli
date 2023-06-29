@@ -47,10 +47,10 @@ victoria-metrics-agent:
   resources:
     requests:
       cpu: 16m
-      memory: 32Mi
+      memory: 64Mi
     limits:
       cpu: 100m
-      memory: 128Mi
+      memory: 256Mi
 
 victoria-metrics-single:
   server:
