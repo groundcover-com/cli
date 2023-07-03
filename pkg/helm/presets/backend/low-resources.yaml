@@ -43,14 +43,23 @@ timescaledb-single:
       cpu: 300m
       memory: 768Mi
 
-victoria-metrics-agent:
+telemetry:
   resources:
     requests:
       cpu: 16m
-      memory: 64Mi
+      memory: 32Mi
     limits:
       cpu: 100m
+      memory: 128Mi
+
+victoria-metrics-agent:
+  resources:
+    limits:
+      cpu: 300m
       memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
 
 victoria-metrics-single:
   server:

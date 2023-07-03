@@ -37,16 +37,25 @@ timescaledb-single:
       cpu: 1000m
       memory: 2500Mi
 
+telemetry:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
 victoria-metrics-agent:
   extraArgs:
     remoteWrite.maxHourlySeries: "1000000"
     remoteWrite.maxDailySeries: "10000000"
   resources:
     requests:
-      cpu: 300m
+      cpu: 500m
       memory: 512Mi
     limits:
-      cpu: 750m
+      cpu: 1000m
       memory: 1Gi
 
 victoria-metrics-single:
