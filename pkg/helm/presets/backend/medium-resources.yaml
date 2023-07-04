@@ -23,7 +23,7 @@ clickhouse:
       cpu: 150m
       memory: 1024Mi
     limits:
-      memory: 2048Mi
+      memory: 3072Mi
 
 opentelemetry-collector:
   resources:
@@ -32,7 +32,7 @@ opentelemetry-collector:
       memory: 256Mi
     limits:
       cpu: 250m
-      memory: 512Mi
+      memory: 1024Mi
 
 victoria-metrics-agent:
   resources:
