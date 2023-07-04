@@ -154,6 +154,32 @@ func TestTuneResourcesValuesBackendHigh(t *testing.T) {
 	assert.Equal(t, helm.NO_PRESET, cpu)
 }
 
+func TestTuneResourcesValuesBackendHuge(t *testing.T) {
+	// arrange
+	backendHighCpu := resource.MustParse(helm.BACKEND_HIGH_TOTAL_CPU_THRESHOLD)
+	backendHighCpu.Add(*resource.NewMilliQuantity(1, resource.DecimalSI))
+
+	backendHighMemory := resource.MustParse(helm.BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD)
+	backendHighMemory.Add(*resource.NewQuantity(1, resource.BinarySI))
+
+	nodes := []*k8s.NodeSummary{}
+
+	for i := 0; i < 101; i++ {
+		nodes = append(nodes, &k8s.NodeSummary{
+			CPU:    &backendHighCpu,
+			Memory: &backendHighMemory,
+		})
+	}
+
+	resources := helm.CalcAllocatableResources(nodes)
+
+	// act
+	cpu := helm.GetBackendResourcePresetPath(resources)
+
+	// assert
+	assert.Equal(t, helm.BACKEND_HUGE_RESOURCES_PATH, cpu)
+}
+
 func TestCalcAllocatableResourcesSingleNode(t *testing.T) {
 	// arrange
 	nodes := []*k8s.NodeSummary{

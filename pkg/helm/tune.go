@@ -80,10 +80,10 @@ func GetBackendResourcePresetPath(allocatableResources *AllocatableResources) st
 		presetPath = BACKEND_LOW_RESOURCES_PATH
 	case totalAllocatableCpu <= highCpuThreshold.AsApproximateFloat64(), totalAllocatableMemory <= highMemoryThreshold.AsApproximateFloat64():
 		presetPath = BACKEND_MEDIUM_RESOURCES_PATH
-	case allocatableResources.NodeCount >= HIGH_RESOURCES_CLUSTER_NODE_COUNT:
-		presetPath = BACKEND_HIGH_RESOURCES_PATH
 	case allocatableResources.NodeCount >= HUGE_RESOURCES_CLUSTER_NODE_COUNT:
 		presetPath = BACKEND_HUGE_RESOURCES_PATH
+	case allocatableResources.NodeCount >= HIGH_RESOURCES_CLUSTER_NODE_COUNT:
+		presetPath = BACKEND_HIGH_RESOURCES_PATH
 	default:
 		return NO_PRESET
 	}
