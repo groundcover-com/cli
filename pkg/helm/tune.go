@@ -68,6 +68,7 @@ func GetAgentResourcePresetPath(allocatableResources *AllocatableResources) stri
 func GetBackendResourcePresetPath(allocatableResources *AllocatableResources) string {
 	mediumCpuThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_CPU_THRESHOLD)
 	mediumMemoryThreshold := resource.MustParse(BACKEND_MEDIUM_TOTAL_MEMORY_THRESHOLD)
+
 	highCpuThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_CPU_THRESHOLD)
 	highMemoryThreshold := resource.MustParse(BACKEND_HIGH_TOTAL_MEMORY_THRESHOLD)
 
@@ -80,12 +81,10 @@ func GetBackendResourcePresetPath(allocatableResources *AllocatableResources) st
 		presetPath = BACKEND_LOW_RESOURCES_PATH
 	case totalAllocatableCpu <= highCpuThreshold.AsApproximateFloat64(), totalAllocatableMemory <= highMemoryThreshold.AsApproximateFloat64():
 		presetPath = BACKEND_MEDIUM_RESOURCES_PATH
-	case allocatableResources.NodeCount >= HUGE_RESOURCES_CLUSTER_NODE_COUNT:
-		presetPath = BACKEND_HUGE_RESOURCES_PATH
-	case allocatableResources.NodeCount >= HIGH_RESOURCES_CLUSTER_NODE_COUNT:
+	case allocatableResources.NodeCount < HUGE_RESOURCES_CLUSTER_NODE_COUNT:
 		presetPath = BACKEND_HIGH_RESOURCES_PATH
 	default:
-		return NO_PRESET
+		return BACKEND_HUGE_RESOURCES_PATH
 	}
 
 	return presetPath
