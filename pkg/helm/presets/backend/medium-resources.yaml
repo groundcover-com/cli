@@ -32,7 +32,7 @@ opentelemetry-collector:
       memory: 256Mi
     limits:
       cpu: 250m
-      memory: 512Mi
+      memory: 1024Mi
 
 timescaledb-single:
   resources:
