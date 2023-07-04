@@ -28,15 +28,6 @@ clickhouse:
 opentelemetry-collector:
   replicaCount: 2
 
-timescaledb-single:
-  resources:
-    requests:
-      cpu: 1000m
-      memory: 2500Mi
-    limits:
-      cpu: 1000m
-      memory: 2500Mi
-
 victoria-metrics-agent:
   resources:
     requests:
