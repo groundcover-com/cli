@@ -19,6 +19,20 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.2] 2023-07-04
+
+### Added
+
+### Changed
 - increase clickhouse memory limits [#sc-9558]
 - increase opentelemetry-collector low resources memory preset [#sc-8916]
 
