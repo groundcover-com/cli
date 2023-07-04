@@ -23,7 +23,7 @@ clickhouse:
       cpu: 150m
       memory: 1024Mi
     limits:
-      memory: 2048Mi
+      memory: 3072Mi
 
 opentelemetry-collector:
   resources:
