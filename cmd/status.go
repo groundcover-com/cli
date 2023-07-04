@@ -35,7 +35,7 @@ const (
 	BACKEND_LABEL_SELECTOR   = "app!=alligator"
 	PORTAL_LABEL_SELECTOR    = "app=portal"
 	RUNNING_FIELD_SELECTOR   = "status.phase=Running"
-	EXPECTED_BOUND_PVCS      = 4
+	EXPECTED_BOUND_PVCS      = 2
 
 	WAIT_FOR_PORTAL_FORMAT      = "Waiting until cluster establish connectivity"
 	WAIT_FOR_PVCS_FORMAT        = "Waiting until all PVCs are bound (%d/%d PVCs)"
