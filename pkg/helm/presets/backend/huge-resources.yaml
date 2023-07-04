@@ -1,0 +1,56 @@
+---
+k8sWatcher:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 300Mi
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+
+portal:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+clickhouse:
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 4Gi
+    limits:
+      memory: 12Gi
+
+opentelemetry-collector:
+  replicaCount: 3
+
+victoria-metrics-agent:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 600m
+      memory: 1Gi
+
+victoria-metrics-single:
+  server:
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 5000Mi
+      limits:
+        memory: 6Gi
+
+shepherd:
+  resources:
+    requests:
+      cpu: 300m
+      memory: 2Gi
+    limits:
+      cpu: 1500m
+      memory: 4Gi

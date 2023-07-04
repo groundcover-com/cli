@@ -11,6 +11,7 @@ const (
 	NO_PRESET = ""
 
 	HIGH_RESOURCES_CLUSTER_NODE_COUNT = 30
+	HUGE_RESOURCES_CLUSTER_NODE_COUNT = 100
 
 	AGENT_MEDIUM_CPU_THRESHOLD    = "1000m"
 	AGENT_MEDIUM_MEMORY_THRESHOLD = "1024Mi"
@@ -28,6 +29,7 @@ const (
 	BACKEND_LOW_RESOURCES_PATH            = "presets/backend/low-resources.yaml"
 	BACKEND_MEDIUM_RESOURCES_PATH         = "presets/backend/medium-resources.yaml"
 	BACKEND_HIGH_RESOURCES_PATH           = "presets/backend/high-resources.yaml"
+	BACKEND_HUGE_RESOURCES_PATH           = "presets/backend/huge-resources.yaml"
 )
 
 //go:embed presets/*
@@ -80,6 +82,8 @@ func GetBackendResourcePresetPath(allocatableResources *AllocatableResources) st
 		presetPath = BACKEND_MEDIUM_RESOURCES_PATH
 	case allocatableResources.NodeCount >= HIGH_RESOURCES_CLUSTER_NODE_COUNT:
 		presetPath = BACKEND_HIGH_RESOURCES_PATH
+	case allocatableResources.NodeCount >= HUGE_RESOURCES_CLUSTER_NODE_COUNT:
+		presetPath = BACKEND_HUGE_RESOURCES_PATH
 	default:
 		return NO_PRESET
 	}
