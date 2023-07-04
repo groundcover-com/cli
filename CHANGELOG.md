@@ -17,7 +17,21 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
-- added a "huge" resources presets for over 100 nodes clusters [#sc-9569]
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+
+## [0.10.3] 2023-07-04
+
+### Added
+- added a "huge" resources presets for over 100 nodes clusters, removed medium [#sc-9569]
 ### Changed
 
 ### Fixed
