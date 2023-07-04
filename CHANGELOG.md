@@ -17,7 +17,7 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
-
+- added a "huge" resources presets for over 100 nodes clusters [#sc-9569]
 ### Changed
 
 ### Fixed
