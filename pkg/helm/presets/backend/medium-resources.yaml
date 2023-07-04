@@ -34,15 +34,6 @@ opentelemetry-collector:
       cpu: 250m
       memory: 512Mi
 
-timescaledb-single:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 1024Mi
-    limits:
-      cpu: 300m
-      memory: 1024Mi
-
 victoria-metrics-agent:
   resources:
     requests:

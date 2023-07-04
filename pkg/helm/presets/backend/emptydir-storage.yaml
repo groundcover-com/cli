@@ -2,13 +2,6 @@ clickhouse:
   persistence:
     enabled: false
 
-timescaledb-single:
-  persistentVolumes:
-    data:
-      enabled: false
-    wal:
-      enabled: false
-
 victoria-metrics-single:
   server:
     persistentVolume:
