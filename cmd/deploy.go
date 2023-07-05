@@ -623,12 +623,12 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 		}
 	} else {
 		agentPresetPath := helm.GetAgentResourcePresetPath(allocatableResources)
-		if agentPresetPath != helm.NO_PRESET {
+		if agentPresetPath != helm.DEFAULT_PRESET {
 			overridePaths = append(overridePaths, agentPresetPath)
 		}
 
 		backendPresetPath := helm.GetBackendResourcePresetPath(allocatableResources)
-		if backendPresetPath != helm.NO_PRESET {
+		if backendPresetPath != helm.DEFAULT_PRESET {
 			overridePaths = append(overridePaths, backendPresetPath)
 		}
 	}

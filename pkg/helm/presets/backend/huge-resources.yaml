@@ -2,11 +2,11 @@
 k8sWatcher:
   resources:
     requests:
-      cpu: 50m
+      cpu: 200m
       memory: 300Mi
     limits:
-      cpu: 100m
-      memory: 500Mi
+      cpu: 1000m
+      memory: 1024Mi
 
 portal:
   resources:
@@ -14,39 +14,27 @@ portal:
       cpu: 50m
       memory: 100Mi
     limits:
-      cpu: 100m
+      cpu: 300m
       memory: 256Mi
 
 clickhouse:
   resources:
     requests:
-      cpu: 600m
-      memory: 4096Mi
+      cpu: 1000m
+      memory: 4Gi
     limits:
-      memory: 6000Mi
+      memory: 12Gi
 
 opentelemetry-collector:
-  replicaCount: 2
-
-  telemetry:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 200m
-      memory: 128Mi
+  replicaCount: 3
 
 victoria-metrics-agent:
-  extraArgs:
-    remoteWrite.maxHourlySeries: "1000000"
-    remoteWrite.maxDailySeries: "10000000"
   resources:
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 200m
+      memory: 256Mi
     limits:
-      cpu: 1000m
+      cpu: 600m
       memory: 1Gi
 
 victoria-metrics-single:
@@ -56,14 +44,13 @@ victoria-metrics-single:
         cpu: 1000m
         memory: 5000Mi
       limits:
-        cpu: 1000m
-        memory: 5000Mi
+        memory: 6Gi
 
 shepherd:
   resources:
     requests:
       cpu: 300m
-      memory: 1Gi
+      memory: 2Gi
     limits:
       cpu: 1500m
-      memory: 2Gi
+      memory: 4Gi
