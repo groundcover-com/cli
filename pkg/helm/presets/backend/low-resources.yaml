@@ -43,6 +43,24 @@ victoria-metrics-agent:
       cpu: 100m
       memory: 128Mi
 
+metrics-ingester:
+  resources:
+    limits:
+      cpu: 250m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+custom-metrics:
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
 victoria-metrics-single:
   server:
     resources:
@@ -52,12 +70,3 @@ victoria-metrics-single:
       limits:
         cpu: 32m
         memory: 256Mi
-
-shepherd:
-  resources:
-    requests:
-      cpu: 10m
-      memory: 64Mi
-    limits:
-      cpu: 130m
-      memory: 256Mi

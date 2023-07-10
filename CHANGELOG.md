@@ -17,7 +17,10 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
+
 ### Changed
+
+- tune vmagent resources [#sc-9511]
 
 ### Fixed
 
@@ -27,11 +30,12 @@ We use the following categories for changes:
 
 ### Security
 
-
 ## [0.10.3] 2023-07-04
 
 ### Added
+
 - added a "huge" resources presets for over 100 nodes clusters, removed medium [#sc-9569]
+
 ### Changed
 
 ### Fixed
@@ -47,6 +51,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - increase clickhouse memory limits [#sc-9558]
 - increase opentelemetry-collector low resources memory preset [#sc-8916]
 
