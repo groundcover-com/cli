@@ -20,6 +20,20 @@ We use the following categories for changes:
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.4] 2023-07-10
+
+### Added
+
+### Changed
+
 - tune vmagent resources [#sc-9511]
 
 ### Fixed
