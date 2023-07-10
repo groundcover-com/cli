@@ -28,6 +28,15 @@ clickhouse:
 opentelemetry-collector:
   replicaCount: 2
 
+victoria-metrics-agent:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 600m
+      memory: 512Mi
+
 metrics-ingester:
   resources:
     limits:
