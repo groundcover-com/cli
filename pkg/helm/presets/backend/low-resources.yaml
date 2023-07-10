@@ -34,7 +34,7 @@ opentelemetry-collector:
       cpu: 200m
       memory: 512Mi
 
-telemetry:
+victoria-metrics-agent:
   resources:
     requests:
       cpu: 16m
@@ -43,10 +43,19 @@ telemetry:
       cpu: 100m
       memory: 128Mi
 
-victoria-metrics-agent:
+metrics-ingester:
   resources:
     limits:
-      cpu: 300m
+      cpu: 250m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+custom-metrics:
+  resources:
+    limits:
+      cpu: 250m
       memory: 256Mi
     requests:
       cpu: 50m
@@ -61,12 +70,3 @@ victoria-metrics-single:
       limits:
         cpu: 32m
         memory: 256Mi
-
-shepherd:
-  resources:
-    requests:
-      cpu: 10m
-      memory: 64Mi
-    limits:
-      cpu: 130m
-      memory: 256Mi

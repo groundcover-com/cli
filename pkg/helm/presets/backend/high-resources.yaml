@@ -28,16 +28,16 @@ clickhouse:
 opentelemetry-collector:
   replicaCount: 2
 
-  telemetry:
+metrics-ingester:
   resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
     limits:
-      cpu: 200m
-      memory: 128Mi
+      cpu: 750m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
 
-victoria-metrics-agent:
+custom-metrics:
   extraArgs:
     remoteWrite.maxHourlySeries: "1000000"
     remoteWrite.maxDailySeries: "10000000"
@@ -58,12 +58,3 @@ victoria-metrics-single:
       limits:
         cpu: 1000m
         memory: 5000Mi
-
-shepherd:
-  resources:
-    requests:
-      cpu: 300m
-      memory: 1Gi
-    limits:
-      cpu: 1500m
-      memory: 2Gi
