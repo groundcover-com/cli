@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.5] 2023-07-11
+
+### Added
+
 - allow override tolerations on agent via values [#sc-9689]
 
 ### Changed
