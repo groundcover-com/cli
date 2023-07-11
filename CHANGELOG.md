@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- allow override tolerations on agent via values [#sc-9689]
+
 ### Changed
 
 ### Fixed
