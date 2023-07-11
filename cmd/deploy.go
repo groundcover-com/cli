@@ -598,17 +598,6 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 		sentry_utils.SetTagOnCurrentScope(sentry_utils.MODE_TAG, mode)
 	}
 
-	// we always want to override tolerations
-	agent, ok := chartValues["agent"]
-	if ok {
-		agentMap, ok := agent.(map[string]interface{})
-		if ok {
-			agentMap["tolerations"] = tolerations
-		}
-	} else {
-		defaultChartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
-	}
-
 	if err = mergo.Merge(&chartValues, defaultChartValues, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
 	}
@@ -682,6 +671,19 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 	}
 
 	valuesOverride[STORE_ISSUES_LOGS_ONLY_KEY] = viper.GetBool(STORE_ISSUES_LOGS_ONLY_FLAG)
+
+	// we always want to override tolerations
+	if agentValues, exist := valuesOverride["agent"].(map[string]interface{}); exist {
+		if _, exist := agentValues["tolerations"]; exist {
+			tolerations = []map[string]interface{}{}
+		}
+	}
+
+	if agentValues, ok := chartValues["agent"].(map[string]interface{}); ok {
+		agentValues["tolerations"] = tolerations
+	} else {
+		chartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
+	}
 
 	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
 		return nil, err
