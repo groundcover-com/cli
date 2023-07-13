@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- fix tenants prompt [#sc-9748]
+
 ### Removed
 
 ### Deprecated

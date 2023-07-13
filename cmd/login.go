@@ -92,7 +92,7 @@ func fetchTenant() (*api.TenantInfo, error) {
 
 	apiClient := api.NewClient(auth0Token)
 
-	var tenants []api.TenantInfo
+	var tenants []*api.TenantInfo
 	if tenants, err = apiClient.TenantList(); err != nil {
 		return nil, errors.Wrap(err, "failed to load api key")
 	}
@@ -101,12 +101,12 @@ func fetchTenant() (*api.TenantInfo, error) {
 	case 0:
 		return nil, errors.New("no active tenants")
 	case 1:
-		return &tenants[0], nil
+		return tenants[0], nil
 	default:
 		tenantsByName := make(map[string]*api.TenantInfo, len(tenants))
 
 		for _, tenant := range tenants {
-			tenantsByName[tenant.TenantName] = &tenant
+			tenantsByName[tenant.TenantName] = tenant
 		}
 
 		tenantName := ui.GlobalWriter.SelectPrompt("Select tenant:", maps.Keys(tenantsByName))
