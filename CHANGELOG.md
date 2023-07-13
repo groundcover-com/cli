@@ -30,22 +30,6 @@ We use the following categories for changes:
 
 ### Security
 
-## [0.10.6] 2023-07-13
-
-### Added
-
-- arm support [#sc-9745]
-
-### Changed
-
-### Fixed
-
-### Removed
-
-### Deprecated
-
-### Security
-
 ## [0.10.5] 2023-07-11
 
 ### Added
