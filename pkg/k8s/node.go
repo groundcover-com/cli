@@ -23,7 +23,6 @@ const (
 	PROVIDER_REPORT_MESSAGE_FORMAT         = "Cloud provider supported (%d/%d Nodes)"
 	ARCHITECTURE_REPORT_MESSAGE_FORMAT     = "Node architecture supported (%d/%d Nodes)"
 	OPERATING_SYSTEM_REPORT_MESSAGE_FORMAT = "Node operating system supported (%d/%d Nodes)"
-	BACKEND_IS_NOT_SCHEDULABLE_MESSAGE     = "groundcover backend components require at least one amd64-based instance"
 )
 
 var (
@@ -142,19 +141,12 @@ type IncompatibleNode struct {
 func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummaries []*NodeSummary) *NodesReport {
 	var err error
 	var nodesReport NodesReport
-	var backendIsSchedulable bool
 
 	nodesCount := len(nodesSummaries)
 	kernelVersionsSet := make(map[string]struct{})
 
 	for _, nodeSummary := range nodesSummaries {
 		var requirementErrors []string
-
-		if !backendIsSchedulable {
-			if nodeSummary.IsAmd64() {
-				backendIsSchedulable = true
-			}
-		}
 
 		if err = nodeRequirements.validateNodeProvider(nodeSummary); err != nil {
 			requirementErrors = append(requirementErrors, err.Error())
@@ -250,12 +242,6 @@ func (nodeRequirements *NodeMinimumRequirements) GenerateNodeReport(nodesSummari
 		len(nodesSummaries)-len(nodesReport.ArchitectureAllowed.ErrorMessages),
 		len(nodesSummaries),
 	)
-
-	if !backendIsSchedulable {
-		nodesReport.ArchitectureAllowed.IsCompatible = false
-		nodesReport.ArchitectureAllowed.IsNonCompatible = true
-		nodesReport.ArchitectureAllowed.Message = BACKEND_IS_NOT_SCHEDULABLE_MESSAGE
-	}
 
 	nodesReport.OperatingSystemAllowed.IsCompatible = len(nodesReport.OperatingSystemAllowed.ErrorMessages) == 0
 	nodesReport.OperatingSystemAllowed.IsNonCompatible = len(nodesReport.OperatingSystemAllowed.ErrorMessages) == nodesCount
