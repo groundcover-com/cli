@@ -10,7 +10,7 @@ const (
 )
 
 type TenantListResponse struct {
-	Tenants []TenantInfo `json:"tenants"`
+	Tenants []*TenantInfo `json:"tenants"`
 }
 
 type TenantInfo struct {
@@ -19,7 +19,7 @@ type TenantInfo struct {
 	TenantName string `json:"TenantName"`
 }
 
-func (client *Client) TenantList() ([]TenantInfo, error) {
+func (client *Client) TenantList() ([]*TenantInfo, error) {
 	var err error
 
 	var body []byte
