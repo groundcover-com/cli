@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/fatih/color"
 	"github.com/getsentry/sentry-go"
 	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
@@ -22,44 +20,42 @@ import (
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
 	"groundcover.com/pkg/utils"
-	"k8s.io/utils/strings/slices"
 )
 
 const (
-	HELM_DEPLOY_POLLING_RETRIES         = 2
-	HELM_DEPLOY_POLLING_INTERVAL        = time.Second * 1
-	HELM_DEPLOY_POLLING_TIMEOUT         = time.Minute * 5
-	VALUES_FLAG                         = "values"
-	MODE_FLAG                           = "mode"
-	NO_PVC_FLAG                         = "no-pvc"
-	LOW_RESOURCES_FLAG                  = "low-resources"
-	ENABLE_CUSTOM_METRICS_FLAG          = "custom-metrics"
-	ENABLE_KUBE_STATE_METRICS_FLAG      = "kube-state-metrics"
-	STORE_ISSUES_LOGS_ONLY_FLAG         = "store-issues-logs-only"
-	STORE_ISSUES_LOGS_ONLY_KEY          = "storeIssuesLogsOnly"
-	CHART_NAME                          = "groundcover/groundcover"
-	HELM_REPO_NAME                      = "groundcover"
-	DEFAULT_GROUNDCOVER_RELEASE         = "groundcover"
-	DEFAULT_GROUNDCOVER_NAMESPACE       = "groundcover"
-	COMMIT_HASH_KEY_NAME_FLAG           = "git-commit-hash-key-name"
-	REPOSITORY_URL_KEY_NAME_FLAG        = "git-repository-url-key-name"
-	GROUNDCOVER_URL                     = "https://app.groundcover.com"
-	HELM_REPO_URL                       = "https://helm.groundcover.com"
-	CLUSTER_URL_FORMAT                  = "%s/?clusterId=%s&viewType=Overview"
-	AGENT_KERNEL_5_11_PRESET_PATH       = "presets/agent/kernel-5-11.yaml"
-	CUSTOM_METRICS_PRESET_PATH          = "presets/backend/custom-metrics.yaml"
-	KUBE_STATE_METRICS_PRESET_PATH      = "presets/backend/kube-state-metrics.yaml"
-	LOW_RESOURCES_NOTICE_MESSAGE_FORMAT = "We get it, you like things light 🪁\n   But since you’re deploying on a %s we’ll have to limit some of our features to make sure it’s smooth sailing.\n   For the full groundcover experience, try deploying on a different cluster\n"
-	WAIT_FOR_GET_LATEST_CHART_FORMAT    = "Waiting for downloading latest chart to complete"
-	WAIT_FOR_GET_LATEST_CHART_SUCCESS   = "Downloading latest chart completed successfully"
-	WAIT_FOR_GET_LATEST_CHART_FAILURE   = "Latest chart download failed:"
-	WAIT_FOR_GET_LATEST_CHART_TIMEOUT   = "Latest chart download timeout"
-	LEGACY_KERNEL_MODE_MESSAGE_FORMAT   = "Kernel is outdated, agent deployment in legacy mode.\n   Additional protocol support and a reduced footprint can be achieved on %s kernel"
-	GET_LATEST_CHART_POLLING_RETRIES    = 10
-	GET_LATEST_CHART_POLLING_INTERVAL   = time.Second * 1
-	GET_LATEST_CHART_POLLING_TIMEOUT    = time.Second * 10
-	LEGACY_MODE                         = "legacy"
-	STABLE_MODE                         = "stable"
+	HELM_DEPLOY_POLLING_RETRIES       = 2
+	HELM_DEPLOY_POLLING_INTERVAL      = time.Second * 1
+	HELM_DEPLOY_POLLING_TIMEOUT       = time.Minute * 5
+	VALUES_FLAG                       = "values"
+	MODE_FLAG                         = "mode"
+	NO_PVC_FLAG                       = "no-pvc"
+	LOW_RESOURCES_FLAG                = "low-resources"
+	ENABLE_CUSTOM_METRICS_FLAG        = "custom-metrics"
+	ENABLE_KUBE_STATE_METRICS_FLAG    = "kube-state-metrics"
+	STORE_ISSUES_LOGS_ONLY_FLAG       = "store-issues-logs-only"
+	STORE_ISSUES_LOGS_ONLY_KEY        = "storeIssuesLogsOnly"
+	CHART_NAME                        = "groundcover/groundcover"
+	HELM_REPO_NAME                    = "groundcover"
+	DEFAULT_GROUNDCOVER_RELEASE       = "groundcover"
+	DEFAULT_GROUNDCOVER_NAMESPACE     = "groundcover"
+	COMMIT_HASH_KEY_NAME_FLAG         = "git-commit-hash-key-name"
+	REPOSITORY_URL_KEY_NAME_FLAG      = "git-repository-url-key-name"
+	GROUNDCOVER_URL                   = "https://app.groundcover.com"
+	HELM_REPO_URL                     = "https://helm.groundcover.com"
+	CLUSTER_URL_FORMAT                = "%s/?clusterId=%s&viewType=Overview"
+	AGENT_KERNEL_5_11_PRESET_PATH     = "presets/agent/kernel-5-11.yaml"
+	CUSTOM_METRICS_PRESET_PATH        = "presets/backend/custom-metrics.yaml"
+	KUBE_STATE_METRICS_PRESET_PATH    = "presets/backend/kube-state-metrics.yaml"
+	WAIT_FOR_GET_LATEST_CHART_FORMAT  = "Waiting for downloading latest chart to complete"
+	WAIT_FOR_GET_LATEST_CHART_SUCCESS = "Downloading latest chart completed successfully"
+	WAIT_FOR_GET_LATEST_CHART_FAILURE = "Latest chart download failed:"
+	WAIT_FOR_GET_LATEST_CHART_TIMEOUT = "Latest chart download timeout"
+	LEGACY_KERNEL_MODE_MESSAGE_FORMAT = "Kernel is outdated, agent deployment in legacy mode.\n   Additional protocol support and a reduced footprint can be achieved on %s kernel"
+	GET_LATEST_CHART_POLLING_RETRIES  = 10
+	GET_LATEST_CHART_POLLING_INTERVAL = time.Second * 1
+	GET_LATEST_CHART_POLLING_TIMEOUT  = time.Second * 10
+	LEGACY_MODE                       = "legacy"
+	STABLE_MODE                       = "stable"
 
 	NODES_VALIDATION_EVENT_NAME     = "nodes_validation"
 	HELM_INSTALLATION_EVENT_NAME    = "helm_installation"
@@ -638,20 +634,6 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 
 	if !persistentStorage {
 		overridePaths = append(overridePaths, helm.EMPTYDIR_STORAGE_PATH)
-	}
-
-	if slices.Contains(overridePaths, helm.AGENT_LOW_RESOURCES_PATH) || slices.Contains(overridePaths, helm.BACKEND_LOW_RESOURCES_PATH) {
-		clusterType := "low resources"
-
-		for _, localClusterType := range k8s.LocalClusterTypes {
-			if strings.HasPrefix(clusterName, localClusterType) {
-				clusterType = localClusterType
-				break
-			}
-		}
-
-		ui.GlobalWriter.Println("")
-		ui.GlobalWriter.PrintNoticeMessage(fmt.Sprintf(LOW_RESOURCES_NOTICE_MESSAGE_FORMAT, color.New().Add(color.Bold).Sprintf("%s cluster", clusterType)))
 	}
 
 	if len(overridePaths) > 0 {
