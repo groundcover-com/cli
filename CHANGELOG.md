@@ -24,6 +24,8 @@ We use the following categories for changes:
 
 ### Removed
 
+- low resources mode message [#sc-9762]
+
 ### Deprecated
 
 ### Security
@@ -31,11 +33,13 @@ We use the following categories for changes:
 ## [0.10.6] 2023-07-13
 
 ### Added
+
 - arm support [#sc-9745]
 
 ### Changed
 
 ### Fixed
+
 - fix tenants prompt [#sc-9748]
 
 ### Removed
