@@ -1,6 +1,10 @@
 package segment
 
-import "github.com/segmentio/analytics-go/v3"
+import (
+	"fmt"
+
+	"github.com/segmentio/analytics-go/v3"
+)
 
 const ORG_TRAIT_NAME = "orgName"
 
@@ -16,10 +20,11 @@ func NewUser(email string, org string) error {
 		Traits: analytics.NewTraits().SetEmail(email).Set(ORG_TRAIT_NAME, org),
 	}
 
+	tenantUniqueId := fmt.Sprintf("%s@%s", org, org)
 	orgGroup := analytics.Group{
-		GroupId: org,
+		GroupId: tenantUniqueId,
 		UserId:  user.UserId,
-		Traits:  analytics.NewTraits().SetName(org),
+		Traits:  analytics.NewTraits().SetName(tenantUniqueId),
 	}
 
 	if err = client.Enqueue(user); err != nil {
