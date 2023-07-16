@@ -24,6 +24,20 @@ We use the following categories for changes:
 
 ### Removed
 
+### Deprecated
+
+### Security
+
+## [0.10.7] 2023-07-16
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
 - low resources mode message [#sc-9762]
 
 ### Deprecated
