@@ -28,6 +28,20 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.10.8] 2023-07-18
+
+### Added
+
+### Changed
+
+### Fixed
+- segment fixes [#sc-9870]
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.10.7] 2023-07-16
 
 ### Added
