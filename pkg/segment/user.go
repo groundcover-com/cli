@@ -24,7 +24,7 @@ func NewUser(email string, org string) error {
 	orgGroup := analytics.Group{
 		GroupId: tenantUniqueId,
 		UserId:  user.UserId,
-		Traits:  analytics.NewTraits().SetName(tenantUniqueId),
+		Traits:  analytics.NewTraits().SetEmail(email).SetName(tenantUniqueId),
 	}
 
 	if err = client.Enqueue(user); err != nil {
