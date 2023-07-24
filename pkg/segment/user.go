@@ -42,5 +42,5 @@ func NewUser(email string, org string) error {
 }
 
 func SetUser(email string) {
-	userId = email
+	userId = fmt.Sprintf("%x", sha256.Sum256([]byte(email)))
 }
