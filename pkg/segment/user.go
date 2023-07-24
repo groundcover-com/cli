@@ -1,6 +1,7 @@
 package segment
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/segmentio/analytics-go/v3"
@@ -13,17 +14,17 @@ var userId string
 func NewUser(email string, org string) error {
 	var err error
 
-	SetUser(email)
+	SetUser(userId)
 
 	user := analytics.Identify{
-		UserId: email,
+		UserId: userId,
 		Traits: analytics.NewTraits().SetEmail(email).Set(ORG_TRAIT_NAME, org),
 	}
 
 	tenantUniqueId := fmt.Sprintf("%s@%s", org, org)
 	orgGroup := analytics.Group{
 		GroupId: tenantUniqueId,
-		UserId:  user.UserId,
+		UserId:  userId,
 		Traits:  analytics.NewTraits().SetEmail(email).SetName(tenantUniqueId),
 	}
 
@@ -39,5 +40,5 @@ func NewUser(email string, org string) error {
 }
 
 func SetUser(email string) {
-	userId = email
+	userId = fmt.Sprintf("%x", sha256.Sum256([]byte(email)))
 }
