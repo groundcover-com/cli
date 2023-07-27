@@ -216,7 +216,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = validateInstall(ctx, kubeClient, namespace, chart.AppVersion(), tenantUUID, clusterName, len(deployableNodes), isAuthenticated, agentEnabled, backendEnabled, sentryHelmContext); err != nil {
+	if err = validateInstall(ctx, kubeClient, releaseName, namespace, chart.AppVersion(), tenantUUID, clusterName, len(deployableNodes), isAuthenticated, agentEnabled, backendEnabled, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -424,14 +424,14 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion, tenantUUID, clusterName string, deployableNodesCount int, isAuthenticated, agentEnabled, backendEnabled bool, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, releaseName, namespace, appVersion, tenantUUID, clusterName string, deployableNodesCount int, isAuthenticated, agentEnabled, backendEnabled bool, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	defer reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
 
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating groundcover installation:")
 
-	if err = waitForPvcs(ctx, kubeClient, namespace, sentryHelmContext); err != nil {
+	if err = waitForPvcs(ctx, kubeClient, releaseName, namespace, sentryHelmContext); err != nil {
 		return err
 	}
 

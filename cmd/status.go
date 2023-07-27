@@ -35,7 +35,6 @@ const (
 	BACKEND_LABEL_SELECTOR   = "app!=alligator"
 	PORTAL_LABEL_SELECTOR    = "app=portal"
 	RUNNING_FIELD_SELECTOR   = "status.phase=Running"
-	EXPECTED_BOUND_PVCS      = 2
 
 	WAIT_FOR_PORTAL_FORMAT      = "Waiting until cluster establish connectivity"
 	WAIT_FOR_PVCS_FORMAT        = "Waiting until all PVCs are bound (%d/%d PVCs)"
@@ -296,7 +295,7 @@ func listPodsStatuses(ctx context.Context, kubeClient *k8s.Client, namespace str
 	return podsStatuses, nil
 }
 
-func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {
+func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, namespace string, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	event := segment.NewEvent(PVCS_VALIDATION_EVENT_NAME)
@@ -305,34 +304,44 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 		event.StatusByError(err)
 	}()
 
-	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVCS))
+	listOptions := metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("app.kubernetes.io/instance=%s", releaseName),
+	}
 
+	var pvcList *v1.PersistentVolumeClaimList
+	if pvcList, err = kubeClient.CoreV1().PersistentVolumeClaims(namespace).List(ctx, listOptions); err != nil {
+		return err
+	}
+
+	expectedBoundPvcsCount := len(pvcList.Items)
+	if expectedBoundPvcsCount == 0 {
+		ui.GlobalWriter.PrintWarningMessageln("No Presistent volumes")
+		return nil
+	}
+
+	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, expectedBoundPvcsCount))
 	spinner.SetStopMessage("Persistent Volumes are ready")
 	spinner.SetStopFailMessage("Not all Persistent Volumes are bound, timeout waiting for them to be ready")
 
 	spinner.Start()
 	defer spinner.WriteStop()
 
-	pvcs := make(map[string]bool, 0)
+	boundPvcs := make(map[string]bool, 0)
 
 	isPvcsReadyFunc := func() error {
-		pvcClient := kubeClient.CoreV1().PersistentVolumeClaims(namespace)
-		listOptions := metav1.ListOptions{}
-
-		pvcList, err := pvcClient.List(ctx, listOptions)
-		if err != nil {
+		if pvcList, err = kubeClient.CoreV1().PersistentVolumeClaims(namespace).List(ctx, listOptions); err != nil {
 			return err
 		}
 
 		for _, pvc := range pvcList.Items {
 			if pvc.Status.Phase == v1.ClaimBound {
-				pvcs[pvc.Name] = true
+				boundPvcs[pvc.Name] = true
 			}
 		}
 
-		spinner.WriteMessage(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, len(pvcs), EXPECTED_BOUND_PVCS))
+		spinner.WriteMessage(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, len(boundPvcs), expectedBoundPvcsCount))
 
-		if len(pvcs) >= EXPECTED_BOUND_PVCS {
+		if len(boundPvcs) >= expectedBoundPvcsCount {
 			return nil
 		}
 
@@ -342,11 +351,11 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 
 	err = spinner.Poll(ctx, isPvcsReadyFunc, PVC_POLLING_INTERVAL, PVC_POLLING_TIMEOUT, PVC_POLLING_RETRIES)
 
-	sentryHelmContext.BoundPvcs = maps.Keys(pvcs)
+	sentryHelmContext.BoundPvcs = maps.Keys(boundPvcs)
 	sentryHelmContext.SetOnCurrentScope()
 	event.
-		Set("boundPvcsCount", len(pvcs)).
-		Set("pvcsCount", EXPECTED_BOUND_PVCS)
+		Set("boundPvcsCount", len(boundPvcs)).
+		Set("pvcsCount", expectedBoundPvcsCount)
 
 	if err == nil {
 		return nil
@@ -355,7 +364,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, namespace string, 
 	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		err = errors.New("timeout waiting for persistent volume claims to be ready\nif none were create try running with --no-pvc flag")
+		err = errors.New("timeout waiting for persistent volume claims to be ready")
 		return err
 	}
 
