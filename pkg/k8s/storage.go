@@ -17,7 +17,7 @@ const (
 
 	HINT_INSTALL_AWS_EBS_CSI_DRIVER = `Hint: 
   * Install Amazon EBS CSI driver: https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html`
-	HINT_DEFINE_AWS_EBS_STORAGE_CLASS = `Hint:
+	HINT_DEFINE_DEFAULT_STORAGE_CLASS = `Hint:
   * Define default StorageClass: https://kubernetes.io/docs/concepts/storage/storage-classes/#the-storageclass-resource`
 )
 
@@ -35,7 +35,7 @@ func (clusterRequirements ClusterRequirements) validateStorage(ctx context.Conte
 	if defaultStorageClass, err = getDefaultStorageClass(ctx, client); err != nil {
 		requirement.IsCompatible = false
 		requirement.IsNonCompatible = true
-		requirement.ErrorMessages = append(requirement.ErrorMessages, err.Error(), HINT_DEFINE_AWS_EBS_STORAGE_CLASS)
+		requirement.ErrorMessages = append(requirement.ErrorMessages, err.Error(), HINT_DEFINE_DEFAULT_STORAGE_CLASS)
 		return requirement
 	}
 
