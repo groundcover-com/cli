@@ -18,6 +18,7 @@ const (
 	CLUSTER_VERSION_REPORT_MESSAGE_FORMAT       = "K8s server version >= %s"
 	CLUSTER_AUTHORIZATION_REPORT_MESSAGE_FORMAT = "K8s user authorized for groundcover installation"
 	CLUSTER_CLI_AUTH_SUPPORTED                  = "K8s CLI auth supported"
+	CLUSTER_STORAGE_SUPPORTED                   = "K8s storage provision supported"
 )
 
 var (
@@ -131,6 +132,7 @@ type ClusterReport struct {
 	CliAuthSupported     Requirement
 	ServerVersionAllowed Requirement
 	ClusterTypeAllowed   Requirement
+	StroageProvisional   Requirement
 }
 
 func (clusterReport *ClusterReport) IsLocalCluster() bool {
@@ -160,7 +162,12 @@ func (clusterReport *ClusterReport) PrintStatus() {
 	}
 
 	clusterReport.UserAuthorized.PrintStatus()
-	if !clusterReport.UserAuthorized.IsNonCompatible {
+	if clusterReport.UserAuthorized.IsNonCompatible {
+		return
+	}
+
+	clusterReport.StroageProvisional.PrintStatus()
+	if clusterReport.StroageProvisional.IsNonCompatible {
 		return
 	}
 }
@@ -170,14 +177,16 @@ func (clusterRequirements ClusterRequirements) Validate(ctx context.Context, cli
 		ClusterSummary:       clusterSummary,
 		UserAuthorized:       clusterRequirements.validateAuthorization(ctx, client, clusterSummary.Namespace),
 		CliAuthSupported:     clusterRequirements.validateCliAuthSupported(ctx, clusterSummary.ClusterName),
-		ServerVersionAllowed: clusterRequirements.validateServerVersion(client, clusterSummary),
+		ServerVersionAllowed: clusterRequirements.validateServerVersion(clusterSummary.ServerVersion),
 		ClusterTypeAllowed:   clusterRequirements.validateClusterType(clusterSummary.ClusterName),
+		StroageProvisional:   clusterRequirements.validateStorage(ctx, client, clusterSummary),
 	}
 
 	clusterReport.IsCompatible = clusterReport.ServerVersionAllowed.IsCompatible &&
 		clusterReport.UserAuthorized.IsCompatible &&
 		clusterReport.ClusterTypeAllowed.IsCompatible &&
-		clusterReport.CliAuthSupported.IsCompatible
+		clusterReport.CliAuthSupported.IsCompatible &&
+		!clusterReport.StroageProvisional.IsNonCompatible
 
 	return clusterReport
 }
@@ -198,20 +207,12 @@ func (clusterRequirements ClusterRequirements) validateClusterType(clusterName s
 	return requirement
 }
 
-func (clusterRequirements ClusterRequirements) validateServerVersion(client *Client, clusterSummary *ClusterSummary) Requirement {
-	var err error
-
+func (clusterRequirements ClusterRequirements) validateServerVersion(serverVersion semver.Version) Requirement {
 	var requirement Requirement
 	requirement.Message = fmt.Sprintf(CLUSTER_VERSION_REPORT_MESSAGE_FORMAT, clusterRequirements.ServerVersion)
 
-	if clusterSummary.ServerVersion, err = client.GetServerVersion(); err != nil {
-		requirement.IsNonCompatible = true
-		requirement.ErrorMessages = append(requirement.ErrorMessages, err.Error())
-		return requirement
-	}
-
-	if clusterSummary.ServerVersion.LT(clusterRequirements.ServerVersion) {
-		requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("%s is unsupported K8s version", clusterSummary.ServerVersion))
+	if serverVersion.LT(clusterRequirements.ServerVersion) {
+		requirement.ErrorMessages = append(requirement.ErrorMessages, fmt.Sprintf("%s is unsupported K8s version", serverVersion))
 	}
 
 	requirement.IsCompatible = len(requirement.ErrorMessages) == 0

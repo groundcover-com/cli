@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	"groundcover.com/pkg/k8s"
 	authv1 "k8s.io/api/authorization/v1"
+	v1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
 	discoveryfake "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/kubernetes/fake"
@@ -75,6 +77,17 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 		GitVersion: "v1.24.0",
 	}
 
+	defaultStorageClass := &v1.StorageClass{
+		Provisioner: k8s.AWS_EBS_STORAGE_CLASS_PROVISIONER,
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"storageclass.kubernetes.io/is-default-class": "true",
+			},
+		},
+	}
+
+	suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+
 	clusterSummary := &k8s.ClusterSummary{
 		ClusterName: "test",
 		Namespace:   "default",
@@ -111,6 +124,11 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 			IsCompatible:    true,
 			IsNonCompatible: false,
 			Message:         "K8s cluster type supported",
+		},
+		StroageProvisional: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: false,
+			Message:         "K8s storage provision supported",
 		},
 	}
 
@@ -256,4 +274,109 @@ func (suite *KubeClusterTestSuite) TestClusterReportClusterTypeFail() {
 	}
 
 	suite.Equal(expected, clusterReport.ClusterTypeAllowed)
+}
+
+func (suite *KubeClusterTestSuite) TestClusterReportStorageDefaultClassFail() {
+	// arrange
+	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
+	defer cancel()
+
+	clusterSummary := &k8s.ClusterSummary{
+		Namespace:     "default",
+		ClusterName:   "minikube",
+		ServerVersion: semver.Version{Major: 1, Minor: 22},
+	}
+
+	// act
+	clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
+
+	// assert
+	expected := k8s.Requirement{
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s storage provision supported",
+		ErrorMessages: []string{
+			"cluster has no default storage class",
+			"Hint:\n  * Define default StorageClass: https://kubernetes.io/docs/concepts/storage/storage-classes/#the-storageclass-resource",
+		},
+	}
+
+	suite.Equal(expected, clusterReport.StroageProvisional)
+}
+
+func (suite *KubeClusterTestSuite) TestClusterReportStorageClassEbsFail() {
+	// arrange
+	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
+	defer cancel()
+
+	clusterSummary := &k8s.ClusterSummary{
+		Namespace:     "default",
+		ClusterName:   "arn:aws:eks:us-east-2:0123456789:cluster/test",
+		ServerVersion: semver.Version{Major: 1, Minor: 22},
+	}
+
+	defaultStorageClass := &v1.StorageClass{
+		Provisioner: "kubernetes.io/local-path",
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"storageclass.kubernetes.io/is-default-class": "true",
+			},
+		},
+	}
+
+	suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+
+	// act
+	clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
+
+	// assert
+	expected := k8s.Requirement{
+		IsCompatible:    false,
+		IsNonCompatible: false,
+		Message:         "K8s storage provision supported",
+		ErrorMessages: []string{
+			"found default storage class without aws-ebs provisioner",
+		},
+	}
+
+	suite.Equal(expected, clusterReport.StroageProvisional)
+}
+
+func (suite *KubeClusterTestSuite) TestClusterReportEbsCsiDriverFail() {
+	// arrange
+	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
+	defer cancel()
+
+	clusterSummary := &k8s.ClusterSummary{
+		Namespace:     "default",
+		ClusterName:   "arn:aws:eks:us-east-2:0123456789:cluster/test",
+		ServerVersion: semver.Version{Major: 1, Minor: 24},
+	}
+
+	defaultStorageClass := &v1.StorageClass{
+		Provisioner: "kubernetes.io/aws-ebs",
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"storageclass.kubernetes.io/is-default-class": "true",
+			},
+		},
+	}
+
+	suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+
+	// act
+	clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
+
+	// assert
+	expected := k8s.Requirement{
+		IsCompatible:    false,
+		IsNonCompatible: true,
+		Message:         "K8s storage provision supported",
+		ErrorMessages: []string{
+			"csidrivers.storage.k8s.io \"ebs.csi.aws.com\" not found",
+			"Hint: \n  * Install Amazon EBS CSI driver: https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html",
+		},
+	}
+
+	suite.Equal(expected, clusterReport.StroageProvisional)
 }
