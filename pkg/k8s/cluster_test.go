@@ -72,7 +72,7 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 	defer cancel()
 
 	defaultStorageClass := &v1.StorageClass{
-		Provisioner: k8s.AWS_EBS_STORAGE_CLASS_PROVISIONER,
+		Provisioner: "local-path",
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				"storageclass.kubernetes.io/is-default-class": "true",
@@ -288,44 +288,6 @@ func (suite *KubeClusterTestSuite) TestClusterReportStorageDefaultClassFail() {
 		ErrorMessages: []string{
 			"cluster has no default storage class",
 			"Hint:\n  * Define default StorageClass: https://kubernetes.io/docs/concepts/storage/storage-classes/#the-storageclass-resource",
-		},
-	}
-
-	suite.Equal(expected, clusterReport.StroageProvisional)
-}
-
-func (suite *KubeClusterTestSuite) TestClusterReportStorageClassEbsFail() {
-	// arrange
-	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
-	defer cancel()
-
-	clusterSummary := &k8s.ClusterSummary{
-		Namespace:     "default",
-		ClusterName:   "arn:aws:eks:us-east-2:0123456789:cluster/test",
-		ServerVersion: semver.Version{Major: 1, Minor: 22},
-	}
-
-	defaultStorageClass := &v1.StorageClass{
-		Provisioner: "kubernetes.io/local-path",
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				"storageclass.kubernetes.io/is-default-class": "true",
-			},
-		},
-	}
-
-	suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
-
-	// act
-	clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
-
-	// assert
-	expected := k8s.Requirement{
-		IsCompatible:    false,
-		IsNonCompatible: false,
-		Message:         "K8s storage provision supported",
-		ErrorMessages: []string{
-			"found default storage class without aws-ebs provisioner",
 		},
 	}
 

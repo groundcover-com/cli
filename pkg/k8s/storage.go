@@ -11,7 +11,6 @@ import (
 
 const (
 	AWS_EBS_CSI_DRIVER_NAME               = "ebs.csi.aws.com"
-	AWS_EBS_STORAGE_CLASS_PROVISIONER     = "kubernetes.io/aws-ebs"
 	AWS_EBS_STORAGE_CLASS_NOT_DEFAULT     = "found default storage class without aws-ebs provisioner"
 	DEFAULT_STORAGE_CLASS_ANNOTATION_NAME = "storageclass.kubernetes.io/is-default-class"
 
@@ -31,8 +30,7 @@ func (clusterRequirements ClusterRequirements) validateStorage(ctx context.Conte
 	var requirement Requirement
 	requirement.Message = CLUSTER_STORAGE_SUPPORTED
 
-	var defaultStorageClass *v1.StorageClass
-	if defaultStorageClass, err = getDefaultStorageClass(ctx, client); err != nil {
+	if _, err = getDefaultStorageClass(ctx, client); err != nil {
 		requirement.IsCompatible = false
 		requirement.IsNonCompatible = true
 		requirement.ErrorMessages = append(requirement.ErrorMessages, err.Error(), HINT_DEFINE_DEFAULT_STORAGE_CLASS)
@@ -40,12 +38,6 @@ func (clusterRequirements ClusterRequirements) validateStorage(ctx context.Conte
 	}
 
 	if IsEksCluster(clusterSummary.ClusterName) {
-		if defaultStorageClass.Provisioner != AWS_EBS_STORAGE_CLASS_PROVISIONER {
-			requirement.IsCompatible = false
-			requirement.IsNonCompatible = false
-			requirement.ErrorMessages = append(requirement.ErrorMessages, AWS_EBS_STORAGE_CLASS_NOT_DEFAULT)
-		}
-
 		if semver.MustParseRange("<1.23.0")(clusterSummary.ServerVersion) {
 			requirement.IsCompatible = len(requirement.ErrorMessages) == 0
 			return requirement
