@@ -71,12 +71,6 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
-		Major:      "1",
-		Minor:      "24",
-		GitVersion: "v1.24.0",
-	}
-
 	defaultStorageClass := &v1.StorageClass{
 		Provisioner: k8s.AWS_EBS_STORAGE_CLASS_PROVISIONER,
 		ObjectMeta: metav1.ObjectMeta{
@@ -89,8 +83,9 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 	suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
 
 	clusterSummary := &k8s.ClusterSummary{
-		ClusterName: "test",
-		Namespace:   "default",
+		ClusterName:   "test",
+		Namespace:     "default",
+		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
 	// act
@@ -215,15 +210,10 @@ func (suite *KubeClusterTestSuite) TestClusterReportServerVersionFail() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	suite.KubeClient.Discovery().(*discoveryfake.FakeDiscovery).FakedServerVersion = &version.Info{
-		Major:      "1",
-		Minor:      "23",
-		GitVersion: "v1.23.0",
-	}
-
 	clusterSummary := &k8s.ClusterSummary{
-		ClusterName: "test",
-		Namespace:   "default",
+		ClusterName:   "test",
+		Namespace:     "default",
+		ServerVersion: semver.Version{Major: 1, Minor: 23},
 	}
 
 	// act
