@@ -1,0 +1,19 @@
+global:
+  origin:
+    registry: quay.io/groundcover
+
+clickhouse:
+  image:
+    registry: quay.io/groundcover
+  volumePermissions:
+    image:
+      registry: quay.io/groundcover
+
+opentelemetry-collector:
+  image:
+    repository: quay.io/groundcover/otel/opentelemetry-collector-contrib
+
+victoria-metrics-single:
+  server:
+    image:
+      repository: quay.io/groundcover/victoria-metrics

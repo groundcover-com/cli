@@ -29,6 +29,7 @@ const (
 	VALUES_FLAG                       = "values"
 	MODE_FLAG                         = "mode"
 	NO_PVC_FLAG                       = "no-pvc"
+	REGISTRY_FLAG                     = "registry"
 	LOW_RESOURCES_FLAG                = "low-resources"
 	ENABLE_CUSTOM_METRICS_FLAG        = "custom-metrics"
 	ENABLE_KUBE_STATE_METRICS_FLAG    = "kube-state-metrics"
@@ -43,6 +44,7 @@ const (
 	GROUNDCOVER_URL                   = "https://app.groundcover.com"
 	HELM_REPO_URL                     = "https://helm.groundcover.com"
 	CLUSTER_URL_FORMAT                = "%s/?clusterId=%s&viewType=Overview"
+	QUAY_REGISTRY_PRESET_PATH         = "presets/quay.yaml"
 	AGENT_KERNEL_5_11_PRESET_PATH     = "presets/agent/kernel-5-11.yaml"
 	CUSTOM_METRICS_PRESET_PATH        = "presets/backend/custom-metrics.yaml"
 	KUBE_STATE_METRICS_PRESET_PATH    = "presets/backend/kube-state-metrics.yaml"
@@ -71,6 +73,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().String(MODE_FLAG, "", "deployment mode [options: stable, legacy, experimental]")
 	viper.BindPFlag(MODE_FLAG, DeployCmd.PersistentFlags().Lookup(MODE_FLAG))
+
+	DeployCmd.PersistentFlags().String(REGISTRY_FLAG, "ecr", "image registry [options: ecr, quay]")
+	viper.BindPFlag(REGISTRY_FLAG, DeployCmd.PersistentFlags().Lookup(REGISTRY_FLAG))
 
 	DeployCmd.PersistentFlags().Bool(NO_PVC_FLAG, false, "use emptyDir storage instead of PVC")
 	viper.BindPFlag(NO_PVC_FLAG, DeployCmd.PersistentFlags().Lookup(NO_PVC_FLAG))
@@ -616,6 +621,10 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 		if backendPresetPath != helm.DEFAULT_PRESET {
 			overridePaths = append(overridePaths, backendPresetPath)
 		}
+	}
+
+	if viper.GetString(REGISTRY_FLAG) == "quay" {
+		overridePaths = append(overridePaths, QUAY_REGISTRY_PRESET_PATH)
 	}
 
 	enableCustomMetrics := viper.GetBool(ENABLE_CUSTOM_METRICS_FLAG)
