@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- add cluster storage provision validation [#sc-9988]
+
 ### Changed
 
 ### Fixed
@@ -29,12 +31,15 @@ We use the following categories for changes:
 ### Security
 
 ## [0.10.9] 2023-07-24
+
 ### Added
 
 ### Changed
 
 ### Fixed
+
 - segment fixes [#sc-9870]
+
 ### Removed
 
 ### Deprecated
@@ -48,7 +53,9 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
+
 - segment fixes [#sc-9870]
+
 ### Removed
 
 ### Deprecated

@@ -1,8 +1,0 @@
-clickhouse:
-  persistence:
-    enabled: false
-
-victoria-metrics-single:
-  server:
-    persistentVolume:
-      enabled: false
