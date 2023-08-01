@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.10] 2023-08-01
+
+### Added
+
 - support quay registry [#sc-10019]
 - add cluster storage provision validation [#sc-9988]
 
