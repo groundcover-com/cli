@@ -18,6 +18,7 @@ We use the following categories for changes:
 
 ### Added
 
+- support quay registry [#sc-10019]
 - add cluster storage provision validation [#sc-9988]
 
 ### Changed
