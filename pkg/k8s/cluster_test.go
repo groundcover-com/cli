@@ -130,6 +130,70 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 	suite.Equal(expected, clusterReport)
 }
 
+func (suite *KubeClusterTestSuite) TestClusterReportBetaStorageClassSuccess() {
+	// arrange
+	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
+	defer cancel()
+
+	defaultStorageClass := &v1.StorageClass{
+		Provisioner: "local-path",
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"storageclass.beta.kubernetes.io/is-default-class": "true",
+			},
+		},
+	}
+
+	suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+
+	clusterSummary := &k8s.ClusterSummary{
+		ClusterName:   "test",
+		Namespace:     "default",
+		ServerVersion: semver.Version{Major: 1, Minor: 24},
+	}
+
+	// act
+	clusterRequirements := k8s.ClusterRequirements{
+		Actions:       []*authv1.ResourceAttributes{},
+		ServerVersion: semver.Version{Major: 1, Minor: 24},
+	}
+
+	clusterReport := clusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)
+
+	// assert
+	expected := &k8s.ClusterReport{
+		ClusterSummary: clusterSummary,
+		IsCompatible:   true,
+		CliAuthSupported: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: false,
+			Message:         "K8s CLI auth supported",
+		},
+		ServerVersionAllowed: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: false,
+			Message:         "K8s server version >= 1.24.0",
+		},
+		UserAuthorized: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: false,
+			Message:         "K8s user authorized for groundcover installation",
+		},
+		ClusterTypeAllowed: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: false,
+			Message:         "K8s cluster type supported",
+		},
+		StroageProvisional: k8s.Requirement{
+			IsCompatible:    true,
+			IsNonCompatible: false,
+			Message:         "K8s storage provision supported",
+		},
+	}
+
+	suite.Equal(expected, clusterReport)
+}
+
 func (suite *KubeClusterTestSuite) TestClusterReportUserAuthorizedDenied() {
 	// arrange
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
