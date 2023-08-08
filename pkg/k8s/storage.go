@@ -10,9 +10,8 @@ import (
 )
 
 const (
-	AWS_EBS_CSI_DRIVER_NAME               = "ebs.csi.aws.com"
-	AWS_EBS_STORAGE_CLASS_NOT_DEFAULT     = "found default storage class without aws-ebs provisioner"
-	DEFAULT_STORAGE_CLASS_ANNOTATION_NAME = "storageclass.kubernetes.io/is-default-class"
+	AWS_EBS_CSI_DRIVER_NAME           = "ebs.csi.aws.com"
+	AWS_EBS_STORAGE_CLASS_NOT_DEFAULT = "found default storage class without aws-ebs provisioner"
 
 	HINT_INSTALL_AWS_EBS_CSI_DRIVER = `Hint: 
   * Install Amazon EBS CSI driver: https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html`
@@ -21,7 +20,8 @@ const (
 )
 
 var (
-	ErrNoDefaultStorageClass = errors.New("cluster has no default storage class")
+	ErrNoDefaultStorageClass               = errors.New("cluster has no default storage class")
+	DEFAULT_STORAGE_CLASS_ANNOTATION_NAMES = []string{"storageclass.kubernetes.io/is-default-class", "storageclass.beta.kubernetes.io/is-default-class"}
 )
 
 func (clusterRequirements ClusterRequirements) validateStorage(ctx context.Context, client *Client, clusterSummary *ClusterSummary) Requirement {
@@ -63,8 +63,10 @@ func getDefaultStorageClass(ctx context.Context, client *Client) (*v1.StorageCla
 	}
 
 	for _, storageClass := range storageClassList.Items {
-		if value, ok := storageClass.Annotations[DEFAULT_STORAGE_CLASS_ANNOTATION_NAME]; ok && value == "true" {
-			return &storageClass, nil
+		for _, annotation := range DEFAULT_STORAGE_CLASS_ANNOTATION_NAMES {
+			if value, ok := storageClass.Annotations[annotation]; ok && value == "true" {
+				return &storageClass, nil
+			}
 		}
 	}
 
