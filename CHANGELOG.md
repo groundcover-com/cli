@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.12] 2023-08-23
+
+### Added
+
 - add `storage-class` flag to `deploy` command  [#sc-10362]
 
 ### Changed
