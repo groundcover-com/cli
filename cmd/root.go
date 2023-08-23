@@ -198,7 +198,7 @@ func validateAuthentication(cmd *cobra.Command, args []string) error {
 			os.Exit(0)
 		}
 
-		segment.SetUser(token.GetEmail())
+		segment.SetUserId(token.GetEmail())
 		ui.GlobalWriter.PrintSuccessMessageln("Device authentication is valid")
 	} else {
 		event.Set("authType", "installationToken")

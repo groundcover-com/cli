@@ -51,7 +51,7 @@ func runLoginCmd(cmd *cobra.Command, args []string) error {
 	email := auth0Token.GetEmail()
 	org := auth0Token.GetOrg()
 
-	event.UserId = email
+	event.UserId = segment.GenerateUserId(email)
 	segment.NewUser(email, org)
 
 	sentry_utils.SetUserOnCurrentScope(sentry.User{Email: email})
