@@ -146,11 +146,13 @@ func (suite *KubeClusterTestSuite) TestClusterReportBetaStorageClassSuccess() {
 		},
 	}
 
-	suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+	storageClass, err := suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+	suite.NoError(err)
 
 	clusterSummary := &k8s.ClusterSummary{
 		ClusterName:   "test",
 		Namespace:     "default",
+		StorageClass:  storageClass,
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
