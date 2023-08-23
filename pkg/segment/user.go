@@ -14,7 +14,7 @@ var userId string
 func NewUser(email string, org string) error {
 	var err error
 
-	SetUser(userId)
+	SetUser(email)
 
 	user := analytics.Identify{
 		UserId: userId,
