@@ -14,7 +14,7 @@ var userId string
 func NewUser(email string, org string) error {
 	var err error
 
-	SetUser(userId)
+	SetUserId(email)
 
 	user := analytics.Identify{
 		UserId: userId,
@@ -39,6 +39,10 @@ func NewUser(email string, org string) error {
 	return nil
 }
 
-func SetUser(email string) {
-	userId = fmt.Sprintf("%x", sha256.Sum256([]byte(email)))
+func SetUserId(email string) {
+	userId = GenerateUserId(email)
+}
+
+func GenerateUserId(email string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(email)))
 }
