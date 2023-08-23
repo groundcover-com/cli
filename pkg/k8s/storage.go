@@ -30,10 +30,10 @@ func (clusterRequirements ClusterRequirements) validateStorage(ctx context.Conte
 	var requirement Requirement
 	requirement.Message = CLUSTER_STORAGE_SUPPORTED
 
-	if _, err = getDefaultStorageClass(ctx, client); err != nil {
+	if clusterSummary.StorageClass == nil {
 		requirement.IsCompatible = false
 		requirement.IsNonCompatible = true
-		requirement.ErrorMessages = append(requirement.ErrorMessages, err.Error(), HINT_DEFINE_DEFAULT_STORAGE_CLASS)
+		requirement.ErrorMessages = append(requirement.ErrorMessages, ErrNoDefaultStorageClass.Error(), HINT_DEFINE_DEFAULT_STORAGE_CLASS)
 		return requirement
 	}
 
@@ -56,8 +56,8 @@ func (clusterRequirements ClusterRequirements) validateStorage(ctx context.Conte
 	return requirement
 }
 
-func getDefaultStorageClass(ctx context.Context, client *Client) (*v1.StorageClass, error) {
-	storageClassList, err := client.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
+func (kubeClient *Client) GetDefaultStorageClass(ctx context.Context) (*v1.StorageClass, error) {
+	storageClassList, err := kubeClient.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -67,6 +67,7 @@ func TestHelmValuesTestSuite(t *testing.T) {
 
 func (suite *HelmValuesTestSuite) TestOrderChartValuesOverrideSuccess() {
 	//prepare
+	templateValues := helm.TemplateValues{}
 	fileData, err := yaml.Marshal(map[string]interface{}{"file": "override"})
 	suite.NoError(err)
 
@@ -81,7 +82,7 @@ func (suite *HelmValuesTestSuite) TestOrderChartValuesOverrideSuccess() {
 	overridePaths := []string{suite.ValuesFile, file.Name()}
 
 	//act
-	chartValues, err := helm.GetChartValuesOverrides(overridePaths)
+	chartValues, err := helm.GetChartValuesOverrides(overridePaths, &templateValues)
 	suite.NoError(err)
 
 	// assert
@@ -95,10 +96,11 @@ func (suite *HelmValuesTestSuite) TestOrderChartValuesOverrideSuccess() {
 
 func (suite *HelmValuesTestSuite) TestMultiPathsChartValuesOverrideSuccess() {
 	//prepare
+	templateValues := helm.TemplateValues{}
 	overridePaths := []string{suite.ValuesUrl, suite.ValuesFile}
 
 	//act
-	chartValues, err := helm.GetChartValuesOverrides(overridePaths)
+	chartValues, err := helm.GetChartValuesOverrides(overridePaths, &templateValues)
 	suite.NoError(err)
 
 	// assert
@@ -113,10 +115,11 @@ func (suite *HelmValuesTestSuite) TestMultiPathsChartValuesOverrideSuccess() {
 
 func (suite *HelmValuesTestSuite) TestUrlChartValuesOverrideSuccess() {
 	//prepare
+	templateValues := helm.TemplateValues{}
 	overridePaths := []string{suite.ValuesUrl}
 
 	//act
-	chartValues, err := helm.GetChartValuesOverrides(overridePaths)
+	chartValues, err := helm.GetChartValuesOverrides(overridePaths, &templateValues)
 	suite.NoError(err)
 
 	// assert
@@ -130,10 +133,11 @@ func (suite *HelmValuesTestSuite) TestUrlChartValuesOverrideSuccess() {
 
 func (suite *HelmValuesTestSuite) TestFileChartValuesOverrideSuccess() {
 	//prepare
+	templateValues := helm.TemplateValues{}
 	overridePaths := []string{suite.ValuesFile}
 
 	//act
-	chartValues, err := helm.GetChartValuesOverrides(overridePaths)
+	chartValues, err := helm.GetChartValuesOverrides(overridePaths, &templateValues)
 	suite.NoError(err)
 
 	// assert

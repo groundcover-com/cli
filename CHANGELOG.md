@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- add `storage-class` flag to `deploy` command  [#sc-10362]
+
 ### Changed
 
 ### Fixed
@@ -29,12 +31,14 @@ We use the following categories for changes:
 ### Security
 
 ## [0.10.11] 2023-08-01
+
 ### Added
 
 ### Changed
 
 ### Fixed
-- support storageclass beta annotation [#sc-10131] 
+
+- support storageclass beta annotation [#sc-10131]
 
 ### Removed
 
