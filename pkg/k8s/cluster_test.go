@@ -80,11 +80,13 @@ func (suite *KubeClusterTestSuite) TestClusterReportSuccess() {
 		},
 	}
 
-	suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+	storageClass, err := suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+	suite.NoError(err)
 
 	clusterSummary := &k8s.ClusterSummary{
 		ClusterName:   "test",
 		Namespace:     "default",
+		StorageClass:  storageClass,
 		ServerVersion: semver.Version{Major: 1, Minor: 24},
 	}
 
@@ -363,12 +365,6 @@ func (suite *KubeClusterTestSuite) TestClusterReportEbsCsiDriverFail() {
 	ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
 	defer cancel()
 
-	clusterSummary := &k8s.ClusterSummary{
-		Namespace:     "default",
-		ClusterName:   "arn:aws:eks:us-east-2:0123456789:cluster/test",
-		ServerVersion: semver.Version{Major: 1, Minor: 24},
-	}
-
 	defaultStorageClass := &v1.StorageClass{
 		Provisioner: "kubernetes.io/aws-ebs",
 		ObjectMeta: metav1.ObjectMeta{
@@ -378,7 +374,15 @@ func (suite *KubeClusterTestSuite) TestClusterReportEbsCsiDriverFail() {
 		},
 	}
 
-	suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+	storageClass, err := suite.KubeClient.StorageV1().StorageClasses().Create(ctx, defaultStorageClass, metav1.CreateOptions{})
+	suite.NoError(err)
+
+	clusterSummary := &k8s.ClusterSummary{
+		Namespace:     "default",
+		ClusterName:   "arn:aws:eks:us-east-2:0123456789:cluster/test",
+		StorageClass:  storageClass,
+		ServerVersion: semver.Version{Major: 1, Minor: 24},
+	}
 
 	// act
 	clusterReport := k8s.DefaultClusterRequirements.Validate(ctx, &suite.KubeClient, clusterSummary)

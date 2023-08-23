@@ -29,6 +29,7 @@ const (
 	VALUES_FLAG                       = "values"
 	MODE_FLAG                         = "mode"
 	REGISTRY_FLAG                     = "registry"
+	STORAGE_CLASS_FLAG                = "storage-class"
 	LOW_RESOURCES_FLAG                = "low-resources"
 	ENABLE_CUSTOM_METRICS_FLAG        = "custom-metrics"
 	ENABLE_KUBE_STATE_METRICS_FLAG    = "kube-state-metrics"
@@ -47,6 +48,7 @@ const (
 	AGENT_KERNEL_5_11_PRESET_PATH     = "presets/agent/kernel-5-11.yaml"
 	CUSTOM_METRICS_PRESET_PATH        = "presets/backend/custom-metrics.yaml"
 	KUBE_STATE_METRICS_PRESET_PATH    = "presets/backend/kube-state-metrics.yaml"
+	STORAGE_CLASS_TEMPLATE_PATH       = "templates/backend/storage-class.yaml"
 	WAIT_FOR_GET_LATEST_CHART_FORMAT  = "Waiting for downloading latest chart to complete"
 	WAIT_FOR_GET_LATEST_CHART_SUCCESS = "Downloading latest chart completed successfully"
 	WAIT_FOR_GET_LATEST_CHART_FAILURE = "Latest chart download failed:"
@@ -75,6 +77,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().String(REGISTRY_FLAG, "ecr", "image registry [options: ecr, quay]")
 	viper.BindPFlag(REGISTRY_FLAG, DeployCmd.PersistentFlags().Lookup(REGISTRY_FLAG))
+
+	DeployCmd.PersistentFlags().String(STORAGE_CLASS_FLAG, "", "override storage class")
+	viper.BindPFlag(STORAGE_CLASS_FLAG, DeployCmd.PersistentFlags().Lookup(STORAGE_CLASS_FLAG))
 
 	DeployCmd.PersistentFlags().Bool(LOW_RESOURCES_FLAG, false, "set low resources limits")
 	viper.BindPFlag(LOW_RESOURCES_FLAG, DeployCmd.PersistentFlags().Lookup(LOW_RESOURCES_FLAG))
@@ -243,7 +248,7 @@ func validateCluster(ctx context.Context, kubeClient *k8s.Client, namespace stri
 	ui.GlobalWriter.PrintlnWithPrefixln("Validating cluster compatibility:")
 
 	var clusterSummary *k8s.ClusterSummary
-	if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
+	if clusterSummary, err = kubeClient.GetClusterSummary(ctx, namespace, viper.GetString(STORAGE_CLASS_FLAG)); err != nil {
 		sentryKubeContext.ClusterReport = &k8s.ClusterReport{
 			ClusterSummary: clusterSummary,
 		}
@@ -627,8 +632,14 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 	userValuesOverridePaths := viper.GetStringSlice(VALUES_FLAG)
 	overridePaths = append(overridePaths, userValuesOverridePaths...)
 
+	templateValues := helm.TemplateValues{}
+	if storageClassName := viper.GetString(STORAGE_CLASS_FLAG); storageClassName != "" {
+		templateValues.StorageClassName = storageClassName
+		overridePaths = append(overridePaths, STORAGE_CLASS_TEMPLATE_PATH)
+	}
+
 	var valuesOverride map[string]interface{}
-	if valuesOverride, err = helm.GetChartValuesOverrides(overridePaths); err != nil {
+	if valuesOverride, err = helm.GetChartValuesOverrides(overridePaths, &templateValues); err != nil {
 		return nil, err
 	}
 

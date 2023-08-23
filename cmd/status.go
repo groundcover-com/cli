@@ -71,7 +71,7 @@ var StatusCmd = &cobra.Command{
 		}
 
 		var clusterSummary *k8s.ClusterSummary
-		if clusterSummary, err = kubeClient.GetClusterSummary(namespace); err != nil {
+		if clusterSummary, err = kubeClient.GetClusterSummary(ctx, namespace, viper.GetString(STORAGE_CLASS_FLAG)); err != nil {
 			sentryKubeContext.ClusterReport = &k8s.ClusterReport{
 				ClusterSummary: clusterSummary,
 			}

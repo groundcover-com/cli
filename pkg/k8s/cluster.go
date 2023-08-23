@@ -9,6 +9,8 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	authv1 "k8s.io/api/authorization/v1"
+	v1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -105,9 +107,10 @@ type ClusterSummary struct {
 	Namespace     string
 	ClusterName   string
 	ServerVersion semver.Version
+	StorageClass  *v1.StorageClass
 }
 
-func (kubeClient *Client) GetClusterSummary(namespace string) (*ClusterSummary, error) {
+func (kubeClient *Client) GetClusterSummary(ctx context.Context, namespace, storageClassName string) (*ClusterSummary, error) {
 	var err error
 
 	clusterSummary := &ClusterSummary{
@@ -120,6 +123,16 @@ func (kubeClient *Client) GetClusterSummary(namespace string) (*ClusterSummary, 
 
 	if clusterSummary.ServerVersion, err = kubeClient.GetServerVersion(); err != nil {
 		return clusterSummary, err
+	}
+
+	if storageClassName == "" {
+		if clusterSummary.StorageClass, err = kubeClient.GetDefaultStorageClass(ctx); err != ErrNoDefaultStorageClass {
+			return clusterSummary, err
+		}
+	} else {
+		if clusterSummary.StorageClass, err = kubeClient.StorageV1().StorageClasses().Get(ctx, storageClassName, metav1.GetOptions{}); err != nil {
+			return clusterSummary, err
+		}
 	}
 
 	return clusterSummary, nil

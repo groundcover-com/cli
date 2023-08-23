@@ -1,0 +1,8 @@
+clickhouse:
+  persistence:
+    storageClass: "{{ .StorageClassName }}"
+
+victoria-metrics-single:
+  server:
+    persistentVolume:
+      storageClass: "{{ .StorageClassName }}"
