@@ -87,10 +87,10 @@ func init() {
 	DeployCmd.PersistentFlags().Bool(STORE_ISSUES_LOGS_ONLY_FLAG, false, "store issues logs only")
 	viper.BindPFlag(STORE_ISSUES_LOGS_ONLY_FLAG, DeployCmd.PersistentFlags().Lookup(STORE_ISSUES_LOGS_ONLY_FLAG))
 
-	DeployCmd.PersistentFlags().Bool(ENABLE_CUSTOM_METRICS_FLAG, false, "enable custom metrics scraping")
+	DeployCmd.PersistentFlags().Bool(ENABLE_CUSTOM_METRICS_FLAG, true, "enable custom metrics scraping")
 	viper.BindPFlag(ENABLE_CUSTOM_METRICS_FLAG, DeployCmd.PersistentFlags().Lookup(ENABLE_CUSTOM_METRICS_FLAG))
 
-	DeployCmd.PersistentFlags().Bool(ENABLE_KUBE_STATE_METRICS_FLAG, false, "enable kube state metrics deployment")
+	DeployCmd.PersistentFlags().Bool(ENABLE_KUBE_STATE_METRICS_FLAG, true, "enable kube state metrics deployment")
 	viper.BindPFlag(ENABLE_KUBE_STATE_METRICS_FLAG, DeployCmd.PersistentFlags().Lookup(ENABLE_KUBE_STATE_METRICS_FLAG))
 
 	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
