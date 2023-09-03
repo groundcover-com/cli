@@ -19,6 +19,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+- support kube-state-metrics and custom metrics scraping by default [#sc-10432]
 
 ### Fixed
 
@@ -35,8 +36,6 @@ We use the following categories for changes:
 - add `storage-class` flag to `deploy` command  [#sc-10362]
 
 ### Changed
-
-- deploy kube-state-metrics and custom metrics scraping by default [#sc-10432]
 
 ### Fixed
 
