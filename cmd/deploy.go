@@ -31,6 +31,7 @@ const (
 	REGISTRY_FLAG                     = "registry"
 	STORAGE_CLASS_FLAG                = "storage-class"
 	LOW_RESOURCES_FLAG                = "low-resources"
+	ENABLE_CUSTOM_METRICS_FLAG        = "custom-metrics"
 	STORE_ISSUES_LOGS_ONLY_FLAG       = "store-issues-logs-only"
 	STORE_ISSUES_LOGS_ONLY_KEY        = "storeIssuesLogsOnly"
 	CHART_NAME                        = "groundcover/groundcover"
@@ -45,6 +46,7 @@ const (
 	QUAY_REGISTRY_PRESET_PATH         = "presets/quay.yaml"
 	AGENT_KERNEL_5_11_PRESET_PATH     = "presets/agent/kernel-5-11.yaml"
 	STORAGE_CLASS_TEMPLATE_PATH       = "templates/backend/storage-class.yaml"
+	CUSTOM_METRICS_PRESET_PATH        = "presets/backend/custom-metrics.yaml"
 	WAIT_FOR_GET_LATEST_CHART_FORMAT  = "Waiting for downloading latest chart to complete"
 	WAIT_FOR_GET_LATEST_CHART_SUCCESS = "Downloading latest chart completed successfully"
 	WAIT_FOR_GET_LATEST_CHART_FAILURE = "Latest chart download failed:"
@@ -85,6 +87,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
 	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
+
+	DeployCmd.PersistentFlags().Bool(ENABLE_CUSTOM_METRICS_FLAG, false, "enable custom metrics scraping")
+	viper.BindPFlag(ENABLE_CUSTOM_METRICS_FLAG, DeployCmd.PersistentFlags().Lookup(ENABLE_CUSTOM_METRICS_FLAG))
 
 	DeployCmd.PersistentFlags().String(REPOSITORY_URL_KEY_NAME_FLAG, "", "the annotation key name that contains the app git repository url")
 	viper.BindPFlag(REPOSITORY_URL_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(REPOSITORY_URL_KEY_NAME_FLAG))
@@ -599,6 +604,11 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 
 	if semver.MustParseRange(">=5.11.0")(nodesReport.MaximalKernelVersion()) {
 		overridePaths = append(overridePaths, AGENT_KERNEL_5_11_PRESET_PATH)
+	}
+
+	enableCustomMetrics := viper.GetBool(ENABLE_CUSTOM_METRICS_FLAG)
+	if enableCustomMetrics {
+		overridePaths = append(overridePaths, CUSTOM_METRICS_PRESET_PATH)
 	}
 
 	if len(overridePaths) > 0 {
