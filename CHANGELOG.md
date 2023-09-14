@@ -19,6 +19,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+- support kube-state-metrics and custom metrics scraping by default [#sc-10432]
 
 ### Fixed
 
