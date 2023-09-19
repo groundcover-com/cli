@@ -75,6 +75,34 @@ func (client *Client) ApiKey(tenantUUID string) (*auth.ApiKey, error) {
 	return apiKey, nil
 }
 
+func (client *Client) ServiceAccountToken(tenantUUID string) (*auth.SAToken, error) {
+	var err error
+
+	var url *url.URL
+	if url, err = client.JoinPath(auth.GENERATE_SERVICE_ACCOUNT_TOKEN_ENDPOINT); err != nil {
+		return nil, err
+	}
+
+	var request *http.Request
+	if request, err = http.NewRequest("POST", url.String(), nil); err != nil {
+		return nil, err
+	}
+
+	request.Header.Add(TenantUUIDHeader, tenantUUID)
+
+	var body []byte
+	if body, err = client.do(request); err != nil {
+		return nil, err
+	}
+
+	saToken := &auth.SAToken{}
+	if err = saToken.ParseBody(body); err != nil {
+		return nil, err
+	}
+
+	return saToken, nil
+}
+
 func (client *Client) JoinPath(endpoint string) (*url.URL, error) {
 	return client.baseUrl.Parse(endpoint)
 }
