@@ -9,7 +9,7 @@ const (
 )
 
 type SAToken struct {
-	SAToken string `json:"token" validate:"required"`
+	Token string `json:"token" validate:"required"`
 }
 
 func (sa *SAToken) ParseBody(body []byte) error {

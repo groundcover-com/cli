@@ -23,7 +23,7 @@ var serviceAccountTokenCmd = &cobra.Command{
 			return err
 		}
 
-		ui.QuietWriter.Println(saToken.SAToken)
+		ui.QuietWriter.Println(saToken.Token)
 
 		return nil
 	},
