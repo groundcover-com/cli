@@ -28,7 +28,7 @@ We use the following categories for changes:
 
 ### Security
 
-## [0.10.13] 2023-08-23
+## [0.10.13] 2023-09-20
 
 ### Added
 
