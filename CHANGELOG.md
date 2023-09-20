@@ -19,7 +19,22 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.13] 2023-08-23
+
+### Added
+
+### Changed
 - support kube-state-metrics and custom metrics scraping by default [#sc-10432]
+- generate grafana service account token command [#sc-10714]
 
 ### Fixed
 
