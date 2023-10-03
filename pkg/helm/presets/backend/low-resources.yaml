@@ -2,7 +2,7 @@
 k8sWatcher:
   resources:
     requests:
-      cpu: 5m
+      cpu: 10m
       memory: 32Mi
     limits:
       cpu: 50m
@@ -12,10 +12,10 @@ portal:
   resources:
     requests:
       cpu: 5m
-      memory: 16Mi
-    limits:
-      cpu: 50m
       memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
 
 clickhouse:
   resources:
@@ -28,11 +28,11 @@ clickhouse:
 opentelemetry-collector:
   resources:
     requests:
-      cpu: 5m
+      cpu: 50m
       memory: 128Mi
     limits:
-      cpu: 200m
-      memory: 512Mi
+      cpu: 500m
+      memory: 1024Mi
 
 victoria-metrics-agent:
   resources:
@@ -41,16 +41,16 @@ victoria-metrics-agent:
       memory: 32Mi
     limits:
       cpu: 100m
-      memory: 128Mi
+      memory: 256Mi
 
 metrics-ingester:
   resources:
     limits:
       cpu: 250m
-      memory: 128Mi
+      memory: 256Mi
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
 
 custom-metrics:
   resources:
@@ -65,8 +65,8 @@ victoria-metrics-single:
   server:
     resources:
       requests:
-        cpu: 5m
-        memory: 32Mi
+        cpu: 20m
+        memory: 128Mi
       limits:
-        cpu: 32m
-        memory: 256Mi
+        cpu: 100m
+        memory: 512Mi
