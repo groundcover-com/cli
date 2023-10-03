@@ -28,6 +28,21 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.10.14] 2023-10-03
+
+### Added
+
+### Changed
+- changed low-resources values [#sc-10885]
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.10.13] 2023-09-20
 
 ### Added
