@@ -32,6 +32,7 @@ const (
 	STORAGE_CLASS_FLAG                = "storage-class"
 	LOW_RESOURCES_FLAG                = "low-resources"
 	ENABLE_CUSTOM_METRICS_FLAG        = "custom-metrics"
+	ENABLE_KUBE_STATE_METRICS_FLAG    = "kube-state-metrics"
 	STORE_ISSUES_LOGS_ONLY_FLAG       = "store-issues-logs-only"
 	STORE_ISSUES_LOGS_ONLY_KEY        = "storeIssuesLogsOnly"
 	CHART_NAME                        = "groundcover/groundcover"
@@ -46,6 +47,7 @@ const (
 	QUAY_REGISTRY_PRESET_PATH         = "presets/quay.yaml"
 	AGENT_KERNEL_5_11_PRESET_PATH     = "presets/agent/kernel-5-11.yaml"
 	CUSTOM_METRICS_PRESET_PATH        = "presets/backend/custom-metrics.yaml"
+	KUBE_STATE_METRICS_PRESET_PATH    = "presets/backend/kube-state-metrics.yaml"
 	STORAGE_CLASS_TEMPLATE_PATH       = "templates/backend/storage-class.yaml"
 	WAIT_FOR_GET_LATEST_CHART_FORMAT  = "Waiting for downloading latest chart to complete"
 	WAIT_FOR_GET_LATEST_CHART_SUCCESS = "Downloading latest chart completed successfully"
@@ -88,6 +90,9 @@ func init() {
 	DeployCmd.PersistentFlags().Bool(ENABLE_CUSTOM_METRICS_FLAG, false, "enable custom metrics scraping")
 	viper.BindPFlag(ENABLE_CUSTOM_METRICS_FLAG, DeployCmd.PersistentFlags().Lookup(ENABLE_CUSTOM_METRICS_FLAG))
 
+	DeployCmd.PersistentFlags().Bool(ENABLE_KUBE_STATE_METRICS_FLAG, false, "enable kube state metrics deployment")
+	viper.BindPFlag(ENABLE_KUBE_STATE_METRICS_FLAG, DeployCmd.PersistentFlags().Lookup(ENABLE_KUBE_STATE_METRICS_FLAG))
+
 	DeployCmd.PersistentFlags().String(COMMIT_HASH_KEY_NAME_FLAG, "", "the annotation/label key name that contains the app git commit hash")
 	viper.BindPFlag(COMMIT_HASH_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(COMMIT_HASH_KEY_NAME_FLAG))
 
@@ -120,6 +125,10 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		var tenant *api.TenantInfo
 		if tenant, err = fetchTenant(); err != nil {
 			return err
+		}
+
+		if tenant == nil {
+			return errors.New("tenant not found")
 		}
 
 		tenantUUID = tenant.UUID
@@ -605,6 +614,11 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 	enableCustomMetrics := viper.GetBool(ENABLE_CUSTOM_METRICS_FLAG)
 	if enableCustomMetrics {
 		overridePaths = append(overridePaths, CUSTOM_METRICS_PRESET_PATH)
+	}
+
+	enableKubeStateMetrics := viper.GetBool(ENABLE_KUBE_STATE_METRICS_FLAG)
+	if enableKubeStateMetrics {
+		overridePaths = append(overridePaths, KUBE_STATE_METRICS_PRESET_PATH)
 	}
 
 	if semver.MustParseRange(">=5.11.0")(nodesReport.MaximalKernelVersion()) {
