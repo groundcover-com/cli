@@ -19,7 +19,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
-- revert kube-state-metrics and custom metrics scraping by default [#sc-]
+- revert kube-state-metrics and custom metrics scraping by default [#sc-10892]
 
 ### Fixed
 
