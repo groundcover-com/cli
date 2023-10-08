@@ -19,6 +19,20 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.15] 2023-10-08
+
+### Added
+
+### Changed
 - revert kube-state-metrics and custom metrics scraping by default [#sc-10892]
 
 ### Fixed
