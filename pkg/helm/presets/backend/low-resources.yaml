@@ -29,10 +29,10 @@ opentelemetry-collector:
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
     limits:
       cpu: 500m
-      memory: 1024Mi
+      memory: 2048Mi
 
 victoria-metrics-agent:
   resources:
