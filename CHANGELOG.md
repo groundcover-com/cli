@@ -19,6 +19,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+- increased otel-collector memory and cpu limits [#sc-10997]
 
 ### Fixed
 
