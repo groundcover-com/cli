@@ -21,6 +21,20 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.17] 2023-11-12
+
+### Added
+
+### Changed
+
+### Fixed
 - fixed bug with large and huge presets [#sc-11599]
 
 ### Removed
@@ -29,7 +43,7 @@ We use the following categories for changes:
 
 ### Security
 
-## [0.10.16] 2023-10-08
+## [0.10.16] 2023-11-12
 
 ### Added
 
