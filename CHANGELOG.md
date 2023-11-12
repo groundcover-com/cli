@@ -19,7 +19,22 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.16] 2023-10-08
+
+### Added
+
+### Changed
 - increased otel-collector memory and cpu limits [#sc-10997]
+- increased k8swatcher memory and cpu limits [#sc-11513]
 
 ### Fixed
 
