@@ -21,6 +21,7 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
+- fixed bug with large and huge presets [#sc-11599]
 
 ### Removed
 
