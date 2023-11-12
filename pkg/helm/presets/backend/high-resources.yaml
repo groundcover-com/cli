@@ -6,7 +6,7 @@ k8sWatcher:
       memory: 300Mi
     limits:
       cpu: 100m
-      memory: 500Mi
+      memory: 1024Mi
 
 portal:
   resources:
