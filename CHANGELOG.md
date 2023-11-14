@@ -17,6 +17,7 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
+- added get datasources API key command [#sc-11671]
 
 ### Changed
 
