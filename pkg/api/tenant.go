@@ -6,7 +6,6 @@ import (
 
 const (
 	TenantUUIDHeader    = "X-Tenant-UUID"
-	KongConsumerHeader  = "X-Consumer-Username"
 	TenantsListEndpoint = "rbac/member/tenants"
 )
 

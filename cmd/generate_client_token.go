@@ -7,8 +7,8 @@ import (
 	"groundcover.com/pkg/ui"
 )
 
-var generateClientAPIKeyCmd = &cobra.Command{
-	Use:   "generate-client-api-key",
+var generateClientTokenCmd = &cobra.Command{
+	Use:   "generate-client-token",
 	Short: "Get Client Token for Grafana API",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -19,7 +19,7 @@ var generateClientAPIKeyCmd = &cobra.Command{
 		}
 
 		var apiToken *auth.ApiKey
-		if apiToken, err = fetchClientAPIKey(tenant); err != nil {
+		if apiToken, err = fetchClientToken(tenant); err != nil {
 			return err
 		}
 
@@ -29,7 +29,7 @@ var generateClientAPIKeyCmd = &cobra.Command{
 	},
 }
 
-func fetchClientAPIKey(tenant *api.TenantInfo) (*auth.ApiKey, error) {
+func fetchClientToken(tenant *api.TenantInfo) (*auth.ApiKey, error) {
 	var err error
 
 	var auth0Token *auth.Auth0Token
@@ -39,14 +39,14 @@ func fetchClientAPIKey(tenant *api.TenantInfo) (*auth.ApiKey, error) {
 
 	apiClient := api.NewClient(auth0Token)
 
-	var apiToken *auth.ApiKey
-	if apiToken, err = apiClient.GetOrCreateClientToken(tenant); err != nil {
+	var clientToken *auth.ApiKey
+	if clientToken, err = apiClient.GetOrCreateClientToken(tenant); err != nil {
 		return nil, err
 	}
 
-	return apiToken, nil
+	return clientToken, nil
 }
 
 func init() {
-	AuthCmd.AddCommand(generateClientAPIKeyCmd)
+	AuthCmd.AddCommand(generateClientTokenCmd)
 }

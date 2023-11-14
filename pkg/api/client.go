@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -116,7 +115,6 @@ func (client *Client) GetOrCreateClientToken(tenant *TenantInfo) (*auth.ApiKey, 
 		return nil, err
 	}
 
-	request.Header.Add(KongConsumerHeader, fmt.Sprintf("%s@%s", tenant.TenantName, tenant.OrgName))
 	request.Header.Add(TenantUUIDHeader, tenant.UUID)
 
 	var body []byte
@@ -124,12 +122,12 @@ func (client *Client) GetOrCreateClientToken(tenant *TenantInfo) (*auth.ApiKey, 
 		return nil, err
 	}
 
-	apiToken := &auth.ApiKey{}
-	if err = apiToken.ParseBody(body); err != nil {
+	clientToken := &auth.ApiKey{}
+	if err = clientToken.ParseBody(body); err != nil {
 		return nil, err
 	}
 
-	return apiToken, nil
+	return clientToken, nil
 }
 
 func (client *Client) JoinPath(endpoint string) (*url.URL, error) {
