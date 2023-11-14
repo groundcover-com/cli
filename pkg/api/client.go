@@ -1,8 +1,8 @@
 package api
 
 import (
+	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -56,7 +56,7 @@ func (client *Client) ApiKey(tenantUUID string) (*auth.ApiKey, error) {
 	}
 
 	var request *http.Request
-	if request, err = http.NewRequest("POST", url.String(), nil); err != nil {
+	if request, err = http.NewRequest(http.MethodPost, url.String(), nil); err != nil {
 		return nil, err
 	}
 
@@ -84,7 +84,7 @@ func (client *Client) ServiceAccountToken(tenantUUID string) (*auth.SAToken, err
 	}
 
 	var request *http.Request
-	if request, err = http.NewRequest("POST", url.String(), nil); err != nil {
+	if request, err = http.NewRequest(http.MethodPost, url.String(), nil); err != nil {
 		return nil, err
 	}
 
@@ -101,6 +101,35 @@ func (client *Client) ServiceAccountToken(tenantUUID string) (*auth.SAToken, err
 	}
 
 	return saToken, nil
+}
+
+func (client *Client) GetOrCreateClientToken(tenant *TenantInfo) (*auth.ApiKey, error) {
+	var err error
+
+	var url *url.URL
+	if url, err = client.JoinPath(auth.GENERATE_CLIENT_TOKEN_API_KEY_ENDPOINT); err != nil {
+		return nil, err
+	}
+
+	var request *http.Request
+	if request, err = http.NewRequest(http.MethodPost, url.String(), nil); err != nil {
+		return nil, err
+	}
+
+	request.Header.Add(KongConsumerHeader, fmt.Sprintf("%s@%s", tenant.TenantName, tenant.OrgName))
+	request.Header.Add(TenantUUIDHeader, tenant.UUID)
+
+	var body []byte
+	if body, err = client.do(request); err != nil {
+		return nil, err
+	}
+
+	apiToken := &auth.ApiKey{}
+	if err = apiToken.ParseBody(body); err != nil {
+		return nil, err
+	}
+
+	return apiToken, nil
 }
 
 func (client *Client) JoinPath(endpoint string) (*url.URL, error) {
@@ -120,7 +149,7 @@ func (client *Client) do(request *http.Request) ([]byte, error) {
 		return nil, NewResponseError(response)
 	}
 
-	return ioutil.ReadAll(response.Body)
+	return io.ReadAll(io.Reader(response.Body))
 }
 
 func (client *Client) get(endpoint string) ([]byte, error) {
@@ -141,26 +170,5 @@ func (client *Client) get(endpoint string) ([]byte, error) {
 		return nil, NewResponseError(response)
 	}
 
-	return ioutil.ReadAll(response.Body)
-}
-
-func (client *Client) post(endpoint, contentType string, payload io.Reader) ([]byte, error) {
-	var err error
-
-	var url *url.URL
-	if url, err = client.JoinPath(endpoint); err != nil {
-		return nil, err
-	}
-
-	var response *http.Response
-	if response, err = client.httpClient.Post(url.String(), contentType, payload); err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		return nil, NewResponseError(response)
-	}
-
-	return ioutil.ReadAll(response.Body)
+	return io.ReadAll(io.Reader(response.Body))
 }
