@@ -18,6 +18,7 @@ We use the following categories for changes:
 
 ### Added
 - added get datasources API key command [#sc-11671]
+- added get client token command [#sc-11670]
 
 ### Changed
 
