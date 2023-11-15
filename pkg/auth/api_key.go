@@ -5,7 +5,9 @@ import (
 )
 
 const (
-	GENERATE_API_KEY_ENDPOINT = "system/generate-api-key"
+	GenerateAPIKeyEndpoint            = "system/generate-api-key"
+	GetDatasourcesAPIKeyEndpoint      = "system/get-datasources-api-key"
+	GenerateClientTokenAPIKeyEndpoint = "system/generate-client-token"
 )
 
 type ApiKey struct {

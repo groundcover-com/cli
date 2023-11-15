@@ -50,7 +50,7 @@ func (client *Client) ApiKey(tenantUUID string) (*auth.ApiKey, error) {
 	var err error
 
 	var url *url.URL
-	if url, err = client.JoinPath(auth.GENERATE_API_KEY_ENDPOINT); err != nil {
+	if url, err = client.JoinPath(auth.GenerateAPIKeyEndpoint); err != nil {
 		return nil, err
 	}
 
@@ -101,12 +101,39 @@ func (client *Client) ServiceAccountToken(tenantUUID string) (*auth.SAToken, err
 
 	return saToken, nil
 }
+func (client *Client) GetDatasourcesAPIKey(tenant *TenantInfo) (*auth.ApiKey, error) {
+	var err error
+
+	var url *url.URL
+	if url, err = client.JoinPath(auth.GetDatasourcesAPIKeyEndpoint); err != nil {
+		return nil, err
+	}
+
+	var request *http.Request
+	if request, err = http.NewRequest(http.MethodPost, url.String(), nil); err != nil {
+		return nil, err
+	}
+
+	request.Header.Add(TenantUUIDHeader, tenant.UUID)
+
+	var body []byte
+	if body, err = client.do(request); err != nil {
+		return nil, err
+	}
+
+	key := &auth.ApiKey{}
+	if err = key.ParseBody(body); err != nil {
+		return nil, err
+	}
+
+	return key, nil
+}
 
 func (client *Client) GetOrCreateClientToken(tenant *TenantInfo) (*auth.ApiKey, error) {
 	var err error
 
 	var url *url.URL
-	if url, err = client.JoinPath(auth.GENERATE_CLIENT_TOKEN_API_KEY_ENDPOINT); err != nil {
+	if url, err = client.JoinPath(auth.GenerateClientTokenAPIKeyEndpoint); err != nil {
 		return nil, err
 	}
 
