@@ -75,7 +75,7 @@ func (client *Client) ClusterList(tenantUUID string) ([]ClusterInfo, error) {
 	}
 
 	var request *http.Request
-	if request, err = http.NewRequest("GET", url.String(), nil); err != nil {
+	if request, err = http.NewRequest(http.MethodGet, url.String(), nil); err != nil {
 		return nil, err
 	}
 
