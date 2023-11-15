@@ -6,7 +6,7 @@ import (
 
 const (
 	TenantUUIDHeader    = "X-Tenant-UUID"
-	TenantsListEndpoint = "rbac/member/tenants"
+	TenantListEndpoint = "rbac/member/tenants"
 )
 
 type TenantListResponse struct {
@@ -23,7 +23,7 @@ func (client *Client) TenantList() ([]*TenantInfo, error) {
 	var err error
 
 	var body []byte
-	if body, err = client.get(TenantsListEndpoint); err != nil {
+	if body, err = client.get(TenantListEndpoint); err != nil {
 		return nil, err
 	}
 
