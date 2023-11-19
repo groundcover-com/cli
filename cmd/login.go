@@ -131,3 +131,36 @@ func fetchApiKey(tenantUUID string) (*auth.ApiKey, error) {
 
 	return apiKey, nil
 }
+
+func selectClusterName(tenant *api.TenantInfo) (string, error) {
+	var err error
+	var auth0Token *auth.Auth0Token
+	if auth0Token, err = auth.LoadAuth0Token(); err != nil {
+		return "", err
+	}
+
+	apiClient := api.NewClient(auth0Token)
+
+	var clusterList []api.ClusterInfo
+	if clusterList, err = apiClient.ClusterList(tenant.UUID); err != nil {
+		return "", err
+	}
+
+	clusterNames := make([]string, len(clusterList))
+	for index, cluster := range clusterList {
+		clusterNames[index] = cluster.Name
+	}
+
+	clusterId := ""
+
+	switch len(clusterNames) {
+	case 0:
+		return "", errors.New("no active clusters")
+	case 1:
+		clusterId = clusterNames[0]
+	default:
+		clusterId = ui.GlobalWriter.SelectPrompt("Select cluster:", clusterNames)
+	}
+
+	return clusterId, nil
+}
