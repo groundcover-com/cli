@@ -101,7 +101,7 @@ func (client *Client) ServiceAccountToken(tenantUUID string) (*auth.SAToken, err
 
 	return saToken, nil
 }
-func (client *Client) GetDatasourcesAPIKey(tenant *TenantInfo) (*auth.ApiKey, error) {
+func (client *Client) GetDatasourcesAPIKey(tenant *TenantInfo, clusterName string) (*auth.ApiKey, error) {
 	var err error
 
 	var url *url.URL
@@ -110,11 +110,12 @@ func (client *Client) GetDatasourcesAPIKey(tenant *TenantInfo) (*auth.ApiKey, er
 	}
 
 	var request *http.Request
-	if request, err = http.NewRequest(http.MethodPost, url.String(), nil); err != nil {
+	if request, err = http.NewRequest(http.MethodGet, url.String(), nil); err != nil {
 		return nil, err
 	}
 
 	request.Header.Add(TenantUUIDHeader, tenant.UUID)
+	request.Header.Add(ClusterIDHeader, clusterName)
 
 	var body []byte
 	if body, err = client.do(request); err != nil {
