@@ -110,7 +110,7 @@ func (client *Client) GetDatasourcesAPIKey(tenant *TenantInfo, clusterName strin
 	}
 
 	var request *http.Request
-	if request, err = http.NewRequest(http.MethodGet, url.String(), nil); err != nil {
+	if request, err = http.NewRequest(http.MethodPost, url.String(), nil); err != nil {
 		return nil, err
 	}
 
