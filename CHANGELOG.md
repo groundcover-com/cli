@@ -17,6 +17,20 @@ We use the following categories for changes:
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.18] 2023-11-15
+
+### Added
 - added get datasources API key command [#sc-11671]
 - added get client token command [#sc-11670]
 
