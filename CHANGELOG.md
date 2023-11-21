@@ -28,6 +28,20 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.10.19] 2023-11-21
+
+### Added
+
+### Changed
+
+### Fixed
+- fixed get datasources API key command issues and added cluster picker [#sc-11777]
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.10.18] 2023-11-15
 
 ### Added
