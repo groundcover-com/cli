@@ -31,6 +31,8 @@ const (
 	ALLIGATORS_POLLING_RETRIES  = 28
 	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 7
 
+	EXPECTED_BOUND_PVC_COUNT = 2 // VictoriaMetrics and Clickhouse
+
 	ALLIGATOR_LABEL_SELECTOR = "app=alligator"
 	BACKEND_LABEL_SELECTOR   = "app!=alligator"
 	PORTAL_LABEL_SELECTOR    = "app=portal"
@@ -308,18 +310,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, names
 		LabelSelector: fmt.Sprintf("app.kubernetes.io/instance=%s", releaseName),
 	}
 
-	var pvcList *v1.PersistentVolumeClaimList
-	if pvcList, err = kubeClient.CoreV1().PersistentVolumeClaims(namespace).List(ctx, listOptions); err != nil {
-		return err
-	}
-
-	expectedBoundPvcsCount := len(pvcList.Items)
-	if expectedBoundPvcsCount == 0 {
-		ui.GlobalWriter.PrintWarningMessageln("No Presistent volumes")
-		return nil
-	}
-
-	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, expectedBoundPvcsCount))
+	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, 0, EXPECTED_BOUND_PVC_COUNT))
 	spinner.SetStopMessage("Persistent Volumes are ready")
 	spinner.SetStopFailMessage("Not all Persistent Volumes are bound, timeout waiting for them to be ready")
 
@@ -329,7 +320,8 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, names
 	boundPvcs := make(map[string]bool, 0)
 
 	isPvcsReadyFunc := func() error {
-		if pvcList, err = kubeClient.CoreV1().PersistentVolumeClaims(namespace).List(ctx, listOptions); err != nil {
+		pvcList, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).List(ctx, listOptions)
+		if err != nil {
 			return err
 		}
 
@@ -339,9 +331,9 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, names
 			}
 		}
 
-		spinner.WriteMessage(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, len(boundPvcs), expectedBoundPvcsCount))
+		spinner.WriteMessage(fmt.Sprintf(WAIT_FOR_PVCS_FORMAT, len(boundPvcs), EXPECTED_BOUND_PVC_COUNT))
 
-		if len(boundPvcs) >= expectedBoundPvcsCount {
+		if len(boundPvcs) >= EXPECTED_BOUND_PVC_COUNT {
 			return nil
 		}
 
@@ -355,7 +347,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, names
 	sentryHelmContext.SetOnCurrentScope()
 	event.
 		Set("boundPvcsCount", len(boundPvcs)).
-		Set("pvcsCount", expectedBoundPvcsCount)
+		Set("pvcsCount", EXPECTED_BOUND_PVC_COUNT)
 
 	if err == nil {
 		return nil

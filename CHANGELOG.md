@@ -21,6 +21,7 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
+- CLI should expect a static amount of PVCs [#sc-12837]
 
 ### Removed
 
