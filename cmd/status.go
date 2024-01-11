@@ -14,6 +14,7 @@ import (
 	"groundcover.com/pkg/segment"
 	sentry_utils "groundcover.com/pkg/sentry"
 	"groundcover.com/pkg/ui"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -308,12 +309,16 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, names
 		LabelSelector: fmt.Sprintf("app.kubernetes.io/instance=%s", releaseName),
 	}
 
-	var pvcList *v1.PersistentVolumeClaimList
-	if pvcList, err = kubeClient.CoreV1().PersistentVolumeClaims(namespace).List(ctx, listOptions); err != nil {
+	var stsList *appsv1.StatefulSetList
+	if stsList, err = kubeClient.AppsV1().StatefulSets(namespace).List(ctx, listOptions); err != nil {
 		return err
 	}
 
-	expectedBoundPvcsCount := len(pvcList.Items)
+	expectedBoundPvcsCount := 0
+	for _, sts := range stsList.Items {
+		expectedBoundPvcsCount = expectedBoundPvcsCount + len(sts.Spec.VolumeClaimTemplates)
+	}
+
 	if expectedBoundPvcsCount == 0 {
 		ui.GlobalWriter.PrintWarningMessageln("No Presistent volumes")
 		return nil
@@ -328,6 +333,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, names
 
 	boundPvcs := make(map[string]bool, 0)
 
+	var pvcList *v1.PersistentVolumeClaimList
 	isPvcsReadyFunc := func() error {
 		if pvcList, err = kubeClient.CoreV1().PersistentVolumeClaims(namespace).List(ctx, listOptions); err != nil {
 			return err
