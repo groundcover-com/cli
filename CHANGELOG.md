@@ -21,7 +21,21 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
-- CLI should expect a static amount of PVCs [#sc-12837]
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.20] 2024-01-11
+
+### Added
+
+### Changed
+
+### Fixed
+- CLI checks expected PVC amount dynamically [#sc-12837]
 
 ### Removed
 
