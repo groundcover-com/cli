@@ -16,12 +16,13 @@ func (chart *Chart) Version() semver.Version {
 	return version
 }
 
-func (helmClient *Client) GetLatestChart(name string) (*Chart, error) {
+func (helmClient *Client) GetChart(name, version string) (*Chart, error) {
 	var err error
 	var chartPath string
 	var chart *chart.Chart
 
 	client := action.NewShowWithConfig(action.ShowChart, helmClient.cfg)
+	client.ChartPathOptions.Version = version
 
 	if chartPath, err = client.ChartPathOptions.LocateChart(name, helmClient.settings); err != nil {
 		return nil, err

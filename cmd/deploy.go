@@ -28,6 +28,7 @@ const (
 	HELM_DEPLOY_POLLING_TIMEOUT       = time.Minute * 5
 	VALUES_FLAG                       = "values"
 	MODE_FLAG                         = "mode"
+	VERSION_FLAG                      = "version"
 	REGISTRY_FLAG                     = "registry"
 	STORAGE_CLASS_FLAG                = "storage-class"
 	LOW_RESOURCES_FLAG                = "low-resources"
@@ -49,14 +50,14 @@ const (
 	CUSTOM_METRICS_PRESET_PATH        = "presets/backend/custom-metrics.yaml"
 	KUBE_STATE_METRICS_PRESET_PATH    = "presets/backend/kube-state-metrics.yaml"
 	STORAGE_CLASS_TEMPLATE_PATH       = "templates/backend/storage-class.yaml"
-	WAIT_FOR_GET_LATEST_CHART_FORMAT  = "Waiting for downloading latest chart to complete"
-	WAIT_FOR_GET_LATEST_CHART_SUCCESS = "Downloading latest chart completed successfully"
-	WAIT_FOR_GET_LATEST_CHART_FAILURE = "Latest chart download failed:"
-	WAIT_FOR_GET_LATEST_CHART_TIMEOUT = "Latest chart download timeout"
+	WAIT_FOR_GET_CHART_FORMAT         = "Waiting for downloading chart to complete"
+	WAIT_FOR_GET_CHART_SUCCESS        = "Downloading chart completed successfully"
+	WAIT_FOR_GET_CHART_FAILURE        = "Chart download failed:"
+	WAIT_FOR_GET_CHART_TIMEOUT        = "Chart download timeout"
 	LEGACY_KERNEL_MODE_MESSAGE_FORMAT = "Kernel is outdated, agent deployment in legacy mode.\n   Additional protocol support and a reduced footprint can be achieved on %s kernel"
-	GET_LATEST_CHART_POLLING_RETRIES  = 10
-	GET_LATEST_CHART_POLLING_INTERVAL = time.Second * 1
-	GET_LATEST_CHART_POLLING_TIMEOUT  = time.Second * 10
+	GET_CHART_POLLING_RETRIES         = 10
+	GET_CHART_POLLING_INTERVAL        = time.Second * 1
+	GET_CHART_POLLING_TIMEOUT         = time.Second * 10
 	LEGACY_MODE                       = "legacy"
 	STABLE_MODE                       = "stable"
 
@@ -98,6 +99,9 @@ func init() {
 
 	DeployCmd.PersistentFlags().String(REPOSITORY_URL_KEY_NAME_FLAG, "", "the annotation key name that contains the app git repository url")
 	viper.BindPFlag(REPOSITORY_URL_KEY_NAME_FLAG, DeployCmd.PersistentFlags().Lookup(REPOSITORY_URL_KEY_NAME_FLAG))
+
+	DeployCmd.PersistentFlags().String(VERSION_FLAG, "", "specify a version constraint for the chart version to use. This constraint can be a specific tag (e.g. 1.1.1) or it may reference a valid range (e.g. ^2.0.0). If this is not specified, the latest version is used")
+	viper.BindPFlag(VERSION_FLAG, DeployCmd.PersistentFlags().Lookup(VERSION_FLAG))
 }
 
 var DeployCmd = &cobra.Command{
@@ -174,7 +178,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	var chart *helm.Chart
-	if chart, err = pollGetLatestChart(ctx, helmClient, sentryHelmContext); err != nil {
+	if chart, err = pollGetChart(ctx, helmClient, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -521,29 +525,31 @@ func getClusterName(kubeClient *k8s.Client) (string, error) {
 	return clusterName, nil
 }
 
-func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelmContext *sentry_utils.HelmContext) (*helm.Chart, error) {
-	spinner := ui.GlobalWriter.NewSpinner(WAIT_FOR_GET_LATEST_CHART_FORMAT)
-	spinner.SetStopMessage(WAIT_FOR_GET_LATEST_CHART_SUCCESS)
-	spinner.SetStopFailMessage(WAIT_FOR_GET_LATEST_CHART_FAILURE)
+func pollGetChart(ctx context.Context, helmClient *helm.Client, sentryHelmContext *sentry_utils.HelmContext) (*helm.Chart, error) {
+	spinner := ui.GlobalWriter.NewSpinner(WAIT_FOR_GET_CHART_FORMAT)
+	spinner.SetStopMessage(WAIT_FOR_GET_CHART_SUCCESS)
+	spinner.SetStopFailMessage(WAIT_FOR_GET_CHART_FAILURE)
 
 	spinner.Start()
 	defer spinner.WriteStop()
 
+	chartVersion := viper.GetString(VERSION_FLAG)
+
 	var chart *helm.Chart
 	var err error
-	getLatestChartFunc := func() error {
+	getChartFunc := func() error {
 		if err := helmClient.AddRepo(HELM_REPO_NAME, HELM_REPO_URL); err != nil {
 			return ui.RetryableError(err)
 		}
 
-		if chart, err = helmClient.GetLatestChart(CHART_NAME); err != nil {
-			return ui.RetryableError(err)
+		if chart, err = helmClient.GetChart(CHART_NAME, chartVersion); err != nil {
+			return err
 		}
 
 		return nil
 	}
 
-	err = spinner.Poll(ctx, getLatestChartFunc, GET_LATEST_CHART_POLLING_INTERVAL, GET_LATEST_CHART_POLLING_TIMEOUT, GET_LATEST_CHART_POLLING_RETRIES)
+	err = spinner.Poll(ctx, getChartFunc, GET_CHART_POLLING_INTERVAL, GET_CHART_POLLING_TIMEOUT, GET_CHART_POLLING_RETRIES)
 
 	if err == nil {
 		sentryHelmContext.ChartVersion = chart.Version().String()
@@ -556,7 +562,7 @@ func pollGetLatestChart(ctx context.Context, helmClient *helm.Client, sentryHelm
 	spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return nil, errors.New(WAIT_FOR_GET_LATEST_CHART_TIMEOUT)
+		return nil, errors.New(WAIT_FOR_GET_CHART_TIMEOUT)
 	}
 
 	return nil, err
