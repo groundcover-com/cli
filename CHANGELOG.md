@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- add `version` flag to `deploy` command  [#sc-13642]
+
 ### Changed
 
 ### Fixed
@@ -35,6 +37,7 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
+
 - CLI checks expected PVC amount dynamically [#sc-12837]
 
 ### Removed
@@ -50,7 +53,9 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
+
 - fixed get datasources API key command issues and added cluster picker [#sc-11777]
+
 ### Removed
 
 ### Deprecated
@@ -60,6 +65,7 @@ We use the following categories for changes:
 ## [0.10.18] 2023-11-15
 
 ### Added
+
 - added get datasources API key command [#sc-11671]
 - added get client token command [#sc-11670]
 
@@ -80,6 +86,7 @@ We use the following categories for changes:
 ### Changed
 
 ### Fixed
+
 - fixed bug with large and huge presets [#sc-11599]
 
 ### Removed
@@ -93,6 +100,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - increased otel-collector memory and cpu limits [#sc-10997]
 - increased k8swatcher memory and cpu limits [#sc-11513]
 
@@ -109,6 +117,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - revert kube-state-metrics and custom metrics scraping by default [#sc-10892]
 
 ### Fixed
@@ -124,6 +133,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - changed low-resources values [#sc-10885]
 
 ### Fixed
@@ -139,6 +149,7 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - support kube-state-metrics and custom metrics scraping by default [#sc-10432]
 - generate grafana service account token command [#sc-10714]
 
