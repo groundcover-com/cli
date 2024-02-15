@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.10.21] 2024-02-15
+
+### Added
+
 - add `version` flag to `deploy` command  [#sc-13642]
 
 ### Changed
