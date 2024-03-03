@@ -28,6 +28,8 @@ We use the following categories for changes:
 
 ### Security
 
+- apply security patches and use go1.22 [#sc-14028]
+
 ## [0.10.21] 2024-02-15
 
 ### Added
