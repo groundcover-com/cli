@@ -28,6 +28,20 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.10.22] 2024-03-03
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 - apply security patches and use go1.22 [#sc-14028]
 
 ## [0.10.21] 2024-02-15
