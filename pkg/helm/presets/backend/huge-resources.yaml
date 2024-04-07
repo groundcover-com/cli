@@ -73,3 +73,17 @@ victoria-metrics-single:
         memory: 5000Mi
       limits:
         memory: 6Gi
+
+backend:
+  postgresql:
+    primary:
+      # based on https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15 - "xlarge"
+      resources:
+        requests:
+          cpu: 1.5
+          memory: 4096Mi
+          ephemeral-storage: 50Mi
+        limits:
+          cpu: 3.0
+          memory: 6144Mi
+          ephemeral-storage: 1024Mi
