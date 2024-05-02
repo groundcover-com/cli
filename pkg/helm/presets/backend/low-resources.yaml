@@ -77,7 +77,7 @@ monitors-manager:
       cpu: 5m
       memory: 110Mi 
     limits:
-      cpu: 20m
+      cpu: 50m
       memory: 150Mi
 
 

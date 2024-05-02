@@ -81,7 +81,7 @@ monitors-manager:
       cpu: 40m
       memory: 160Mi   
     limits:
-      cpu: 90m
+      cpu: 200m
       memory: 512Mi
 
 
@@ -93,4 +93,4 @@ backend:
           cpu: 20m
           memory: 80Mi
         limits:
-          memory: 120Mi
+          memory: 256Mi
