@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.21.1] 2024-05-02
+
+### Added
+
 - Add resources tuning for monitors manager and postgresql [sc-15557]
 
 ### Changed
