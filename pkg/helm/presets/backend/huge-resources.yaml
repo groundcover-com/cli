@@ -73,3 +73,23 @@ victoria-metrics-single:
         memory: 5000Mi
       limits:
         memory: 6Gi
+
+monitors-manager:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi 
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+
+backend:
+  postgresql:
+    primary:
+      resources:
+        requests:
+          cpu: 90m
+          memory: 200Mi
+        limits:
+          memory: 400Mi

@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- Add resources tuning for monitors manager and postgresql [sc-15557]
+
 ### Changed
 
 ### Fixed
