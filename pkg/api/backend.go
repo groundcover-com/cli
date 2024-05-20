@@ -12,20 +12,20 @@ import (
 )
 
 const (
-	CLUSTER_LIST_ENDPOINT    = "cluster/list"
-	CLUSTER_POLLING_RETRIES  = 18
-	CLUSTER_POLLING_TIMEOUT  = time.Minute * 3
-	CLUSTER_POLLING_INTERVAL = time.Second * 10
+	BACKEND_LIST_ENDPOINT    = "backends/list"
+	BACKEND_POLLING_RETRIES  = 18
+	BACKEND_POLLING_TIMEOUT  = time.Minute * 3
+	BACKEND_POLLING_INTERVAL = time.Second * 10
 )
 
-type ClusterInfo struct {
+type BackendInfo struct {
 	Name     string `json:"name"`
 	Online   bool   `json:"online"`
 	Licensed bool   `json:"licensed"`
 	Status   string `json:"status"`
 }
 
-func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, clusterName string) error {
+func (client *Client) PollIsBackendExist(ctx context.Context, tenantUUID, backendName string) error {
 	var err error
 
 	spinner := ui.GlobalWriter.NewSpinner("Waiting until groundcover is connected to cloud platform")
@@ -35,21 +35,21 @@ func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, cluste
 	spinner.Start()
 	defer spinner.WriteStop()
 
-	isClusterExistInSassFunc := func() error {
-		var clusterList []ClusterInfo
-		if clusterList, err = client.ClusterList(tenantUUID); err != nil {
+	isBackendExistInSassFunc := func() error {
+		var backendsList []BackendInfo
+		if backendsList, err = client.BackendsList(tenantUUID); err != nil {
 			return err
 		}
 
-		for _, cluster := range clusterList {
-			if cluster.Name == clusterName && cluster.Online {
+		for _, backend := range backendsList {
+			if backend.Name == backendName && backend.Online {
 				return nil
 			}
 		}
 		return ui.RetryableError(err)
 	}
 
-	if err = spinner.Poll(ctx, isClusterExistInSassFunc, CLUSTER_POLLING_INTERVAL, CLUSTER_POLLING_TIMEOUT, CLUSTER_POLLING_RETRIES); err == nil {
+	if err = spinner.Poll(ctx, isBackendExistInSassFunc, BACKEND_POLLING_INTERVAL, BACKEND_POLLING_TIMEOUT, BACKEND_POLLING_RETRIES); err == nil {
 		return nil
 	}
 
@@ -66,11 +66,11 @@ func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, cluste
 	return err
 }
 
-func (client *Client) ClusterList(tenantUUID string) ([]ClusterInfo, error) {
+func (client *Client) BackendsList(tenantUUID string) ([]BackendInfo, error) {
 	var err error
 
 	var url *url.URL
-	if url, err = client.JoinPath(CLUSTER_LIST_ENDPOINT); err != nil {
+	if url, err = client.JoinPath(BACKEND_LIST_ENDPOINT); err != nil {
 		return nil, err
 	}
 
@@ -86,10 +86,10 @@ func (client *Client) ClusterList(tenantUUID string) ([]ClusterInfo, error) {
 		return nil, err
 	}
 
-	var clusterList []ClusterInfo
-	if err = json.Unmarshal(body, &clusterList); err != nil {
+	var backendList []BackendInfo
+	if err = json.Unmarshal(body, &backendList); err != nil {
 		return nil, err
 	}
 
-	return clusterList, nil
+	return backendList, nil
 }

@@ -6,6 +6,7 @@ import (
 
 const (
 	TenantUUIDHeader   = "X-Tenant-UUID"
+	BackendIDHeader    = "X-Backend-Id"
 	ClusterIDHeader    = "X-Cluster-Id"
 	TenantListEndpoint = "rbac/member/tenants"
 )

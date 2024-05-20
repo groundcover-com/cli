@@ -18,13 +18,13 @@ var getDatasourcesAPIKeyCmd = &cobra.Command{
 			return err
 		}
 
-		var clusterName string
-		if clusterName, err = selectClusterName(tenant); err != nil {
+		var backendName string
+		if backendName, err = selectBackendName(tenant); err != nil {
 			return err
 		}
 
 		var apiToken *auth.ApiKey
-		if apiToken, err = fetchDatasourcesAPIKey(tenant, clusterName); err != nil {
+		if apiToken, err = fetchDatasourcesAPIKey(tenant, backendName); err != nil {
 			return err
 		}
 
@@ -33,7 +33,7 @@ var getDatasourcesAPIKeyCmd = &cobra.Command{
 	},
 }
 
-func fetchDatasourcesAPIKey(tenant *api.TenantInfo, clusterName string) (*auth.ApiKey, error) {
+func fetchDatasourcesAPIKey(tenant *api.TenantInfo, backendName string) (*auth.ApiKey, error) {
 	var err error
 
 	var auth0Token *auth.Auth0Token
@@ -44,7 +44,7 @@ func fetchDatasourcesAPIKey(tenant *api.TenantInfo, clusterName string) (*auth.A
 	apiClient := api.NewClient(auth0Token)
 
 	var apiToken *auth.ApiKey
-	if apiToken, err = apiClient.GetDatasourcesAPIKey(tenant, clusterName); err != nil {
+	if apiToken, err = apiClient.GetDatasourcesAPIKey(tenant, backendName); err != nil {
 		return nil, err
 	}
 

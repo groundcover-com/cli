@@ -492,7 +492,7 @@ func validateClusterRegistered(ctx context.Context, tenantUUID, clusterName stri
 
 	apiClient := api.NewClient(auth0Token)
 
-	if err = apiClient.PollIsClusterExist(ctx, tenantUUID, clusterName); err != nil {
+	if err = apiClient.PollIsBackendExist(ctx, tenantUUID, clusterName); err != nil {
 		return err
 	}
 
