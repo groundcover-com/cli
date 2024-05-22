@@ -132,7 +132,7 @@ func fetchApiKey(tenantUUID string) (*auth.ApiKey, error) {
 	return apiKey, nil
 }
 
-func selectClusterName(tenant *api.TenantInfo) (string, error) {
+func selectBackendName(tenant *api.TenantInfo) (string, error) {
 	var err error
 	var auth0Token *auth.Auth0Token
 	if auth0Token, err = auth.LoadAuth0Token(); err != nil {
@@ -141,26 +141,26 @@ func selectClusterName(tenant *api.TenantInfo) (string, error) {
 
 	apiClient := api.NewClient(auth0Token)
 
-	var clusterList []api.ClusterInfo
-	if clusterList, err = apiClient.ClusterList(tenant.UUID); err != nil {
+	var backendsList []api.BackendInfo
+	if backendsList, err = apiClient.BackendsList(tenant.UUID); err != nil {
 		return "", err
 	}
 
-	clusterNames := make([]string, len(clusterList))
-	for index, cluster := range clusterList {
-		clusterNames[index] = cluster.Name
+	backendNames := make([]string, len(backendsList))
+	for index, backend := range backendsList {
+		backendNames[index] = backend.Name
 	}
 
-	clusterId := ""
+	backendId := ""
 
-	switch len(clusterNames) {
+	switch len(backendNames) {
 	case 0:
-		return "", errors.New("no active clusters")
+		return "", errors.New("no active backends")
 	case 1:
-		clusterId = clusterNames[0]
+		backendId = backendNames[0]
 	default:
-		clusterId = ui.GlobalWriter.SelectPrompt("Select cluster:", clusterNames)
+		backendId = ui.GlobalWriter.SelectPrompt("Select backend:", backendNames)
 	}
 
-	return clusterId, nil
+	return backendId, nil
 }

@@ -37,7 +37,7 @@ func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, cluste
 
 	isClusterExistInSassFunc := func() error {
 		var clusterList []ClusterInfo
-		if clusterList, err = client.ClusterList(tenantUUID); err != nil {
+		if clusterList, err = client.clusterList(tenantUUID); err != nil {
 			return err
 		}
 
@@ -66,7 +66,7 @@ func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, cluste
 	return err
 }
 
-func (client *Client) ClusterList(tenantUUID string) ([]ClusterInfo, error) {
+func (client *Client) clusterList(tenantUUID string) ([]ClusterInfo, error) {
 	var err error
 
 	var url *url.URL
