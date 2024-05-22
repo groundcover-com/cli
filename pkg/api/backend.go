@@ -1,14 +1,10 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/url"
 	"time"
-
-	"groundcover.com/pkg/ui"
 )
 
 const (
@@ -23,47 +19,6 @@ type BackendInfo struct {
 	Online   bool   `json:"online"`
 	Licensed bool   `json:"licensed"`
 	Status   string `json:"status"`
-}
-
-func (client *Client) PollIsBackendExist(ctx context.Context, tenantUUID, backendName string) error {
-	var err error
-
-	spinner := ui.GlobalWriter.NewSpinner("Waiting until groundcover is connected to cloud platform")
-	spinner.SetStopMessage("groundcover is connected to cloud platform")
-	spinner.SetStopFailMessage("groundcover is yet connected to cloud platform")
-
-	spinner.Start()
-	defer spinner.WriteStop()
-
-	isBackendExistInSassFunc := func() error {
-		var backendsList []BackendInfo
-		if backendsList, err = client.BackendsList(tenantUUID); err != nil {
-			return err
-		}
-
-		for _, backend := range backendsList {
-			if backend.Name == backendName && backend.Online {
-				return nil
-			}
-		}
-		return ui.RetryableError(err)
-	}
-
-	if err = spinner.Poll(ctx, isBackendExistInSassFunc, BACKEND_POLLING_INTERVAL, BACKEND_POLLING_TIMEOUT, BACKEND_POLLING_RETRIES); err == nil {
-		return nil
-	}
-
-	if err == nil {
-		return nil
-	}
-
-	spinner.WriteStopFail()
-
-	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		return errors.New("timeout waiting for groundcover to connect cloud platform")
-	}
-
-	return err
 }
 
 func (client *Client) BackendsList(tenantUUID string) ([]BackendInfo, error) {
