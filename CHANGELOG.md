@@ -28,6 +28,20 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.22.0] 2024-05-22
+
+### Added
+
+### Changed
+- Datasource key generation based on backend name instead of cluster [sc-16014]
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.21.1] 2024-05-02
 
 ### Added
