@@ -20,6 +20,20 @@ We use the following categories for changes:
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.22.1] 2024-06-03
+
+### Added
+
+### Changed
+
 - Override slice values on redeploy [#sc-16445]
 
 ### Fixed
