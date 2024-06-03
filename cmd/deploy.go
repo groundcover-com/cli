@@ -668,7 +668,7 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 		chartValues["agent"] = map[string]interface{}{"tolerations": tolerations}
 	}
 
-	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithSliceDeepCopy); err != nil {
+	if err = mergo.Merge(&chartValues, valuesOverride, mergo.WithOverride); err != nil {
 		return nil, err
 	}
 
