@@ -19,6 +19,7 @@ type BackendInfo struct {
 	Online   bool   `json:"online"`
 	Licensed bool   `json:"licensed"`
 	Status   string `json:"status"`
+	InCloud  bool   `json:"inCloud"`
 }
 
 func (client *Client) BackendsList(tenantUUID string) ([]BackendInfo, error) {
