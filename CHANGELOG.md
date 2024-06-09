@@ -18,6 +18,8 @@ We use the following categories for changes:
 
 ### Added
 
+- support inCloud validation flow [#sc-16561]
+
 ### Changed
 
 ### Fixed
@@ -49,7 +51,9 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - Datasource key generation based on backend name instead of cluster [sc-16014]
+
 ### Fixed
 
 ### Removed

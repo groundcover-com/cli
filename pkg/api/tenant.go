@@ -8,6 +8,8 @@ const (
 	TenantUUIDHeader   = "X-Tenant-UUID"
 	BackendIDHeader    = "X-Backend-Id"
 	ClusterIDHeader    = "X-Cluster-Id"
+	ContentTypeHeader  = "Content-Type"
+	ContentTypeJSON    = "application/json"
 	TenantListEndpoint = "rbac/member/tenants"
 )
 

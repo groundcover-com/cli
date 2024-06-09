@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,20 +13,22 @@ import (
 )
 
 const (
-	CLUSTER_LIST_ENDPOINT    = "cluster/list"
+	SOURCES_LIST_ENDPOINT    = "sources/list"
 	CLUSTER_POLLING_RETRIES  = 18
 	CLUSTER_POLLING_TIMEOUT  = time.Minute * 3
 	CLUSTER_POLLING_INTERVAL = time.Second * 10
 )
 
-type ClusterInfo struct {
-	Name     string `json:"name"`
-	Online   bool   `json:"online"`
-	Licensed bool   `json:"licensed"`
-	Status   string `json:"status"`
+type Conditions struct {
+	Conditions []interface{} `json:"conditions"`
 }
 
-func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, clusterName string) error {
+type SourceList struct {
+	Env     []string `json:"env"`
+	Cluster []string `json:"cluster"`
+}
+
+func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, backendName, clusterName string) error {
 	var err error
 
 	spinner := ui.GlobalWriter.NewSpinner("Waiting until groundcover is connected to cloud platform")
@@ -36,16 +39,30 @@ func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, cluste
 	defer spinner.WriteStop()
 
 	isClusterExistInSassFunc := func() error {
-		var clusterList []ClusterInfo
-		if clusterList, err = client.clusterList(tenantUUID); err != nil {
+		var backendList []BackendInfo
+		if backendList, err = client.BackendsList(tenantUUID); err != nil {
 			return err
 		}
 
-		for _, cluster := range clusterList {
-			if cluster.Name == clusterName && cluster.Online {
+		for _, backend := range backendList {
+			if backend.Name == backendName && backend.Online {
 				return nil
 			}
+
+			if backend.InCloud {
+				var clusterNames []string
+				if clusterNames, err = client.clusterList(tenantUUID, backend.Name); err != nil {
+					return err
+				}
+
+				for _, name := range clusterNames {
+					if name == clusterName {
+						return nil
+					}
+				}
+			}
 		}
+
 		return ui.RetryableError(err)
 	}
 
@@ -66,30 +83,37 @@ func (client *Client) PollIsClusterExist(ctx context.Context, tenantUUID, cluste
 	return err
 }
 
-func (client *Client) clusterList(tenantUUID string) ([]ClusterInfo, error) {
+func (client *Client) clusterList(tenantUUID, backendName string) ([]string, error) {
 	var err error
 
 	var url *url.URL
-	if url, err = client.JoinPath(CLUSTER_LIST_ENDPOINT); err != nil {
+	if url, err = client.JoinPath(SOURCES_LIST_ENDPOINT); err != nil {
+		return nil, err
+	}
+
+	var payload []byte
+	if payload, err = json.Marshal(Conditions{}); err != nil {
 		return nil, err
 	}
 
 	var request *http.Request
-	if request, err = http.NewRequest(http.MethodGet, url.String(), nil); err != nil {
+	if request, err = http.NewRequest(http.MethodPost, url.String(), bytes.NewBuffer(payload)); err != nil {
 		return nil, err
 	}
 
 	request.Header.Add(TenantUUIDHeader, tenantUUID)
+	request.Header.Add(BackendIDHeader, backendName)
+	request.Header.Add(ContentTypeHeader, ContentTypeJSON)
 
 	var body []byte
 	if body, err = client.do(request); err != nil {
 		return nil, err
 	}
 
-	var clusterList []ClusterInfo
-	if err = json.Unmarshal(body, &clusterList); err != nil {
+	var sourceList SourceList
+	if err = json.Unmarshal(body, &sourceList); err != nil {
 		return nil, err
 	}
 
-	return clusterList, nil
+	return sourceList.Cluster, nil
 }
