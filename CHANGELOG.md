@@ -18,6 +18,20 @@ We use the following categories for changes:
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.22.2] 2024-07-04
+
+### Added
+
 - support inCloud validation flow [#sc-16561]
 
 ### Changed
