@@ -21,9 +21,9 @@ clickhouse:
   resources:
     requests:
       cpu: 20m
-      memory: 128Mi
+      memory: 2Gi
     limits:
-      memory: 2048Mi
+      memory: 4Gi
 
 opentelemetry-collector:
   resources:
@@ -66,10 +66,10 @@ victoria-metrics-single:
     resources:
       requests:
         cpu: 20m
-        memory: 128Mi
+        memory: 2Gi
       limits:
         cpu: 100m
-        memory: 1024Mi
+        memory: 2Gi
 
 monitors-manager:
   resources:
