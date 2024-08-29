@@ -14,16 +14,15 @@ portal:
       cpu: 50m
       memory: 100Mi
     limits:
-      cpu: 300m
       memory: 256Mi
 
 clickhouse:
   resources:
     requests:
-      cpu: 1000m
-      memory: 4Gi
-    limits:
+      cpu: 5
       memory: 12Gi
+    limits:
+      memory: 16Gi
 
 opentelemetry-collector:
   replicaCount: 3
@@ -32,7 +31,6 @@ opentelemetry-collector:
       cpu: 1000m
       memory: 1024Mi
     limits:
-      cpu: 1200m
       memory: 2048Mi
 
 victoria-metrics-agent:
@@ -41,13 +39,11 @@ victoria-metrics-agent:
       cpu: 200m
       memory: 256Mi
     limits:
-      cpu: 600m
       memory: 1Gi
 
 metrics-ingester:
   resources:
     limits:
-      cpu: 1000m
       memory: 2Gi
     requests:
       cpu: 500m
@@ -62,17 +58,16 @@ custom-metrics:
       cpu: 500m
       memory: 1Gi
     limits:
-      cpu: 1500m
       memory: 2Gi
 
 victoria-metrics-single:
   server:
     resources:
       requests:
-        cpu: 1000m
-        memory: 5000Mi
-      limits:
+        cpu: 2
         memory: 6Gi
+      limits:
+        memory: 8Gi
 
 monitors-manager:
   resources:
@@ -80,7 +75,6 @@ monitors-manager:
       cpu: 100m
       memory: 256Mi 
     limits:
-      cpu: 200m
       memory: 512Mi
 
 
