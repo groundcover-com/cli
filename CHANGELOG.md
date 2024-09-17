@@ -28,6 +28,22 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.22.3] 2024-09-17
+
+### Added
+
+- Support groundcover CLI in windows [#sc-19269]
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.22.2] 2024-07-04
 
 ### Added
