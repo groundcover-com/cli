@@ -1,6 +1,6 @@
 ---
 agent:
-  alligator:
+  sensor:
     resources:
       requests:
         memory: 1Gi

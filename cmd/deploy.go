@@ -471,7 +471,7 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, releaseName, n
 	}
 
 	if agentEnabled {
-		if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
+		if err = waitForSensors(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
 			return err
 		}
 	}
