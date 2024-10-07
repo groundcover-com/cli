@@ -28,6 +28,22 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.22.4] 2024-10-07
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Waiting for sensor pods instead of alligator pods [#sc-19833]
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.22.3] 2024-09-17
 
 ### Added
