@@ -28,6 +28,54 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.22.4] 2024-10-07
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Waiting for sensor pods instead of alligator pods [#sc-19833]
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.22.3] 2024-09-17
+
+### Added
+
+- Support groundcover CLI in windows [#sc-19269]
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.22.2] 2024-07-04
+
+### Added
+
+- support inCloud validation flow [#sc-16561]
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.22.1] 2024-06-03
 
 ### Added
@@ -49,7 +97,9 @@ We use the following categories for changes:
 ### Added
 
 ### Changed
+
 - Datasource key generation based on backend name instead of cluster [sc-16014]
+
 ### Fixed
 
 ### Removed

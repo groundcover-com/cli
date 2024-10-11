@@ -203,19 +203,24 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	agentEnabled := true
 	backendEnabled := true
-	if backendValues, ok := chartValues["backend"]; ok {
-		if isEnabled, ok := backendValues.(map[string]interface{})["enabled"]; ok {
-			if enabled, ok := isEnabled.(bool); ok && !enabled {
+	backendName := clusterName
+
+	if globalValues, ok := chartValues["global"].(map[string]interface{}); ok {
+		if backendValues, ok := globalValues["backend"].(map[string]interface{}); ok {
+			if backendNameOverride, ok := backendValues["name"].(string); ok {
+				backendName = backendNameOverride
+			}
+
+			if isEnabled, ok := backendValues["enabled"].(bool); ok && !isEnabled {
+				backendName = ""
 				backendEnabled = false
 			}
 		}
-	}
 
-	agentEnabled := true
-	if agentValues, ok := chartValues["agent"]; ok {
-		if isEnabled, ok := agentValues.(map[string]interface{})["enabled"]; ok {
-			if enabled, ok := isEnabled.(bool); ok && !enabled {
+		if agentValues, ok := globalValues["agent"].(map[string]interface{}); ok {
+			if isEnabled, ok := agentValues["enabled"].(bool); ok && !isEnabled {
 				agentEnabled = false
 			}
 		}
@@ -234,7 +239,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = validateInstall(ctx, kubeClient, releaseName, namespace, chart.AppVersion(), tenantUUID, clusterName, len(deployableNodes), isAuthenticated, agentEnabled, backendEnabled, sentryHelmContext); err != nil {
+	if err = validateInstall(ctx, kubeClient, releaseName, namespace, chart.AppVersion(), tenantUUID, backendName, clusterName, len(deployableNodes), isAuthenticated, agentEnabled, backendEnabled, sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -442,7 +447,7 @@ func installHelmRelease(ctx context.Context, helmClient *helm.Client, releaseNam
 	return err
 }
 
-func validateInstall(ctx context.Context, kubeClient *k8s.Client, releaseName, namespace, appVersion, tenantUUID, clusterName string, deployableNodesCount int, isAuthenticated, agentEnabled, backendEnabled bool, sentryHelmContext *sentry_utils.HelmContext) error {
+func validateInstall(ctx context.Context, kubeClient *k8s.Client, releaseName, namespace, appVersion, tenantUUID, backendName, clusterName string, deployableNodesCount int, isAuthenticated, agentEnabled, backendEnabled bool, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	defer reportPodsStatus(ctx, kubeClient, namespace, sentryHelmContext)
@@ -460,13 +465,13 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, releaseName, n
 	}
 
 	if isAuthenticated {
-		if err = validateClusterRegistered(ctx, tenantUUID, clusterName); err != nil {
+		if err = validateClusterRegistered(ctx, tenantUUID, backendName, clusterName); err != nil {
 			return err
 		}
 	}
 
 	if agentEnabled {
-		if err = waitForAlligators(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
+		if err = waitForSensors(ctx, kubeClient, namespace, appVersion, deployableNodesCount, sentryHelmContext); err != nil {
 			return err
 		}
 	}
@@ -476,7 +481,7 @@ func validateInstall(ctx context.Context, kubeClient *k8s.Client, releaseName, n
 	return nil
 }
 
-func validateClusterRegistered(ctx context.Context, tenantUUID, clusterName string) error {
+func validateClusterRegistered(ctx context.Context, tenantUUID, backendName, clusterName string) error {
 	var err error
 
 	event := segment.NewEvent(CLUSTER_REGISTRATION_EVENT_NAME)
@@ -492,7 +497,7 @@ func validateClusterRegistered(ctx context.Context, tenantUUID, clusterName stri
 
 	apiClient := api.NewClient(auth0Token)
 
-	if err = apiClient.PollIsClusterExist(ctx, tenantUUID, clusterName); err != nil {
+	if err = apiClient.PollIsClusterExist(ctx, tenantUUID, backendName, clusterName); err != nil {
 		return err
 	}
 
