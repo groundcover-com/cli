@@ -89,6 +89,12 @@ backend:
           memory: 40Mi
         limits:
           memory: 60Mi
+  keep:
+    backend:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
 
 vector:
   replicas: 1
