@@ -28,6 +28,22 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.22.5] 2024-10-13
+
+### Added
+
+### Changed
+
+- Update low resources presets to include new components [#sc-20036]
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.22.4] 2024-10-07
 
 ### Added
