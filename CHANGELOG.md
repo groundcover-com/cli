@@ -22,6 +22,8 @@ We use the following categories for changes:
 
 ### Fixed
 
+- Low resource preset should take precedence over kernel 5.11 overrides [#sc-20056]
+
 ### Removed
 
 ### Deprecated
