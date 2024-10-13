@@ -3,11 +3,17 @@ package helm_test
 import (
 	"testing"
 
+	"github.com/blang/semver/v4"
 	"github.com/stretchr/testify/assert"
 	"groundcover.com/pkg/helm"
 	"groundcover.com/pkg/k8s"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+)
+
+var (
+	OldKernelSemver = semver.MustParse("5.10.0")
+	NewKernelSemver = semver.MustParse("5.11.0")
 )
 
 func TestTuneResourcesValuesAgentLow(t *testing.T) {
@@ -28,7 +34,7 @@ func TestTuneResourcesValuesAgentLow(t *testing.T) {
 	resources := helm.CalcAllocatableResources(lowNodeReport)
 
 	// act
-	cpu := helm.GetAgentResourcePresetPath(resources)
+	cpu := helm.GetAgentResourcePresetPath(resources, OldKernelSemver)
 
 	// assert
 	assert.Equal(t, helm.AGENT_LOW_RESOURCES_PATH, cpu)
@@ -52,10 +58,34 @@ func TestTuneResourcesValuesAgentDefault(t *testing.T) {
 	resources := helm.CalcAllocatableResources(defaultNodeReport)
 
 	// act
-	cpu := helm.GetAgentResourcePresetPath(resources)
+	cpu := helm.GetAgentResourcePresetPath(resources, OldKernelSemver)
 
 	// assert
 	assert.Equal(t, helm.DEFAULT_PRESET, cpu)
+}
+
+func TestTuneResourcesValuesAgentNewKernel(t *testing.T) {
+	// arrange
+	agentDefaultCpu := resource.MustParse(helm.AGENT_DEFAULT_CPU_THRESHOLD)
+	agentDefaultCpu.Add(*resource.NewMilliQuantity(1, resource.DecimalSI))
+
+	agentDefaultMemory := resource.MustParse(helm.AGENT_DEFAULT_MEMORY_THRESHOLD)
+	agentDefaultMemory.Add(*resource.NewQuantity(1, resource.BinarySI))
+
+	defaultNodeReport := []*k8s.NodeSummary{
+		{
+			CPU:    &agentDefaultCpu,
+			Memory: &agentDefaultMemory,
+		},
+	}
+
+	resources := helm.CalcAllocatableResources(defaultNodeReport)
+
+	// act
+	cpu := helm.GetAgentResourcePresetPath(resources, NewKernelSemver)
+
+	// assert
+	assert.Equal(t, helm.AGENT_KERNEL_5_11_PRESET_PATH, cpu)
 }
 
 func TestTuneResourcesValuesBackendLow(t *testing.T) {
