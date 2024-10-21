@@ -22,6 +22,20 @@ We use the following categories for changes:
 
 ### Fixed
 
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.22.6] 2024-10-21
+
+### Added
+
+### Changed
+
+### Fixed
+
 - Low resource preset should take precedence over kernel 5.11 overrides [#sc-20056]
 
 ### Removed
