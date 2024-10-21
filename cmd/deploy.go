@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/blang/semver/v4"
 	"github.com/getsentry/sentry-go"
 	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
@@ -46,7 +45,6 @@ const (
 	HELM_REPO_URL                     = "https://helm.groundcover.com"
 	CLUSTER_URL_FORMAT                = "%s/?clusterId=%s&viewType=Overview"
 	QUAY_REGISTRY_PRESET_PATH         = "presets/quay.yaml"
-	AGENT_KERNEL_5_11_PRESET_PATH     = "presets/agent/kernel-5-11.yaml"
 	CUSTOM_METRICS_PRESET_PATH        = "presets/backend/custom-metrics.yaml"
 	KUBE_STATE_METRICS_PRESET_PATH    = "presets/backend/kube-state-metrics.yaml"
 	STORAGE_CLASS_TEMPLATE_PATH       = "templates/backend/storage-class.yaml"
@@ -607,7 +605,7 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 			helm.BACKEND_LOW_RESOURCES_PATH,
 		}
 	} else {
-		agentPresetPath := helm.GetAgentResourcePresetPath(allocatableResources)
+		agentPresetPath := helm.GetAgentResourcePresetPath(allocatableResources, nodesReport.MaximalKernelVersion())
 		if agentPresetPath != helm.DEFAULT_PRESET {
 			overridePaths = append(overridePaths, agentPresetPath)
 		}
@@ -630,10 +628,6 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 	enableKubeStateMetrics := viper.GetBool(ENABLE_KUBE_STATE_METRICS_FLAG)
 	if enableKubeStateMetrics {
 		overridePaths = append(overridePaths, KUBE_STATE_METRICS_PRESET_PATH)
-	}
-
-	if semver.MustParseRange(">=5.11.0")(nodesReport.MaximalKernelVersion()) {
-		overridePaths = append(overridePaths, AGENT_KERNEL_5_11_PRESET_PATH)
 	}
 
 	if len(overridePaths) > 0 {
