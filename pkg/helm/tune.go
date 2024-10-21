@@ -17,8 +17,13 @@ const (
 	AGENT_DEFAULT_CPU_THRESHOLD    = "1000m"
 	AGENT_DEFAULT_MEMORY_THRESHOLD = "1024Mi"
 	AGENT_LOW_RESOURCES_PATH       = "presets/agent/low-resources.yaml"
-	AGENT_KERNEL_5_11_PRESET_PATH  = "presets/agent/kernel-5-11.yaml"
-	KERNEL_5_11_SEMVER_EXPRESSION  = ">=5.11.0"
+
+	// Starting from Linux kernel version 5.11, eBPF maps are accounted for in the memory cgroup
+	// of the process that created them. For this reason we need to increase the memory limit for
+	// the agent.
+	// https://github.com/cilium/ebpf/blob/v0.16.0/docs/ebpf/concepts/rlimit.md#resource-limits
+	AGENT_KERNEL_5_11_PRESET_PATH = "presets/agent/kernel-5-11.yaml"
+	KERNEL_5_11_SEMVER_EXPRESSION = ">=5.11.0"
 
 	EMPTYDIR_STORAGE_PATH = "presets/backend/emptydir-storage.yaml"
 

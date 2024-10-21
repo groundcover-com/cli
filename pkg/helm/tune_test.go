@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	OldKernelSemver = semver.MustParse("5.10.0")
-	NewKernelSemver = semver.MustParse("5.11.0")
+	Kernel510Semver = semver.MustParse("5.10.0")
+	Kernel511Semver = semver.MustParse("5.11.0")
 )
 
 func TestTuneResourcesValuesAgentLow(t *testing.T) {
@@ -34,7 +34,7 @@ func TestTuneResourcesValuesAgentLow(t *testing.T) {
 	resources := helm.CalcAllocatableResources(lowNodeReport)
 
 	// act
-	cpu := helm.GetAgentResourcePresetPath(resources, OldKernelSemver)
+	cpu := helm.GetAgentResourcePresetPath(resources, Kernel510Semver)
 
 	// assert
 	assert.Equal(t, helm.AGENT_LOW_RESOURCES_PATH, cpu)
@@ -58,7 +58,7 @@ func TestTuneResourcesValuesAgentDefault(t *testing.T) {
 	resources := helm.CalcAllocatableResources(defaultNodeReport)
 
 	// act
-	cpu := helm.GetAgentResourcePresetPath(resources, OldKernelSemver)
+	cpu := helm.GetAgentResourcePresetPath(resources, Kernel510Semver)
 
 	// assert
 	assert.Equal(t, helm.DEFAULT_PRESET, cpu)
@@ -82,7 +82,7 @@ func TestTuneResourcesValuesAgentNewKernel(t *testing.T) {
 	resources := helm.CalcAllocatableResources(defaultNodeReport)
 
 	// act
-	cpu := helm.GetAgentResourcePresetPath(resources, NewKernelSemver)
+	cpu := helm.GetAgentResourcePresetPath(resources, Kernel511Semver)
 
 	// assert
 	assert.Equal(t, helm.AGENT_KERNEL_5_11_PRESET_PATH, cpu)
