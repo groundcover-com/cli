@@ -157,7 +157,7 @@ func (suite *SentryContextTestSuite) TestHelmContexJsonOmitEmpty() {
 func (suite *SentryContextTestSuite) TestHelmContextSetOnCurrentScopeSuccess() {
 	//prepare
 	chartVersion := "1.0.0"
-	runningAlligators := "1/1"
+	runningSensors := "1/1"
 	previousChartVersion := "0.9.0"
 	repoUrl := uuid.New().String()
 	chartName := uuid.New().String()
@@ -171,7 +171,7 @@ func (suite *SentryContextTestSuite) TestHelmContextSetOnCurrentScopeSuccess() {
 	sentryContext.PreviousChartVersion = previousChartVersion
 	sentryContext.ValuesOverride = valuesOverride
 	sentryContext.ResourcesPresets = resourcesPresets
-	sentryContext.RunningAlligators = runningAlligators
+	sentryContext.RunningSensors = runningSensors
 
 	//act
 	sentryContext.SetOnCurrentScope()
@@ -187,7 +187,7 @@ func (suite *SentryContextTestSuite) TestHelmContextSetOnCurrentScopeSuccess() {
 			ChartVersion:         chartVersion,
 			ValuesOverride:       valuesOverride,
 			ResourcesPresets:     resourcesPresets,
-			RunningAlligators:    runningAlligators,
+			RunningSensors:       runningSensors,
 			PreviousChartVersion: previousChartVersion,
 		},
 	}

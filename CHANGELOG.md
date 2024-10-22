@@ -28,6 +28,70 @@ We use the following categories for changes:
 
 ### Security
 
+## [0.22.6] 2024-10-21
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Low resource preset should take precedence over kernel 5.11 overrides [#sc-20056]
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.22.5] 2024-10-13
+
+### Added
+
+### Changed
+
+- Update low resources presets to include new components [#sc-20036]
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.22.4] 2024-10-07
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Waiting for sensor pods instead of alligator pods [#sc-19833]
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [0.22.3] 2024-09-17
+
+### Added
+
+- Support groundcover CLI in windows [#sc-19269]
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
 ## [0.22.2] 2024-07-04
 
 ### Added

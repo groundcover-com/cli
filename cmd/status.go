@@ -28,18 +28,18 @@ const (
 	PVC_POLLING_RETRIES  = 40
 	PVC_POLLING_TIMEOUT  = time.Minute * 10
 
-	ALLIGATORS_POLLING_INTERVAL = time.Second * 15
-	ALLIGATORS_POLLING_RETRIES  = 28
-	ALLIGATORS_POLLING_TIMEOUT  = time.Minute * 7
+	SENSORS_POLLING_INTERVAL = time.Second * 15
+	SENSORS_POLLING_RETRIES  = 28
+	SENSORS_POLLING_TIMEOUT  = time.Minute * 7
 
-	ALLIGATOR_LABEL_SELECTOR = "app=alligator"
-	BACKEND_LABEL_SELECTOR   = "app!=alligator"
-	PORTAL_LABEL_SELECTOR    = "app=portal"
-	RUNNING_FIELD_SELECTOR   = "status.phase=Running"
+	SENSOR_LABEL_SELECTOR  = "app=sensor"
+	BACKEND_LABEL_SELECTOR = "app!=sensor"
+	PORTAL_LABEL_SELECTOR  = "app=portal"
+	RUNNING_FIELD_SELECTOR = "status.phase=Running"
 
 	WAIT_FOR_PORTAL_FORMAT      = "Waiting until cluster establish connectivity"
 	WAIT_FOR_PVCS_FORMAT        = "Waiting until all PVCs are bound (%d/%d PVCs)"
-	WAIT_FOR_ALLIGATORS_FORMAT  = "Waiting until all nodes are monitored (%d/%d Nodes)"
+	WAIT_FOR_SENSORS_FORMAT     = "Waiting until all nodes are monitored (%d/%d Nodes)"
 	TIMEOUT_INSTALLATION_FORMAT = "Installation takes longer than expected, you can check the status using \"kubectl get pods -n %s\""
 
 	PVCS_VALIDATION_EVENT_NAME   = "pvcs_validation"
@@ -117,7 +117,7 @@ var StatusCmd = &cobra.Command{
 		}
 		nodesCount := len(nodeList.Items)
 
-		if err = waitForAlligators(ctx, kubeClient, namespace, chart.AppVersion(), nodesCount, sentryHelmContext); err != nil {
+		if err = waitForSensors(ctx, kubeClient, namespace, chart.AppVersion(), nodesCount, sentryHelmContext); err != nil {
 			return err
 		}
 
@@ -178,7 +178,7 @@ func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVe
 	return err
 }
 
-func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, expectedAlligatorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
+func waitForSensors(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, expectedSensorsCount int, sentryHelmContext *sentry_utils.HelmContext) error {
 	var err error
 
 	event := segment.NewEvent(AGENTS_VALIDATION_EVENT_NAME)
@@ -187,43 +187,43 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 		event.StatusByError(err)
 	}()
 
-	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, 0, expectedAlligatorsCount))
-	spinner.SetStopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedAlligatorsCount, expectedAlligatorsCount))
+	spinner := ui.GlobalWriter.NewSpinner(fmt.Sprintf(WAIT_FOR_SENSORS_FORMAT, 0, expectedSensorsCount))
+	spinner.SetStopMessage(fmt.Sprintf("All nodes are monitored (%d/%d Nodes)", expectedSensorsCount, expectedSensorsCount))
 	spinner.SetStopFailMessage(fmt.Sprintf(TIMEOUT_INSTALLATION_FORMAT, namespace))
 
 	spinner.Start()
 	defer spinner.WriteStop()
 
-	runningAlligators := 0
+	runningSensors := 0
 
-	isAlligatorRunningFunc := func() error {
+	isSensorRunningFunc := func() error {
 		var err error
 
-		if runningAlligators, err = getRunningAlligators(ctx, kubeClient, appVersion, namespace); err != nil {
+		if runningSensors, err = getRunningSensors(ctx, kubeClient, appVersion, namespace); err != nil {
 			return err
 		}
 
-		spinner.WriteMessage(fmt.Sprintf(WAIT_FOR_ALLIGATORS_FORMAT, runningAlligators, expectedAlligatorsCount))
+		spinner.WriteMessage(fmt.Sprintf(WAIT_FOR_SENSORS_FORMAT, runningSensors, expectedSensorsCount))
 
-		if runningAlligators >= expectedAlligatorsCount {
+		if runningSensors >= expectedSensorsCount {
 			return nil
 		}
 
-		err = errors.New("not all expected alligators are running")
+		err = errors.New("not all expected sensors are running")
 		return ui.RetryableError(err)
 	}
 
-	err = spinner.Poll(ctx, isAlligatorRunningFunc, ALLIGATORS_POLLING_INTERVAL, ALLIGATORS_POLLING_TIMEOUT, ALLIGATORS_POLLING_RETRIES)
+	err = spinner.Poll(ctx, isSensorRunningFunc, SENSORS_POLLING_INTERVAL, SENSORS_POLLING_TIMEOUT, SENSORS_POLLING_RETRIES)
 
-	runningAlligatorsStr := fmt.Sprintf("%d/%d", runningAlligators, expectedAlligatorsCount)
-	sentryHelmContext.RunningAlligators = runningAlligatorsStr
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.EXPECTED_NODES_COUNT_TAG, fmt.Sprintf("%d", expectedAlligatorsCount))
-	sentry_utils.SetTagOnCurrentScope(sentry_utils.RUNNING_ALLIGATORS_TAG, runningAlligatorsStr)
+	runningSensorsStr := fmt.Sprintf("%d/%d", runningSensors, expectedSensorsCount)
+	sentryHelmContext.RunningSensors = runningSensorsStr
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.EXPECTED_NODES_COUNT_TAG, fmt.Sprintf("%d", expectedSensorsCount))
+	sentry_utils.SetTagOnCurrentScope(sentry_utils.RUNNING_SENSORS_TAG, runningSensorsStr)
 
 	sentryHelmContext.SetOnCurrentScope()
 	event.
-		Set("alligatorsCount", expectedAlligatorsCount).
-		Set("runningAlligatorsCount", runningAlligators)
+		Set("sensorsCount", expectedSensorsCount).
+		Set("runningSensorsCount", runningSensors)
 
 	if err == nil {
 		return nil
@@ -232,9 +232,9 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 	defer spinner.WriteStopFail()
 
 	if errors.Is(err, ui.ErrSpinnerTimeout) {
-		if runningAlligators > 0 {
+		if runningSensors > 0 {
 			spinner.SetWarningSign()
-			spinner.SetStopFailMessage(fmt.Sprintf("groundcover managed to provision %d/%d nodes", runningAlligators, expectedAlligatorsCount))
+			spinner.SetStopFailMessage(fmt.Sprintf("groundcover managed to provision %d/%d nodes", runningSensors, expectedSensorsCount))
 		}
 
 		return ErrExecutionPartialSuccess
@@ -243,27 +243,27 @@ func waitForAlligators(ctx context.Context, kubeClient *k8s.Client, namespace, a
 	return err
 }
 
-func getRunningAlligators(ctx context.Context, kubeClient *k8s.Client, appVersion string, namespace string) (int, error) {
+func getRunningSensors(ctx context.Context, kubeClient *k8s.Client, appVersion string, namespace string) (int, error) {
 	podClient := kubeClient.CoreV1().Pods(namespace)
 	listOptions := metav1.ListOptions{
-		LabelSelector: ALLIGATOR_LABEL_SELECTOR,
+		LabelSelector: SENSOR_LABEL_SELECTOR,
 		FieldSelector: RUNNING_FIELD_SELECTOR,
 	}
 
-	runningAlligators := 0
+	runningSensors := 0
 
 	podList, err := podClient.List(ctx, listOptions)
 	if err != nil {
-		return runningAlligators, err
+		return runningSensors, err
 	}
 
 	for _, pod := range podList.Items {
 		if pod.Annotations["groundcover_version"] == appVersion {
-			runningAlligators++
+			runningSensors++
 		}
 	}
 
-	return runningAlligators, nil
+	return runningSensors, nil
 }
 
 func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, namespace string, sentryHelmContext *sentry_utils.HelmContext) {
@@ -272,7 +272,7 @@ func reportPodsStatus(ctx context.Context, kubeClient *k8s.Client, namespace str
 		return
 	}
 
-	agentPodsStatus, err := listPodsStatuses(ctx, kubeClient, namespace, metav1.ListOptions{LabelSelector: ALLIGATOR_LABEL_SELECTOR})
+	agentPodsStatus, err := listPodsStatuses(ctx, kubeClient, namespace, metav1.ListOptions{LabelSelector: SENSOR_LABEL_SELECTOR})
 	if err != nil {
 		return
 	}

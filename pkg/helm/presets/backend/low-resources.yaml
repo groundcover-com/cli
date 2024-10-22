@@ -73,7 +73,6 @@ monitors-manager:
     limits:
       memory: 150Mi
 
-
 backend:
   postgresql:
     primary:
@@ -83,4 +82,18 @@ backend:
           memory: 40Mi
         limits:
           memory: 60Mi
+  keep:
+    backend:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
 
+vector:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 1024Mi

@@ -20,7 +20,7 @@ const (
 	CLUSTER_NAME_TAG             = "cluster.name"
 	NODES_COUNT_TAG              = "nodes.count"
 	EXPECTED_NODES_COUNT_TAG     = "nodes.expected_count"
-	RUNNING_ALLIGATORS_TAG       = "nodes.running_alligators"
+	RUNNING_SENSORS_TAG          = "nodes.running_sensors"
 	FLUSH_TIMEOUT                = time.Second * 2
 )
 

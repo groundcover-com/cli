@@ -94,7 +94,7 @@ type HelmContext struct {
 	ChartName            string                     `json:",omitempty"`
 	ReleaseName          string                     `json:",omitempty"`
 	ChartVersion         string                     `json:",omitempty"`
-	RunningAlligators    string                     `json:",omitempty"`
+	RunningSensors       string                     `json:",omitempty"`
 	PreviousChartVersion string                     `json:",omitempty"`
 	ResourcesPresets     []string                   `json:",omitempty"`
 	ValuesOverride       map[string]interface{}     `json:",omitempty"`
