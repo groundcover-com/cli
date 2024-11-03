@@ -46,7 +46,6 @@ metrics-ingester:
     limits:
       memory: 2Gi
     requests:
-      cpu: 500m
       memory: 1Gi
 
 custom-metrics:
