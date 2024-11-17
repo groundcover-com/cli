@@ -1,6 +1,8 @@
 package k8s
 
 import (
+	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -21,6 +23,38 @@ type PodStatus struct {
 	StartTime              *metav1.Time      `json:"startTime,omitempty"`
 	InitContainersStatuses []ContainerStatus `json:"initContainersStatuses,omitempty"`
 	ContainerStatuses      []ContainerStatus `json:"containerStatuses,omitempty"`
+}
+
+func (p *PodStatus) GetContainerErrors() []error {
+	errors := make([]error, 0)
+	for _, containerStatus := range p.InitContainersStatuses {
+		if containerStatus.State.Terminated == nil {
+			errors = append(errors, fmt.Errorf("init container %s is not terminated", containerStatus.Name))
+		}
+		if containerStatus.State.Terminated.ExitCode != 0 {
+			errors = append(errors, fmt.Errorf("init container %s exited with code %d", containerStatus.Name,
+				containerStatus.State.Terminated.ExitCode))
+		}
+	}
+
+	for _, containerStatus := range p.ContainerStatuses {
+		if containerStatus.State.Terminated != nil {
+			errors = append(errors, fmt.Errorf("container %s exited with code %d", containerStatus.Name,
+				containerStatus.State.Terminated.ExitCode))
+			continue
+		}
+
+		if containerStatus.State.Waiting != nil {
+			errors = append(errors, fmt.Errorf("container %s is waiting, reason: %s, message: %s", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message))
+			continue
+		}
+
+		if !containerStatus.Ready {
+			errors = append(errors, fmt.Errorf("container %s is not ready", containerStatus.Name))
+		}
+	}
+
+	return errors
 }
 
 func BuildPodStatus(pod v1.Pod) PodStatus {

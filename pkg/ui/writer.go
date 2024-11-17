@@ -113,6 +113,11 @@ func (w *Writer) PrintNoticeMessage(message string) {
 	fmt.Printf("🚨 %s", message)
 }
 
+func (w *Writer) PrintNoticeMessageln(message string) {
+	w.addMessage(message)
+	fmt.Printf("🚨 %s\n", message)
+}
+
 func (w *Writer) UrlLink(url string) string {
 	return color.New(color.FgBlue).Add(color.Underline).Sprint(url)
 }

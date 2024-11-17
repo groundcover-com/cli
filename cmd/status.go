@@ -85,6 +85,9 @@ var StatusCmd = &cobra.Command{
 		sentryKubeContext.ClusterReport = clusterReport
 		sentryKubeContext.SetOnCurrentScope()
 
+		ui.GlobalWriter.Println("Checking cluster requirements...")
+		clusterReport.PrintStatus()
+
 		sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
 		sentryHelmContext.SetOnCurrentScope()
 
@@ -107,22 +110,57 @@ var StatusCmd = &cobra.Command{
 			return err
 		}
 
+		ui.GlobalWriter.Println("Checking groundcover version...")
+
 		if chart.Version().GT(release.Version()) {
-			ui.GlobalWriter.Printf("Current groundcover installation in your cluster version: %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
+			msg := fmt.Sprintf("Current groundcover installation in your cluster version: %s is out of date!, The latest version is %s.", release.Version(), chart.Version())
+			ui.GlobalWriter.PrintWarningMessageln(msg)
+		} else {
+			msg := fmt.Sprintf("Current groundcover installation in your cluster version: %s is up to date.", release.Version())
+			ui.GlobalWriter.PrintSuccessMessageln(msg)
 		}
+		ui.GlobalWriter.Println("Checking groundcover pods...")
 
-		var nodeList *v1.NodeList
-		if nodeList, err = kubeClient.CoreV1().Nodes().List(cmd.Context(), metav1.ListOptions{}); err != nil {
+		runningPods, err := listPodsStatuses(ctx, kubeClient, namespace, metav1.ListOptions{})
+		if err != nil {
+			ui.GlobalWriter.PrintErrorMessageln("Failed to list sensor pods")
 			return err
 		}
-		nodesCount := len(nodeList.Items)
 
-		if err = waitForSensors(ctx, kubeClient, namespace, chart.AppVersion(), nodesCount, sentryHelmContext); err != nil {
-			return err
+		if podStatusCheck(runningPods) {
+			ui.GlobalWriter.PrintSuccessMessageln("All pods are running")
 		}
+
+		/*
+
+			var nodeList *v1.NodeList
+			if nodeList, err = kubeClient.CoreV1().Nodes().List(cmd.Context(), metav1.ListOptions{}); err != nil {
+				return err
+			}
+			nodesCount := len(nodeList.Items)
+
+			if err = waitForSensors(ctx, kubeClient, namespace, chart.AppVersion(), nodesCount, sentryHelmContext); err != nil {
+				return err
+			}
+		*/
 
 		return nil
 	},
+}
+
+func podStatusCheck(pods map[string]k8s.PodStatus) bool {
+	errorPods := make([]k8s.PodStatus, 0)
+	for podName, podStatus := range pods {
+		podErrors := podStatus.GetContainerErrors()
+		if len(podErrors) > 0 {
+			ui.GlobalWriter.PrintErrorMessageln(fmt.Sprintf("Pod %s has errors", podName))
+			for _, podError := range podErrors {
+				ui.GlobalWriter.Printf("  - %s\n", podError)
+			}
+		}
+	}
+
+	return len(errorPods) == 0
 }
 
 func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, sentryHelmContext *sentry_utils.HelmContext) error {
