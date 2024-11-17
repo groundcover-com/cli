@@ -149,10 +149,11 @@ var StatusCmd = &cobra.Command{
 }
 
 func podStatusCheck(pods map[string]k8s.PodStatus) bool {
-	errorPods := make([]k8s.PodStatus, 0)
+	hasErrors := false
 	for podName, podStatus := range pods {
 		podErrors := podStatus.GetContainerErrors()
 		if len(podErrors) > 0 {
+			hasErrors = true
 			ui.GlobalWriter.PrintErrorMessageln(fmt.Sprintf("Pod %s has errors", podName))
 			for _, podError := range podErrors {
 				ui.GlobalWriter.Printf("  - %s\n", podError)
@@ -160,7 +161,7 @@ func podStatusCheck(pods map[string]k8s.PodStatus) bool {
 		}
 	}
 
-	return len(errorPods) == 0
+	return !hasErrors
 }
 
 func waitForPortal(ctx context.Context, kubeClient *k8s.Client, namespace, appVersion string, sentryHelmContext *sentry_utils.HelmContext) error {
