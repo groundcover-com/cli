@@ -7,7 +7,7 @@ replace groundcover.com => ./pkg/
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/getsentry/sentry-go v0.13.0
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
 	k8s.io/apimachinery v0.29.2
