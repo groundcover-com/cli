@@ -1,12 +1,9 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -177,24 +174,28 @@ func checkClusterConnectivity(ctx context.Context, kubeClient *k8s.Client, names
 		return false, errors.New("api-key secret not found")
 	}
 
-	//decode the data using base64
-	b64Decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader(apiKeyValue))
-	decodedApiKey, err := io.ReadAll(b64Decoder)
-	if err != nil {
-		return false, err
-	}
+	/*
 
-	decodedApiKeyString := string(decodedApiKey)
-	if decodedApiKeyString == "" {
-		return false, errors.New("api-key secret is empty")
-	}
+		//decode the data using base64
+		b64Decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader(apiKeyValue))
+		decodedApiKey, err := io.ReadAll(b64Decoder)
+		if err != nil {
+			return false, err
+		}
+
+		decodedApiKeyString := string(decodedApiKey)
+		if decodedApiKeyString == "" {
+			return false, errors.New("api-key secret is empty")
+		}
+
+	*/
 
 	var request *http.Request
 	if request, err = http.NewRequest(http.MethodGet, "https://client.groundcover.com/client/status", nil); err != nil {
 		return false, err
 	}
 
-	request.Header.Add("apikey", decodedApiKeyString)
+	request.Header.Add("apikey", string(apiKeyValue))
 
 	var client = &http.Client{}
 	resp, err := client.Do(request)
