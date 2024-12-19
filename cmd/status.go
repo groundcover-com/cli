@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -137,9 +140,7 @@ var StatusCmd = &cobra.Command{
 		if err != nil {
 			msg := fmt.Sprintf("Failed to check cluster connectivity: %s", err)
 			ui.GlobalWriter.PrintErrorMessageln(msg)
-		}
-
-		if success {
+		} else if success {
 			ui.GlobalWriter.PrintSuccessMessageln("Cluster established connectivity")
 		} else {
 			ui.GlobalWriter.PrintErrorMessageln("Cluster failed to establish connectivity")
@@ -162,21 +163,30 @@ var StatusCmd = &cobra.Command{
 }
 
 func checkClusterConnectivity(ctx context.Context, kubeClient *k8s.Client, namespace string) (bool, error) {
-	kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-	secretList, err := kubeClient.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	apiKeySecret, err := kubeClient.CoreV1().Secrets(namespace).Get(ctx, "api-key", metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
 
-	apiKey := ""
-	for _, secret := range secretList.Items {
-		if secret.Name == "api-key" {
-			apiKey = string(secret.StringData["API_KEY"])
-		}
+	if apiKeySecret == nil {
+		return false, errors.New("api-key secret not found")
 	}
 
-	if apiKey == "" {
+	apiKeyValue, ok := apiKeySecret.Data["API_KEY"]
+	if !ok {
 		return false, errors.New("api-key secret not found")
+	}
+
+	//decode the data using base64
+	b64Decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader(apiKeyValue))
+	decodedApiKey, err := io.ReadAll(b64Decoder)
+	if err != nil {
+		return false, err
+	}
+
+	decodedApiKeyString := string(decodedApiKey)
+	if decodedApiKeyString == "" {
+		return false, errors.New("api-key secret is empty")
 	}
 
 	var request *http.Request
@@ -184,7 +194,7 @@ func checkClusterConnectivity(ctx context.Context, kubeClient *k8s.Client, names
 		return false, err
 	}
 
-	request.Header.Add("apikey", apiKey)
+	request.Header.Add("apikey", decodedApiKeyString)
 
 	var client = &http.Client{}
 	resp, err := client.Do(request)
