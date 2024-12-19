@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -131,6 +132,17 @@ var StatusCmd = &cobra.Command{
 			ui.GlobalWriter.PrintSuccessMessageln("All pods are running")
 		}
 
+		success, err := checkClusterConnectivity(ctx, kubeClient, namespace)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to check cluster connectivity: %s", err)
+			ui.GlobalWriter.PrintErrorMessageln(msg)
+		}
+
+		if success {
+			ui.GlobalWriter.PrintSuccessMessageln("Cluster established connectivity")
+		} else {
+			ui.GlobalWriter.PrintErrorMessageln("Cluster failed to establish connectivity")
+		}
 		/*
 
 			var nodeList *v1.NodeList
@@ -146,6 +158,44 @@ var StatusCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func checkClusterConnectivity(ctx context.Context, kubeClient *k8s.Client, namespace string) (bool, error) {
+	kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	secretList, err := kubeClient.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	apiKey := ""
+	for _, secret := range secretList.Items {
+		if secret.Name == "api-key" {
+			apiKey = string(secret.StringData["API_KEY"])
+		}
+	}
+
+	if apiKey == "" {
+		return false, errors.New("api-key secret not found")
+	}
+
+	var request *http.Request
+	if request, err = http.NewRequest(http.MethodGet, "https://client.groundcover.com/client/status", nil); err != nil {
+		return false, err
+	}
+
+	request.Header.Add("apikey", apiKey)
+
+	var client = &http.Client{}
+	resp, err := client.Do(request)
+	if err != nil {
+		return false, err
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return false, errors.New("invalid api-key")
+	}
+
+	return true, nil
 }
 
 func podStatusCheck(pods map[string]k8s.PodStatus) bool {
