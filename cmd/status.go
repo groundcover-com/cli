@@ -132,6 +132,7 @@ var StatusCmd = &cobra.Command{
 			ui.GlobalWriter.PrintSuccessMessageln("All pods are running")
 		}
 
+		ui.GlobalWriter.Println("Checking connectivity to cloud...")
 		success, err := checkClusterConnectivity(ctx, kubeClient, namespace)
 		if err != nil {
 			msg := fmt.Sprintf("Failed to check cluster connectivity: %s", err)
