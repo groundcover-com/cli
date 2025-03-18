@@ -27,7 +27,7 @@ require helm.sh/helm/v3 v3.16.4
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MicahParks/keyfunc v1.9.0
-	github.com/containerd/containerd v1.7.23
+	github.com/containerd/containerd v1.7.27
 	github.com/fatih/color v1.16.0
 	github.com/go-playground/validator/v10 v10.19.0
 	github.com/google/uuid v1.6.0
@@ -178,7 +178,7 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.35.2 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
