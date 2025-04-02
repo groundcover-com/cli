@@ -61,9 +61,9 @@ monitors-manager:
   resources:
     requests:
       cpu: 5m
-      memory: 110Mi 
+      memory: 256Mi 
     limits:
-      memory: 150Mi
+      memory: 256Mi
 
 backend:
   postgresql:
@@ -71,9 +71,9 @@ backend:
       resources:
         requests:
           cpu: 5m
-          memory: 40Mi
+          memory: 256Mi
         limits:
-          memory: 60Mi
+          memory: 256Mi
   keep:
     backend:
       resources:
