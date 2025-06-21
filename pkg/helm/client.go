@@ -22,7 +22,7 @@ type Client struct {
 func NewHelmClient(namespace, kubecontext string) (*Client, error) {
 	var err error
 
-	helmPath := filepath.Join(utils.PresistentStorage.BasePath, "helm")
+	helmPath := filepath.Join(utils.PersistentStorage.BasePath, "helm")
 
 	os.Setenv("HELM_DATA_HOME", helmPath)
 	os.Setenv("HELM_CACHE_HOME", helmPath)
