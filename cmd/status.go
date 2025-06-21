@@ -320,7 +320,7 @@ func waitForPvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, names
 	}
 
 	if expectedBoundPvcsCount == 0 {
-		ui.GlobalWriter.PrintWarningMessageln("No Presistent volumes")
+		ui.GlobalWriter.PrintWarningMessageln("No Persistent volumes")
 		return nil
 	}
 

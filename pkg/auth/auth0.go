@@ -40,7 +40,7 @@ func LoadAuth0Token() (*Auth0Token, error) {
 	var err error
 
 	var data []byte
-	if data, err = utils.PresistentStorage.Read(TOKEN_STORAGE_KEY); err != nil {
+	if data, err = utils.PersistentStorage.Read(TOKEN_STORAGE_KEY); err != nil {
 		return nil, err
 	}
 
@@ -66,7 +66,7 @@ func (auth0Token *Auth0Token) Save() error {
 		return err
 	}
 
-	return utils.PresistentStorage.Write(TOKEN_STORAGE_KEY, data)
+	return utils.PersistentStorage.Write(TOKEN_STORAGE_KEY, data)
 }
 
 func (auth0Token *Auth0Token) BearerToken() (string, error) {

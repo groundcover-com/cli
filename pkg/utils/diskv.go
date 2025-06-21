@@ -11,7 +11,7 @@ const (
 	STROAGE_PREFIX = ".groundcover"
 )
 
-var PresistentStorage *diskv.Diskv = NewStorage()
+var PersistentStorage *diskv.Diskv = NewStorage()
 
 func NewStorage() *diskv.Diskv {
 	var err error
