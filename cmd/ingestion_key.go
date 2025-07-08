@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	ingestionKeysClient "github.com/groundcover-com/groundcover-sdk-go/pkg/client/ingestionkeys"
 	"github.com/groundcover-com/groundcover-sdk-go/pkg/models"
@@ -14,16 +15,15 @@ import (
 	sdkClient "github.com/groundcover-com/groundcover-sdk-go/pkg/client"
 )
 
-const (
-	CLI_INGESTION_KEY_NAME = "cli-generated-ingestion-key"
-	CLI_INGESTION_KEY_TYPE = "sensor"
-)
+var CLI_INGESTION_KEY_NAME = "cli-generated-ingestion-key-%s"
 
 // CustomTransport is defined in pkg/client/client.go
 
 var IngestionKeyCmd = &cobra.Command{
-	Use:   "get-ingestion-key",
-	Short: "get-ingestion-key",
+	Use:       "get-ingestion-key",
+	Short:     "get-ingestion-key",
+	ValidArgs: []string{"sensor", "rum", "thirdParty"},
+	Example:   "groundcover get-ingestion-key [sensor|rum|thirdParty]",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		var tenant *api.TenantInfo
@@ -48,7 +48,7 @@ var IngestionKeyCmd = &cobra.Command{
 		}
 
 		// Get or create ingestion key
-		ingestionKey, err := getOrCreateIngestionKey(sdkClient)
+		ingestionKey, err := getOrCreateIngestionKey(sdkClient, args)
 		if err != nil {
 			return err
 		}
@@ -60,11 +60,17 @@ var IngestionKeyCmd = &cobra.Command{
 }
 
 // getOrCreateIngestionKey retrieves an existing CLI ingestion key or creates a new one
-func getOrCreateIngestionKey(sdkClient *sdkClient.GroundcoverAPI) (string, error) {
+func getOrCreateIngestionKey(sdkClient *sdkClient.GroundcoverAPI, args []string) (string, error) {
 	// Check if ingestion key already exists
+	if len(args) == 0 {
+		return "", fmt.Errorf("ingestion key type is required")
+	}
+	ingestionKeyType := args[0]
+	ingestionKeyName := fmt.Sprintf(CLI_INGESTION_KEY_NAME, ingestionKeyType)
 	listParams := ingestionKeysClient.NewListIngestionKeysParamsWithContext(context.Background()).WithBody(&models.ListIngestionKeysRequest{
-		Name: CLI_INGESTION_KEY_NAME,
+		Name: ingestionKeyName,
 	})
+
 	existingKeys, err := sdkClient.Ingestionkeys.ListIngestionKeys(listParams, nil)
 	if err != nil {
 		return "", err
@@ -72,14 +78,12 @@ func getOrCreateIngestionKey(sdkClient *sdkClient.GroundcoverAPI) (string, error
 
 	// Look for existing CLI ingestion key
 	for _, key := range existingKeys.Payload {
-		if key.Name == CLI_INGESTION_KEY_NAME {
+		if key.Name == ingestionKeyName {
 			return key.Key, nil
 		}
 	}
 
 	// Create new ingestion key if none exists
-	ingestionKeyName := CLI_INGESTION_KEY_NAME
-	ingestionKeyType := CLI_INGESTION_KEY_TYPE
 	ingestionKeyReq := models.CreateIngestionKeyRequest{
 		Name: &ingestionKeyName,
 		Type: &ingestionKeyType,
