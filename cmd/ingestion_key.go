@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	ingestionKeysClient "github.com/groundcover-com/groundcover-sdk-go/pkg/client/ingestionkeys"
 	"github.com/groundcover-com/groundcover-sdk-go/pkg/models"
@@ -66,7 +67,7 @@ func getOrCreateIngestionKey(sdkClient *sdkClient.GroundcoverAPI, args []string)
 		return "", fmt.Errorf("ingestion key type is required")
 	}
 	ingestionKeyType := args[0]
-	ingestionKeyName := fmt.Sprintf(CLI_INGESTION_KEY_NAME, ingestionKeyType)
+	ingestionKeyName := strings.ToLower(fmt.Sprintf(CLI_INGESTION_KEY_NAME, ingestionKeyType))
 	listParams := ingestionKeysClient.NewListIngestionKeysParamsWithContext(context.Background()).WithBody(&models.ListIngestionKeysRequest{
 		Name: ingestionKeyName,
 	})
