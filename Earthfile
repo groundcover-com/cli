@@ -1,5 +1,7 @@
+VERSION 0.8
+
 groundcover-deps:
-    FROM golang:1.19-alpine3.15
+    FROM golang:1.24-alpine
     RUN apk add build-base
     WORKDIR /builder
     COPY go.mod .
