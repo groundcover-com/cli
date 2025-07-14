@@ -136,16 +136,6 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		tenantUUID = tenant.UUID
 	}
 
-	var apiKey string
-	if apiKey = viper.GetString(API_KEY_FLAG); apiKey == "" {
-		var authApiKey *auth.ApiKey
-		if authApiKey, err = fetchApiKey(tenantUUID); err != nil {
-			return err
-		}
-
-		apiKey = authApiKey.ApiKey
-	}
-
 	var kubeClient *k8s.Client
 	if kubeClient, err = k8s.NewKubeClient(kubeconfig, kubecontext); err != nil {
 		return err
@@ -163,6 +153,28 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	var clusterName string
 	if clusterName, err = getClusterName(kubeClient); err != nil {
 		return err
+	}
+
+	var backendName string
+	if backendName, err = selectBackendName(tenantUUID); err != nil {
+		return err
+	}
+
+	var apiKey string
+	// Try to use ingestion key if no API key is provided
+	if apiKey = viper.GetString(API_KEY_FLAG); apiKey == "" {
+		// Try to get ingestion key first, fall back to regular API key
+		var ingestionKey string
+		if ingestionKey, err = fetchIngestionKey(tenantUUID, backendName); err != nil {
+			// Fall back to regular API key if ingestion key fails
+			var authApiKey *auth.ApiKey
+			if authApiKey, err = fetchApiKey(tenantUUID); err != nil {
+				return err
+			}
+			apiKey = authApiKey.ApiKey
+		} else {
+			apiKey = ingestionKey
+		}
 	}
 
 	sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
@@ -203,7 +215,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	agentEnabled := true
 	backendEnabled := true
-	backendName := clusterName
+	backendName = clusterName
 
 	if globalValues, ok := chartValues["global"].(map[string]interface{}); ok {
 		if backendValues, ok := globalValues["backend"].(map[string]interface{}); ok {
@@ -675,4 +687,23 @@ func generateChartValues(chartValues map[string]interface{}, apiKey, installatio
 	sentryHelmContext.SetOnCurrentScope()
 
 	return chartValues, nil
+}
+
+func fetchIngestionKey(tenantUUID, backendName string) (string, error) {
+	var err error
+
+	var auth0Token *auth.Auth0Token
+	if auth0Token, err = auth.LoadAuth0Token(); err != nil {
+		return "", err
+	}
+
+	apiClient := api.NewClient(auth0Token)
+
+	// Try to get or create a sensor ingestion key
+	ingestionKey, err := apiClient.GetOrCreateIngestionKey(tenantUUID, backendName, "sensor", "")
+	if err != nil {
+		return "", err
+	}
+
+	return ingestionKey, nil
 }

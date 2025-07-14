@@ -132,7 +132,7 @@ func fetchApiKey(tenantUUID string) (*auth.ApiKey, error) {
 	return apiKey, nil
 }
 
-func selectBackendName(tenant *api.TenantInfo) (string, error) {
+func selectBackendName(tenantUUID string) (string, error) {
 	var err error
 	var auth0Token *auth.Auth0Token
 	if auth0Token, err = auth.LoadAuth0Token(); err != nil {
@@ -142,7 +142,7 @@ func selectBackendName(tenant *api.TenantInfo) (string, error) {
 	apiClient := api.NewClient(auth0Token)
 
 	var backendsList []api.BackendInfo
-	if backendsList, err = apiClient.BackendsList(tenant.UUID); err != nil {
+	if backendsList, err = apiClient.BackendsList(tenantUUID); err != nil {
 		return "", err
 	}
 
