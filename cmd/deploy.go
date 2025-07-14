@@ -166,6 +166,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		// Try to get ingestion key first, fall back to regular API key
 		var ingestionKey string
 		if ingestionKey, err = fetchIngestionKey(tenantUUID, backendName); err != nil {
+			ui.GlobalWriter.PrintlnWithPrefixln("ingestion key not found, falling back to regular API key")
 			// Fall back to regular API key if ingestion key fails
 			var authApiKey *auth.ApiKey
 			if authApiKey, err = fetchApiKey(tenantUUID); err != nil {
