@@ -1,12 +1,20 @@
 package api
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
+	ingestionKeysClient "github.com/groundcover-com/groundcover-sdk-go/pkg/client/ingestionkeys"
+	"github.com/groundcover-com/groundcover-sdk-go/pkg/models"
 	"groundcover.com/pkg/auth"
+	clientpkg "groundcover.com/pkg/client"
 )
+
+const CLI_INGESTION_KEY_NAME = "cli-generated-ingestion-key-%s"
 
 type TransportWithAuth0Token struct {
 	http.RoundTripper
@@ -197,4 +205,56 @@ func (client *Client) get(endpoint string) ([]byte, error) {
 	}
 
 	return io.ReadAll(io.Reader(response.Body))
+}
+
+// GetOrCreateIngestionKey retrieves an existing CLI ingestion key or creates a new one
+func (client *Client) GetOrCreateIngestionKey(tenantUUID, backendName, ingestionKeyType, customName string) (string, error) {
+	// Create SDK client
+	auth0Token, err := auth.LoadAuth0Token()
+	if err != nil {
+		return "", err
+	}
+
+	sdkClient, err := clientpkg.NewDefaultClient(auth0Token.AccessToken, backendName, tenantUUID)
+	if err != nil {
+		return "", err
+	}
+
+	// Use provided name if available, otherwise use default naming pattern
+	var ingestionKeyName string
+	if customName != "" {
+		ingestionKeyName = customName
+	} else {
+		ingestionKeyName = strings.ToLower(fmt.Sprintf(CLI_INGESTION_KEY_NAME, ingestionKeyType))
+	}
+
+	listParams := ingestionKeysClient.NewListIngestionKeysParamsWithContext(context.Background()).WithBody(&models.ListIngestionKeysRequest{
+		Name: ingestionKeyName,
+	})
+
+	existingKeys, err := sdkClient.Ingestionkeys.ListIngestionKeys(listParams, nil)
+	if err != nil {
+		return "", err
+	}
+
+	// Look for existing CLI ingestion key
+	for _, key := range existingKeys.Payload {
+		if key.Name == ingestionKeyName {
+			return key.Key, nil
+		}
+	}
+
+	// Create new ingestion key if none exists
+	ingestionKeyReq := models.CreateIngestionKeyRequest{
+		Name: &ingestionKeyName,
+		Type: &ingestionKeyType,
+	}
+
+	ingestionCreateParams := ingestionKeysClient.NewCreateIngestionKeyParamsWithContext(context.Background()).WithBody(&ingestionKeyReq)
+	keyRes, err := sdkClient.Ingestionkeys.CreateIngestionKey(ingestionCreateParams, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return keyRes.Payload.Key, nil
 }
