@@ -20,6 +20,10 @@ const (
 	AUTHENTICATION_VALIDATION_EVENT_NAME = "authentication_validation"
 )
 
+var (
+	ErrNoActiveBackends = errors.New("no active backends")
+)
+
 func init() {
 	AuthCmd.AddCommand(LoginCmd)
 	RootCmd.AddCommand(LoginCmd)
@@ -132,35 +136,43 @@ func fetchApiKey(tenantUUID string) (*auth.ApiKey, error) {
 	return apiKey, nil
 }
 
-func selectBackendName(tenantUUID string) (string, error) {
+func selectBackendName(tenantUUID string, deployFlow bool) (string, bool, error) {
 	var err error
 	var auth0Token *auth.Auth0Token
 	if auth0Token, err = auth.LoadAuth0Token(); err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	apiClient := api.NewClient(auth0Token)
 
 	var backendsList []api.BackendInfo
 	if backendsList, err = apiClient.BackendsList(tenantUUID); err != nil {
-		return "", err
+		return "", false, err
 	}
 
-	backendNames := make([]string, len(backendsList))
-	for index, backend := range backendsList {
-		backendNames[index] = backend.Name
+	backendNames := make(map[string]bool, len(backendsList))
+	noIncloud := true
+	for _, backend := range backendsList {
+		backendNames[backend.Name] = backend.InCloud
+		if backend.InCloud {
+			noIncloud = false
+		}
+	}
+
+	// If there is no InCloud backend and we are in deploy flow, no point asking for a backend
+	if noIncloud && deployFlow {
+		return "", false, nil
 	}
 
 	backendId := ""
-
-	switch len(backendNames) {
+	switch len(backendsList) {
 	case 0:
-		return "", errors.New("no active backends")
+		return "", false, ErrNoActiveBackends
 	case 1:
-		backendId = backendNames[0]
+		backendId = backendsList[0].Name
 	default:
-		backendId = ui.GlobalWriter.SelectPrompt("Select backend:", backendNames)
+		backendId = ui.GlobalWriter.SelectPrompt("Select backend:", maps.Keys(backendNames))
 	}
 
-	return backendId, nil
+	return backendId, backendNames[backendId], nil
 }

@@ -155,29 +155,6 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	var backendName string
-	if backendName, err = selectBackendName(tenantUUID); err != nil {
-		return err
-	}
-
-	var apiKey string
-	// Try to use ingestion key if no API key is provided
-	if apiKey = viper.GetString(API_KEY_FLAG); apiKey == "" {
-		// Try to get ingestion key first, fall back to regular API key
-		var ingestionKey string
-		if ingestionKey, err = fetchIngestionKey(tenantUUID, backendName); err != nil {
-			ui.GlobalWriter.PrintlnWithPrefixln("ingestion key not found, falling back to regular API key")
-			// Fall back to regular API key if ingestion key fails
-			var authApiKey *auth.ApiKey
-			if authApiKey, err = fetchApiKey(tenantUUID); err != nil {
-				return err
-			}
-			apiKey = authApiKey.ApiKey
-		} else {
-			apiKey = ingestionKey
-		}
-	}
-
 	sentryHelmContext := sentry_utils.NewHelmContext(releaseName, CHART_NAME, HELM_REPO_URL)
 	sentryHelmContext.SetOnCurrentScope()
 	sentry_utils.SetTagOnCurrentScope(sentry_utils.CLUSTER_NAME_TAG, clusterName)
@@ -210,32 +187,24 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		chartValues = release.Config
 	}
 
+	var backendName string
+	var isIncloud bool
+	if backendName, isIncloud, err = selectBackendName(tenantUUID, true); err != nil && err != ErrNoActiveBackends {
+		return err
+	}
+
+	apiKey, err := getApiKey(chartValues, tenantUUID, backendName, isIncloud)
+	if err != nil {
+		return err
+	}
+
 	if chartValues, err = generateChartValues(chartValues, apiKey, installationId, clusterName, deployableNodes, tolerations, nodesReport, sentryHelmContext); err != nil {
 		return err
 	}
 
-	agentEnabled := true
-	backendEnabled := true
-	backendName = clusterName
+	agentEnabled, backendEnabled, backendName := getComponentsConfiguration(chartValues, backendName, clusterName, isIncloud)
 
-	if globalValues, ok := chartValues["global"].(map[string]interface{}); ok {
-		if backendValues, ok := globalValues["backend"].(map[string]interface{}); ok {
-			if backendNameOverride, ok := backendValues["name"].(string); ok {
-				backendName = backendNameOverride
-			}
-
-			if isEnabled, ok := backendValues["enabled"].(bool); ok && !isEnabled {
-				backendName = ""
-				backendEnabled = false
-			}
-		}
-
-		if agentValues, ok := globalValues["agent"].(map[string]interface{}); ok {
-			if isEnabled, ok := agentValues["enabled"].(bool); ok && !isEnabled {
-				agentEnabled = false
-			}
-		}
-	}
+	ui.GlobalWriter.PrintflnWithPrefixln("Agent enabled: %t Backend enabled: %t Backend name: %s Cluster name: %s", agentEnabled, backendEnabled, backendName, clusterName)
 
 	var shouldInstall bool
 	if shouldInstall, err = promptInstallSummary(isUpgrade, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), sentryHelmContext); err != nil {
@@ -707,4 +676,71 @@ func fetchIngestionKey(tenantUUID, backendName string) (string, error) {
 	}
 
 	return ingestionKey, nil
+}
+
+func getComponentsConfiguration(chartValues map[string]interface{}, backendName, clusterName string, isIncloud bool) (bool, bool, string) {
+	// default values, assuming regular deployment (non-incloud)
+	agentEnabled := true
+	backendEnabled := true
+
+	if backendName == "" {
+		backendName = clusterName
+	}
+
+	if isIncloud {
+		return true, false, backendName
+	}
+
+	var globalValues map[string]interface{}
+	var ok bool
+	if globalValues, ok = chartValues["global"].(map[string]interface{}); !ok {
+		return agentEnabled, backendEnabled, backendName
+	}
+
+	if backendValues, ok := globalValues["backend"].(map[string]interface{}); ok {
+		if backendNameOverride, ok := backendValues["name"].(string); ok {
+			backendName = backendNameOverride
+		}
+
+		if isEnabled, ok := backendValues["enabled"].(bool); ok && !isEnabled {
+			backendName = ""
+			backendEnabled = false
+		}
+	}
+
+	if agentValues, ok := globalValues["agent"].(map[string]interface{}); ok {
+		if isEnabled, ok := agentValues["enabled"].(bool); ok && !isEnabled {
+			agentEnabled = false
+		}
+	}
+
+	return agentEnabled, backendEnabled, backendName
+}
+
+func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName string, isIncloud bool) (string, error) {
+	apiKey := viper.GetString(API_KEY_FLAG)
+
+	if apiKey != "" {
+		return apiKey, nil
+	}
+
+	if globalValues, ok := chartValues["global"].(map[string]interface{}); ok {
+		if apiKey, ok := globalValues["groundcover_token"].(string); ok {
+			return apiKey, nil
+		}
+	}
+
+	if !isIncloud {
+		authApiKey, err := fetchApiKey(tenantUUID)
+		if err == nil {
+			return authApiKey.ApiKey, nil
+		}
+	}
+
+	ingestionKey, err := fetchIngestionKey(tenantUUID, backendName)
+	if err == nil {
+		return ingestionKey, nil
+	}
+
+	return "", err
 }
