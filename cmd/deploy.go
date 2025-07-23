@@ -204,10 +204,8 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	agentEnabled, backendEnabled, backendName := getComponentsConfiguration(chartValues, backendName, clusterName, isIncloud)
 
-	ui.GlobalWriter.PrintflnWithPrefixln("Agent enabled: %t Backend enabled: %t Backend name: %s Cluster name: %s", agentEnabled, backendEnabled, backendName, clusterName)
-
 	var shouldInstall bool
-	if shouldInstall, err = promptInstallSummary(isUpgrade, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), sentryHelmContext); err != nil {
+	if shouldInstall, err = promptInstallSummary(isUpgrade, isIncloud, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), sentryHelmContext); err != nil {
 		return err
 	}
 
@@ -354,7 +352,7 @@ func promptTaints(tolerationManager *k8s.TolerationManager, sentryKubeContext *s
 	return allowedTaints, nil
 }
 
-func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string, namespace string, release *helm.Release, chart *helm.Chart, deployableNodesCount, nodesCount int, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
+func promptInstallSummary(isUpgrade bool, isIncloud bool, releaseName string, clusterName string, namespace string, release *helm.Release, chart *helm.Chart, deployableNodesCount, nodesCount int, sentryHelmContext *sentry_utils.HelmContext) (bool, error) {
 	ui.GlobalWriter.PrintlnWithPrefixln("Installing groundcover:")
 
 	var promptMessage string
@@ -377,8 +375,8 @@ func promptInstallSummary(isUpgrade bool, releaseName string, clusterName string
 		}
 	} else {
 		promptMessage = fmt.Sprintf(
-			"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s)",
-			clusterName, namespace, deployableNodesCount, nodesCount, chart.Version(),
+			"Deploy groundcover (cluster: %s, namespace: %s, compatible nodes: %d/%d, version: %s, incloud: %t)",
+			clusterName, namespace, deployableNodesCount, nodesCount, chart.Version(), isIncloud,
 		)
 	}
 
