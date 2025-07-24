@@ -19,7 +19,7 @@ var getDatasourcesAPIKeyCmd = &cobra.Command{
 		}
 
 		var backendName string
-		if backendName, err = selectBackendName(tenant); err != nil {
+		if backendName, _, err = selectBackendName(tenant.UUID, false); err != nil {
 			return err
 		}
 
