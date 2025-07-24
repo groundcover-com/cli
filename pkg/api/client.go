@@ -221,15 +221,14 @@ func (client *Client) GetOrCreateIngestionKey(tenantUUID, backendName, ingestion
 	}
 
 	// Use provided name if available, otherwise use default naming pattern
-	var ingestionKeyName string
+	ingestionKeyName := strings.ToLower(fmt.Sprintf(CLI_INGESTION_KEY_NAME, ingestionKeyType))
 	if customName != "" {
 		ingestionKeyName = customName
-	} else {
-		ingestionKeyName = strings.ToLower(fmt.Sprintf(CLI_INGESTION_KEY_NAME, ingestionKeyType))
 	}
 
 	listParams := ingestionKeysClient.NewListIngestionKeysParamsWithContext(context.Background()).WithBody(&models.ListIngestionKeysRequest{
 		Name: ingestionKeyName,
+		Type: ingestionKeyType,
 	})
 
 	existingKeys, err := sdkClient.Ingestionkeys.ListIngestionKeys(listParams, nil)

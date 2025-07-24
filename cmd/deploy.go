@@ -202,7 +202,8 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	agentEnabled, backendEnabled, backendName := getComponentsConfiguration(chartValues, backendName, clusterName, isIncloud)
+	agentEnabled := getAgentComponentsConfiguration(chartValues, isIncloud)
+	backendEnabled, backendName := getBackendComponentsConfiguration(chartValues, backendName, clusterName, isIncloud)
 
 	var shouldInstall bool
 	if shouldInstall, err = promptInstallSummary(isUpgrade, isIncloud, releaseName, clusterName, namespace, release, chart, len(deployableNodes), nodesReport.NodesCount(), sentryHelmContext); err != nil {
@@ -676,9 +677,8 @@ func fetchIngestionKey(tenantUUID, backendName string) (string, error) {
 	return ingestionKey, nil
 }
 
-func getComponentsConfiguration(chartValues map[string]interface{}, backendName, clusterName string, isIncloud bool) (bool, bool, string) {
+func getBackendComponentsConfiguration(chartValues map[string]interface{}, backendName, clusterName string, isIncloud bool) (enabled bool, name string) {
 	// default values, assuming regular deployment (non-incloud)
-	agentEnabled := true
 	backendEnabled := true
 
 	if backendName == "" {
@@ -686,13 +686,13 @@ func getComponentsConfiguration(chartValues map[string]interface{}, backendName,
 	}
 
 	if isIncloud {
-		return true, false, backendName
+		return false, backendName
 	}
 
 	var globalValues map[string]interface{}
 	var ok bool
 	if globalValues, ok = chartValues["global"].(map[string]interface{}); !ok {
-		return agentEnabled, backendEnabled, backendName
+		return backendEnabled, backendName
 	}
 
 	if backendValues, ok := globalValues["backend"].(map[string]interface{}); ok {
@@ -706,13 +706,30 @@ func getComponentsConfiguration(chartValues map[string]interface{}, backendName,
 		}
 	}
 
+	return backendEnabled, backendName
+}
+
+func getAgentComponentsConfiguration(chartValues map[string]interface{}, isIncloud bool) (enabled bool) {
+	// default values, assuming regular deployment (non-incloud)
+	agentEnabled := true
+
+	if isIncloud {
+		return true
+	}
+
+	var globalValues map[string]interface{}
+	var ok bool
+	if globalValues, ok = chartValues["global"].(map[string]interface{}); !ok {
+		return agentEnabled
+	}
+
 	if agentValues, ok := globalValues["agent"].(map[string]interface{}); ok {
 		if isEnabled, ok := agentValues["enabled"].(bool); ok && !isEnabled {
 			agentEnabled = false
 		}
 	}
 
-	return agentEnabled, backendEnabled, backendName
+	return agentEnabled
 }
 
 func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName string, isIncloud bool) (string, error) {
@@ -735,10 +752,5 @@ func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName strin
 		}
 	}
 
-	ingestionKey, err := fetchIngestionKey(tenantUUID, backendName)
-	if err == nil {
-		return ingestionKey, nil
-	}
-
-	return "", err
+	return fetchIngestionKey(tenantUUID, backendName)
 }

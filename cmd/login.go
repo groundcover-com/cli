@@ -151,16 +151,16 @@ func selectBackendName(tenantUUID string, deployFlow bool) (string, bool, error)
 	}
 
 	backendNames := make(map[string]bool, len(backendsList))
-	noIncloud := true
+	hasIncloud := false
 	for _, backend := range backendsList {
 		backendNames[backend.Name] = backend.InCloud
 		if backend.InCloud {
-			noIncloud = false
+			hasIncloud = true
 		}
 	}
 
 	// If there is no InCloud backend and we are in deploy flow, no point asking for a backend
-	if noIncloud && deployFlow {
+	if !hasIncloud && deployFlow {
 		return "", false, nil
 	}
 
