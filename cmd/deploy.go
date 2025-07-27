@@ -739,6 +739,12 @@ func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName strin
 		return apiKey, nil
 	}
 
+	// Check for --token flag (used during installation)
+	token := viper.GetString(TOKEN_FLAG)
+	if token != "" {
+		return token, nil
+	}
+
 	if globalValues, ok := chartValues["global"].(map[string]interface{}); ok {
 		if apiKey, ok := globalValues["groundcover_token"].(string); ok {
 			return apiKey, nil
@@ -750,6 +756,11 @@ func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName strin
 		if err == nil {
 			return authApiKey.ApiKey, nil
 		}
+	}
+
+	// Only call fetchIngestionKey if we have a valid tenantUUID
+	if tenantUUID == "" {
+		return "", fmt.Errorf("no API key available: please run 'groundcover login' or provide --token or --api-key")
 	}
 
 	return fetchIngestionKey(tenantUUID, backendName)
