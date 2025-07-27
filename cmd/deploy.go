@@ -193,7 +193,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	apiKey, err := getApiKey(chartValues, tenantUUID, backendName, isIncloud)
+	apiKey, err := getApiKey(chartValues, tenantUUID, backendName, isIncloud, isAuthenticated)
 	if err != nil {
 		return err
 	}
@@ -732,7 +732,7 @@ func getAgentComponentsConfiguration(chartValues map[string]interface{}, isInclo
 	return agentEnabled
 }
 
-func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName string, isIncloud bool) (string, error) {
+func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName string, isIncloud, isAuthenticated bool) (string, error) {
 	apiKey := viper.GetString(API_KEY_FLAG)
 
 	if apiKey != "" {
@@ -750,6 +750,11 @@ func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName strin
 		if err == nil {
 			return authApiKey.ApiKey, nil
 		}
+	}
+
+	// If --token flag is provided (isAuthenticated is false), don't call fetchIngestionKey
+	if !isAuthenticated {
+		return "", errors.New("no API key found and --token flag was provided")
 	}
 
 	return fetchIngestionKey(tenantUUID, backendName)
