@@ -189,11 +189,17 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 
 	var backendName string
 	var isIncloud bool
-	if backendName, isIncloud, err = selectBackendName(tenantUUID, true); err != nil && err != ErrNoActiveBackends {
-		return err
+	if isAuthenticated {
+		if backendName, isIncloud, err = selectBackendName(tenantUUID, true); err != nil && err != ErrNoActiveBackends {
+			return err
+		}
+	} else {
+		// When using --token, skip backend selection and assume non-incloud deployment
+		backendName = clusterName
+		isIncloud = false
 	}
 
-	apiKey, err := getApiKey(chartValues, tenantUUID, backendName, isIncloud)
+	apiKey, err := getApiKey(chartValues, tenantUUID, backendName, isIncloud, isAuthenticated)
 	if err != nil {
 		return err
 	}
@@ -732,7 +738,7 @@ func getAgentComponentsConfiguration(chartValues map[string]interface{}, isInclo
 	return agentEnabled
 }
 
-func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName string, isIncloud bool) (string, error) {
+func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName string, isIncloud, isAuthenticated bool) (string, error) {
 	apiKey := viper.GetString(API_KEY_FLAG)
 
 	if apiKey != "" {
@@ -745,11 +751,17 @@ func getApiKey(chartValues map[string]interface{}, tenantUUID, backendName strin
 		}
 	}
 
-	if !isIncloud {
+	// Only try to fetch API key from auth.json if authenticated (not using --token flag)
+	if isAuthenticated && !isIncloud {
 		authApiKey, err := fetchApiKey(tenantUUID)
 		if err == nil {
 			return authApiKey.ApiKey, nil
 		}
+	}
+
+	// If --token flag is provided (isAuthenticated is false), don't call fetchIngestionKey
+	if !isAuthenticated {
+		return "", errors.New("no API key found and --token flag was provided")
 	}
 
 	return fetchIngestionKey(tenantUUID, backendName)
