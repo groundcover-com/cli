@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/ui"
@@ -18,18 +19,23 @@ var IngestionKeyCmd = &cobra.Command{
 	Example:   "groundcover get-ingestion-key [sensor|rum|thirdParty] [optional-name]",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var tenant *api.TenantInfo
-		if tenant, err = fetchTenant(); err != nil {
-			return err
-		}
 
 		var auth0Token *auth.Auth0Token
 		if auth0Token, err = auth.LoadAuth0Token(); err != nil {
 			return err
 		}
 
+		var tenantUUID string
+		var tenant *api.TenantInfo
+		if tenantUUID = viper.GetString(TENANT_UUID_FLAG); tenantUUID == "" {
+			if tenant, err = fetchTenant(); err != nil {
+				return err
+			}
+			tenantUUID = tenant.UUID
+		}
+
 		var backendName string
-		if backendName, _, err = selectBackendName(tenant.UUID, false); err != nil {
+		if backendName, _, err = selectBackendName(tenantUUID, false); err != nil {
 			return err
 		}
 
@@ -49,7 +55,7 @@ var IngestionKeyCmd = &cobra.Command{
 			customName = args[1]
 		}
 
-		ingestionKey, err := apiClient.GetOrCreateIngestionKey(tenant.UUID, backendName, ingestionKeyType, customName)
+		ingestionKey, err := apiClient.GetOrCreateIngestionKey(tenantUUID, backendName, ingestionKeyType, customName)
 		if err != nil {
 			return err
 		}

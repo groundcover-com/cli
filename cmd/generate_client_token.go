@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/ui"
@@ -13,9 +14,14 @@ var generateClientTokenCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		var tenantUUID string
 		var tenant *api.TenantInfo
-		if tenant, err = fetchTenant(); err != nil {
-			return err
+		if tenantUUID = viper.GetString(TENANT_UUID_FLAG); tenantUUID == "" {
+			if tenant, err = fetchTenant(); err != nil {
+				return err
+			}
+		} else {
+			tenant = &api.TenantInfo{UUID: tenantUUID}
 		}
 
 		var apiToken *auth.ApiKey

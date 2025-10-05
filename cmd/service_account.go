@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/ui"
@@ -13,13 +14,17 @@ var serviceAccountTokenCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		var tenantUUID string
 		var tenant *api.TenantInfo
-		if tenant, err = fetchTenant(); err != nil {
-			return err
+		if tenantUUID = viper.GetString(TENANT_UUID_FLAG); tenantUUID == "" {
+			if tenant, err = fetchTenant(); err != nil {
+				return err
+			}
+			tenantUUID = tenant.UUID
 		}
 
 		var saToken *auth.SAToken
-		if saToken, err = fetchServiceAccountToken(tenant.UUID); err != nil {
+		if saToken, err = fetchServiceAccountToken(tenantUUID); err != nil {
 			return err
 		}
 
