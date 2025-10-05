@@ -20,6 +20,7 @@ var generateClientTokenCmd = &cobra.Command{
 			if tenant, err = fetchTenant(); err != nil {
 				return err
 			}
+			tenantUUID = tenant.UUID
 		} else {
 			tenant = &api.TenantInfo{UUID: tenantUUID}
 		}
