@@ -14,8 +14,7 @@ var getDatasourcesAPIKeyCmd = &cobra.Command{
 		var err error
 
 		var tenantUUID string
-		var tenant *api.TenantInfo
-		if tenantUUID, tenant, err = fetchTenantOrUseFlag(); err != nil {
+		if tenantUUID, err = getTenantUUID(); err != nil {
 			return err
 		}
 
@@ -25,7 +24,7 @@ var getDatasourcesAPIKeyCmd = &cobra.Command{
 		}
 
 		var apiToken *auth.ApiKey
-		if apiToken, err = fetchDatasourcesAPIKey(tenant, backendName); err != nil {
+		if apiToken, err = fetchDatasourcesAPIKey(tenantUUID, backendName); err != nil {
 			return err
 		}
 
@@ -34,7 +33,7 @@ var getDatasourcesAPIKeyCmd = &cobra.Command{
 	},
 }
 
-func fetchDatasourcesAPIKey(tenant *api.TenantInfo, backendName string) (*auth.ApiKey, error) {
+func fetchDatasourcesAPIKey(tenantUUID string, backendName string) (*auth.ApiKey, error) {
 	var err error
 
 	var auth0Token *auth.Auth0Token
@@ -45,7 +44,7 @@ func fetchDatasourcesAPIKey(tenant *api.TenantInfo, backendName string) (*auth.A
 	apiClient := api.NewClient(auth0Token)
 
 	var apiToken *auth.ApiKey
-	if apiToken, err = apiClient.GetDatasourcesAPIKey(tenant, backendName); err != nil {
+	if apiToken, err = apiClient.GetDatasourcesAPIKey(tenantUUID, backendName); err != nil {
 		return nil, err
 	}
 

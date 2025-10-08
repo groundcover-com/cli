@@ -109,7 +109,7 @@ func (client *Client) ServiceAccountToken(tenantUUID string) (*auth.SAToken, err
 
 	return saToken, nil
 }
-func (client *Client) GetDatasourcesAPIKey(tenant *TenantInfo, backendName string) (*auth.ApiKey, error) {
+func (client *Client) GetDatasourcesAPIKey(tenantUUID string, backendName string) (*auth.ApiKey, error) {
 	var err error
 
 	var url *url.URL
@@ -122,7 +122,7 @@ func (client *Client) GetDatasourcesAPIKey(tenant *TenantInfo, backendName strin
 		return nil, err
 	}
 
-	request.Header.Add(TenantUUIDHeader, tenant.UUID)
+	request.Header.Add(TenantUUIDHeader, tenantUUID)
 	request.Header.Add(BackendIDHeader, backendName)
 
 	var body []byte
@@ -138,7 +138,7 @@ func (client *Client) GetDatasourcesAPIKey(tenant *TenantInfo, backendName strin
 	return key, nil
 }
 
-func (client *Client) GetOrCreateClientToken(tenant *TenantInfo) (*auth.ApiKey, error) {
+func (client *Client) GetOrCreateClientToken(tenantUUID string) (*auth.ApiKey, error) {
 	var err error
 
 	var url *url.URL
@@ -151,7 +151,7 @@ func (client *Client) GetOrCreateClientToken(tenant *TenantInfo) (*auth.ApiKey, 
 		return nil, err
 	}
 
-	request.Header.Add(TenantUUIDHeader, tenant.UUID)
+	request.Header.Add(TenantUUIDHeader, tenantUUID)
 
 	var body []byte
 	if body, err = client.do(request); err != nil {

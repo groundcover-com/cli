@@ -13,13 +13,13 @@ var generateClientTokenCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		var tenant *api.TenantInfo
-		if _, tenant, err = fetchTenantOrUseFlag(); err != nil {
+		var tenantUUID string
+		if tenantUUID, err = getTenantUUID(); err != nil {
 			return err
 		}
 
 		var apiToken *auth.ApiKey
-		if apiToken, err = fetchClientToken(tenant); err != nil {
+		if apiToken, err = fetchClientToken(tenantUUID); err != nil {
 			return err
 		}
 
@@ -29,7 +29,7 @@ var generateClientTokenCmd = &cobra.Command{
 	},
 }
 
-func fetchClientToken(tenant *api.TenantInfo) (*auth.ApiKey, error) {
+func fetchClientToken(tenantUUID string) (*auth.ApiKey, error) {
 	var err error
 
 	var auth0Token *auth.Auth0Token
@@ -40,7 +40,7 @@ func fetchClientToken(tenant *api.TenantInfo) (*auth.ApiKey, error) {
 	apiClient := api.NewClient(auth0Token)
 
 	var clientToken *auth.ApiKey
-	if clientToken, err = apiClient.GetOrCreateClientToken(tenant); err != nil {
+	if clientToken, err = apiClient.GetOrCreateClientToken(tenantUUID); err != nil {
 		return nil, err
 	}
 

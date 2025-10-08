@@ -119,18 +119,17 @@ func fetchTenant() (*api.TenantInfo, error) {
 	}
 }
 
-// fetchTenantOrUseFlag retrieves tenant information from the --tenant-uuid flag if provided,
-// otherwise fetches it from the API. Returns both the tenant UUID string and TenantInfo object.
-func fetchTenantOrUseFlag() (tenantUUID string, tenant *api.TenantInfo, err error) {
-	if tenantUUID = viper.GetString(TENANT_UUID_FLAG); tenantUUID == "" {
-		if tenant, err = fetchTenant(); err != nil {
-			return "", nil, err
-		}
-		tenantUUID = tenant.UUID
-	} else {
-		tenant = &api.TenantInfo{UUID: tenantUUID}
+func getTenantUUID() (string, error) {
+	if tenantUUID := viper.GetString(TENANT_UUID_FLAG); tenantUUID != "" {
+		return tenantUUID, nil
 	}
-	return tenantUUID, tenant, nil
+
+	tenant, err := fetchTenant()
+	if err != nil {
+		return "", err
+	}
+
+	return tenant.UUID, nil
 }
 
 func fetchApiKey(tenantUUID string) (*auth.ApiKey, error) {

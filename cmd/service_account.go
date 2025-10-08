@@ -14,7 +14,7 @@ var serviceAccountTokenCmd = &cobra.Command{
 		var err error
 
 		var tenantUUID string
-		if tenantUUID, _, err = fetchTenantOrUseFlag(); err != nil {
+		if tenantUUID, err = getTenantUUID(); err != nil {
 			return err
 		}
 
