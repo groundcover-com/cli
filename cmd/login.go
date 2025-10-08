@@ -115,7 +115,16 @@ func fetchTenant() (*api.TenantInfo, error) {
 		}
 
 		tenantName := ui.GlobalWriter.SelectPrompt("Select tenant:", maps.Keys(tenantsByName))
-		return tenantsByName[tenantName], nil
+		if tenantName == "" {
+			return nil, errors.New("tenant selection cancelled")
+		}
+
+		tenant, ok := tenantsByName[tenantName]
+		if !ok {
+			return nil, errors.New("invalid tenant selected")
+		}
+
+		return tenant, nil
 	}
 }
 
