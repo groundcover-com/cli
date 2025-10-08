@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
+	"groundcover.com/pkg/api"
 )
 
 type TenantUUIDFlagTestSuite struct {
@@ -115,5 +116,47 @@ func (suite *TenantUUIDFlagTestSuite) TestTenantUUIDFlagPattern() {
 			// This is the expected path - should NOT call fetchTenant()
 			suite.Equal(expectedUUID, tenantUUID)
 		}
+	})
+}
+
+func (suite *TenantUUIDFlagTestSuite) TestFetchTenantOrUseFlag() {
+	suite.Run("with tenant-uuid flag set", func() {
+		expectedUUID := "test-uuid-12345"
+		viper.Set(TENANT_UUID_FLAG, expectedUUID)
+
+		tenantUUID, tenant, err := fetchTenantOrUseFlag()
+
+		// Should not error
+		suite.NoError(err)
+
+		// Should return the UUID from flag
+		suite.Equal(expectedUUID, tenantUUID)
+
+		// Should create a TenantInfo with the UUID
+		suite.NotNil(tenant)
+		suite.Equal(expectedUUID, tenant.UUID)
+	})
+
+	suite.Run("return values structure", func() {
+		testUUID := "structure-test-uuid"
+		viper.Set(TENANT_UUID_FLAG, testUUID)
+
+		tenantUUID, tenant, err := fetchTenantOrUseFlag()
+
+		suite.NoError(err)
+		suite.NotEmpty(tenantUUID, "tenantUUID should be populated")
+		suite.NotNil(tenant, "tenant should be populated")
+		suite.Equal(tenantUUID, tenant.UUID, "tenantUUID and tenant.UUID should match")
+	})
+
+	suite.Run("tenant object created from flag", func() {
+		testUUID := "obj-creation-test"
+		viper.Set(TENANT_UUID_FLAG, testUUID)
+
+		_, tenant, err := fetchTenantOrUseFlag()
+
+		suite.NoError(err)
+		suite.IsType(&api.TenantInfo{}, tenant, "should return pointer to TenantInfo")
+		suite.Equal(testUUID, tenant.UUID)
 	})
 }

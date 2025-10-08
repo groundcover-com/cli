@@ -6,6 +6,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
@@ -116,6 +117,20 @@ func fetchTenant() (*api.TenantInfo, error) {
 		tenantName := ui.GlobalWriter.SelectPrompt("Select tenant:", maps.Keys(tenantsByName))
 		return tenantsByName[tenantName], nil
 	}
+}
+
+// fetchTenantOrUseFlag retrieves tenant information from the --tenant-uuid flag if provided,
+// otherwise fetches it from the API. Returns both the tenant UUID string and TenantInfo object.
+func fetchTenantOrUseFlag() (tenantUUID string, tenant *api.TenantInfo, err error) {
+	if tenantUUID = viper.GetString(TENANT_UUID_FLAG); tenantUUID == "" {
+		if tenant, err = fetchTenant(); err != nil {
+			return "", nil, err
+		}
+		tenantUUID = tenant.UUID
+	} else {
+		tenant = &api.TenantInfo{UUID: tenantUUID}
+	}
+	return tenantUUID, tenant, nil
 }
 
 func fetchApiKey(tenantUUID string) (*auth.ApiKey, error) {

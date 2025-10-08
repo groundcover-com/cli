@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/ui"
@@ -20,18 +19,14 @@ var IngestionKeyCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		var auth0Token *auth.Auth0Token
-		if auth0Token, err = auth.LoadAuth0Token(); err != nil {
+		var tenantUUID string
+		if tenantUUID, _, err = fetchTenantOrUseFlag(); err != nil {
 			return err
 		}
 
-		var tenantUUID string
-		var tenant *api.TenantInfo
-		if tenantUUID = viper.GetString(TENANT_UUID_FLAG); tenantUUID == "" {
-			if tenant, err = fetchTenant(); err != nil {
-				return err
-			}
-			tenantUUID = tenant.UUID
+		var auth0Token *auth.Auth0Token
+		if auth0Token, err = auth.LoadAuth0Token(); err != nil {
+			return err
 		}
 
 		var backendName string
