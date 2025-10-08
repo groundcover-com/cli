@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
 	"groundcover.com/pkg/ui"
 )
@@ -13,13 +12,13 @@ var apiKeyCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		var tenant *api.TenantInfo
-		if tenant, err = fetchTenant(); err != nil {
+		var tenantUUID string
+		if tenantUUID, err = getTenantUUID(); err != nil {
 			return err
 		}
 
 		var apiKey *auth.ApiKey
-		if apiKey, err = fetchApiKey(tenant.UUID); err != nil {
+		if apiKey, err = fetchApiKey(tenantUUID); err != nil {
 			return err
 		}
 

@@ -13,18 +13,18 @@ var getDatasourcesAPIKeyCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		var tenant *api.TenantInfo
-		if tenant, err = fetchTenant(); err != nil {
+		var tenantUUID string
+		if tenantUUID, err = getTenantUUID(); err != nil {
 			return err
 		}
 
 		var backendName string
-		if backendName, _, err = selectBackendName(tenant.UUID, false); err != nil {
+		if backendName, _, err = selectBackendName(tenantUUID, false); err != nil {
 			return err
 		}
 
 		var apiToken *auth.ApiKey
-		if apiToken, err = fetchDatasourcesAPIKey(tenant, backendName); err != nil {
+		if apiToken, err = fetchDatasourcesAPIKey(tenantUUID, backendName); err != nil {
 			return err
 		}
 
@@ -33,7 +33,7 @@ var getDatasourcesAPIKeyCmd = &cobra.Command{
 	},
 }
 
-func fetchDatasourcesAPIKey(tenant *api.TenantInfo, backendName string) (*auth.ApiKey, error) {
+func fetchDatasourcesAPIKey(tenantUUID string, backendName string) (*auth.ApiKey, error) {
 	var err error
 
 	var auth0Token *auth.Auth0Token
@@ -44,7 +44,7 @@ func fetchDatasourcesAPIKey(tenant *api.TenantInfo, backendName string) (*auth.A
 	apiClient := api.NewClient(auth0Token)
 
 	var apiToken *auth.ApiKey
-	if apiToken, err = apiClient.GetDatasourcesAPIKey(tenant, backendName); err != nil {
+	if apiToken, err = apiClient.GetDatasourcesAPIKey(tenantUUID, backendName); err != nil {
 		return nil, err
 	}
 

@@ -18,8 +18,9 @@ var IngestionKeyCmd = &cobra.Command{
 	Example:   "groundcover get-ingestion-key [sensor|rum|thirdParty] [optional-name]",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var tenant *api.TenantInfo
-		if tenant, err = fetchTenant(); err != nil {
+
+		var tenantUUID string
+		if tenantUUID, err = getTenantUUID(); err != nil {
 			return err
 		}
 
@@ -29,7 +30,7 @@ var IngestionKeyCmd = &cobra.Command{
 		}
 
 		var backendName string
-		if backendName, _, err = selectBackendName(tenant.UUID, false); err != nil {
+		if backendName, _, err = selectBackendName(tenantUUID, false); err != nil {
 			return err
 		}
 
@@ -49,7 +50,7 @@ var IngestionKeyCmd = &cobra.Command{
 			customName = args[1]
 		}
 
-		ingestionKey, err := apiClient.GetOrCreateIngestionKey(tenant.UUID, backendName, ingestionKeyType, customName)
+		ingestionKey, err := apiClient.GetOrCreateIngestionKey(tenantUUID, backendName, ingestionKeyType, customName)
 		if err != nil {
 			return err
 		}

@@ -6,6 +6,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
 	"groundcover.com/pkg/api"
 	"groundcover.com/pkg/auth"
@@ -116,6 +117,19 @@ func fetchTenant() (*api.TenantInfo, error) {
 		tenantName := ui.GlobalWriter.SelectPrompt("Select tenant:", maps.Keys(tenantsByName))
 		return tenantsByName[tenantName], nil
 	}
+}
+
+func getTenantUUID() (string, error) {
+	if tenantUUID := viper.GetString(TENANT_UUID_FLAG); tenantUUID != "" {
+		return tenantUUID, nil
+	}
+
+	tenant, err := fetchTenant()
+	if err != nil {
+		return "", err
+	}
+
+	return tenant.UUID, nil
 }
 
 func fetchApiKey(tenantUUID string) (*auth.ApiKey, error) {

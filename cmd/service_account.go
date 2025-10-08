@@ -13,13 +13,13 @@ var serviceAccountTokenCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		var tenant *api.TenantInfo
-		if tenant, err = fetchTenant(); err != nil {
+		var tenantUUID string
+		if tenantUUID, err = getTenantUUID(); err != nil {
 			return err
 		}
 
 		var saToken *auth.SAToken
-		if saToken, err = fetchServiceAccountToken(tenant.UUID); err != nil {
+		if saToken, err = fetchServiceAccountToken(tenantUUID); err != nil {
 			return err
 		}
 
