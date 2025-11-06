@@ -27,7 +27,7 @@ require helm.sh/helm/v3 v3.18.4
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MicahParks/keyfunc v1.9.0
-	github.com/containerd/containerd v1.7.28
+	github.com/containerd/containerd v1.7.29
 	github.com/fatih/color v1.16.0
 	github.com/go-playground/validator/v10 v10.19.0
 	github.com/google/uuid v1.6.0
