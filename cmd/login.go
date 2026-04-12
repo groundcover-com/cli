@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
@@ -23,8 +22,7 @@ const (
 )
 
 var (
-	ErrNoActiveBackends   = errors.New("no active backends")
-	ErrInvalidBackendName = errors.New("specified backend not found")
+	ErrNoActiveBackends = errors.New("no active backends")
 )
 
 func init() {
@@ -162,6 +160,11 @@ func fetchApiKey(tenantUUID string) (*auth.ApiKey, error) {
 }
 
 func selectBackendName(tenantUUID string, deployFlow bool) (string, bool, error) {
+	if flagValue := viper.GetString(BACKEND_NAME_FLAG); flagValue != "" {
+		// non-incloud architecture is deprecated, so explicitly provided backends are always incloud
+		return flagValue, true, nil
+	}
+
 	var err error
 	var auth0Token *auth.Auth0Token
 	if auth0Token, err = auth.LoadAuth0Token(); err != nil {
@@ -194,12 +197,7 @@ func selectBackendName(tenantUUID string, deployFlow bool) (string, bool, error)
 	}
 
 	backendId := ""
-	if flagValue := viper.GetString(BACKEND_FLAG); flagValue != "" {
-		if _, ok := backendNames[flagValue]; !ok {
-			return "", false, fmt.Errorf("%w: %q (available: %v)", ErrInvalidBackendName, flagValue, maps.Keys(backendNames))
-		}
-		backendId = flagValue
-	} else if len(backendsList) == 1 {
+	if len(backendsList) == 1 {
 		backendId = backendsList[0].Name
 	} else {
 		backendId = ui.GlobalWriter.SelectPrompt("Select backend:", maps.Keys(backendNames))
