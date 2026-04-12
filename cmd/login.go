@@ -201,6 +201,9 @@ func selectBackendName(tenantUUID string, deployFlow bool) (string, bool, error)
 		backendId = backendsList[0].Name
 	} else {
 		backendId = ui.GlobalWriter.SelectPrompt("Select backend:", maps.Keys(backendNames))
+		if backendId == "" {
+			return "", false, ErrExecutionAborted
+		}
 	}
 
 	return backendId, backendNames[backendId], nil
