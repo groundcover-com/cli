@@ -196,14 +196,13 @@ func selectBackendName(tenantUUID string, deployFlow bool) (string, bool, error)
 		return "", false, ErrNoActiveBackends
 	}
 
-	backendId := ""
 	if len(backendsList) == 1 {
-		backendId = backendsList[0].Name
-	} else {
-		backendId = ui.GlobalWriter.SelectPrompt("Select backend:", maps.Keys(backendNames))
-		if backendId == "" {
-			return "", false, ErrExecutionAborted
-		}
+		return backendsList[0].Name, backendNames[backendsList[0].Name], nil
+	}
+
+	backendId := ui.GlobalWriter.SelectPrompt("Select backend:", maps.Keys(backendNames))
+	if backendId == "" {
+		return "", false, ErrExecutionAborted
 	}
 
 	return backendId, backendNames[backendId], nil
