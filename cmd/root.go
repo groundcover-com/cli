@@ -33,6 +33,7 @@ const (
 	KUBECONTEXT_FLAG      = "kube-context"
 	HELM_RELEASE_FLAG     = "release-name"
 	CLUSTER_NAME_FLAG     = "cluster-name"
+	BACKEND_FLAG          = "backend"
 	SKIP_CLI_UPDATE_FLAG  = "skip-cli-update"
 	INSTALLATION_ID_FLAG  = "installation-id"
 	INVALID_TOKEN_MESSAGE = "Issue with authentication - try again to copy command line and rerun"
@@ -61,6 +62,9 @@ func init() {
 
 	RootCmd.PersistentFlags().Bool(SKIP_CLI_UPDATE_FLAG, false, "disable automatic cli update check")
 	viper.BindPFlag(SKIP_CLI_UPDATE_FLAG, RootCmd.PersistentFlags().Lookup(SKIP_CLI_UPDATE_FLAG))
+
+	RootCmd.PersistentFlags().String(BACKEND_FLAG, "", "backend name to use (skips interactive selection)")
+	viper.BindPFlag(BACKEND_FLAG, RootCmd.PersistentFlags().Lookup(BACKEND_FLAG))
 
 	RootCmd.PersistentFlags().String(CLUSTER_NAME_FLAG, "", "cluster name")
 	viper.BindPFlag(CLUSTER_NAME_FLAG, RootCmd.PersistentFlags().Lookup(CLUSTER_NAME_FLAG))

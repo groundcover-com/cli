@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
@@ -22,7 +23,8 @@ const (
 )
 
 var (
-	ErrNoActiveBackends = errors.New("no active backends")
+	ErrNoActiveBackends   = errors.New("no active backends")
+	ErrInvalidBackendName = errors.New("specified backend not found")
 )
 
 func init() {
@@ -187,13 +189,19 @@ func selectBackendName(tenantUUID string, deployFlow bool) (string, bool, error)
 		return "", false, nil
 	}
 
-	backendId := ""
-	switch len(backendsList) {
-	case 0:
+	if len(backendsList) == 0 {
 		return "", false, ErrNoActiveBackends
-	case 1:
+	}
+
+	backendId := ""
+	if flagValue := viper.GetString(BACKEND_FLAG); flagValue != "" {
+		if _, ok := backendNames[flagValue]; !ok {
+			return "", false, fmt.Errorf("%w: %q (available: %v)", ErrInvalidBackendName, flagValue, maps.Keys(backendNames))
+		}
+		backendId = flagValue
+	} else if len(backendsList) == 1 {
 		backendId = backendsList[0].Name
-	default:
+	} else {
 		backendId = ui.GlobalWriter.SelectPrompt("Select backend:", maps.Keys(backendNames))
 	}
 
