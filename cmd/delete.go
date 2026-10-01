@@ -294,11 +294,13 @@ func deleteReleaseLeftovers(ctx context.Context, kubeClient *k8s.Client, release
 		return err
 	}
 	for _, svc := range svcList.Items {
+		ui.GlobalWriter.PrintflnWithPrefixln("[AUDIT] deleting service %s/%s (release=%s)", namespace, svc.Name, releaseName)
 		if err = svcClient.Delete(ctx, svc.Name, deleteOptions); err != nil {
 			return err
 		}
 	}
 
+	ui.GlobalWriter.PrintflnWithPrefixln("[AUDIT] deleting endpoints collection in namespace %s (release=%s)", namespace, releaseName)
 	epClient := kubeClient.CoreV1().Endpoints(namespace)
 	if err = epClient.DeleteCollection(ctx, deleteOptions, listOptions); err != nil {
 		return err
@@ -335,6 +337,8 @@ func deletePvcs(ctx context.Context, kubeClient *k8s.Client, releaseName, namesp
 
 func deleteNamespace(ctx context.Context, kubeClient *k8s.Client, namespace string) error {
 	var err error
+
+	ui.GlobalWriter.PrintflnWithPrefixln("[AUDIT] deleting namespace %s", namespace)
 
 	spinner := ui.GlobalWriter.NewSpinner("Deleting groundcover namespace")
 	spinner.Start()
